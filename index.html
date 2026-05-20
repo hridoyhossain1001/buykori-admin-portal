@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Buykori Admin Portal</title>
+  <style>
+    :root { color-scheme: dark; --bg:#080f1d; --panel:#111b2d; --soft:#17243a; --line:#2b3850; --text:#eef5ff; --muted:#9aa9bd; --blue:#38bdf8; --green:#34d399; --red:#fb7185; --amber:#fbbf24; }
+    * { box-sizing:border-box; }
+    body { margin:0; font-family:Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, sans-serif; background:var(--bg); color:var(--text); }
+    .shell { display:grid; grid-template-columns:280px 1fr; min-height:100vh; }
+    aside { padding:22px; border-right:1px solid var(--line); background:#0c1526; }
+    .brand { font-size:20px; font-weight:850; margin-bottom:28px; }
+    .nav { display:grid; gap:8px; }
+    .nav button, .ghost { text-align:left; border:1px solid transparent; background:transparent; color:var(--muted); padding:11px 12px; border-radius:8px; cursor:pointer; font-weight:700; }
+    .nav button.active, .nav button:hover, .ghost:hover { background:var(--soft); color:var(--text); }
+    main { padding:28px; }
+    h1 { margin:0; }
+    .top { display:flex; gap:14px; justify-content:space-between; align-items:center; margin-bottom:22px; }
+    .grid { display:grid; grid-template-columns:repeat(4, minmax(0, 1fr)); gap:14px; margin-bottom:18px; }
+    .card { background:var(--panel); border:1px solid var(--line); border-radius:8px; padding:16px; }
+    .card b { display:block; font-size:26px; margin-top:8px; }
+    .muted { color:var(--muted); }
+    table { width:100%; border-collapse:collapse; }
+    th, td { padding:11px 8px; border-bottom:1px solid var(--line); text-align:left; vertical-align:top; }
+    input { width:100%; border:1px solid var(--line); background:#0c1526; color:var(--text); padding:11px 12px; border-radius:8px; }
+    label { display:block; color:var(--muted); font-size:13px; margin:12px 0 6px; }
+    button.primary { border:0; background:var(--blue); color:#00111f; padding:11px 14px; border-radius:8px; font-weight:850; cursor:pointer; }
+    button.danger { background:#3b1420; color:#fecdd3; border:1px solid #7f1d1d; padding:8px 10px; border-radius:8px; cursor:pointer; }
+    .login { max-width:520px; margin:12vh auto; padding:24px; background:var(--panel); border:1px solid var(--line); border-radius:8px; }
+    .section { display:none; }
+    .section.active { display:block; }
+    .pill { display:inline-block; padding:4px 8px; border-radius:999px; background:#13243d; color:#bfdbfe; font-size:12px; font-weight:750; }
+    .pill.off { background:#321522; color:#fecdd3; }
+    .formgrid { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+    @media (max-width: 920px) { .shell { grid-template-columns:1fr; } .grid, .formgrid { grid-template-columns:1fr; } main { padding:18px; } }
+  </style>
+</head>
+<body>
+  <div id="login" class="login">
+    <h1>Admin Portal</h1>
+    <p class="muted">Use the backend `ADMIN_API_KEY` to manage Buykori clients from `admin.buykori.app`.</p>
+    <input id="adminKey" type="password" placeholder="Admin API key">
+    <div style="height:12px"></div>
+    <button class="primary" onclick="saveKey()">Open admin</button>
+    <p id="loginError" class="muted"></p>
+  </div>
+  <div id="app" class="shell" style="display:none">
+    <aside>
+      <div class="brand">Buykori Admin</div>
+      <div class="nav">
+        <button class="active" data-tab="dashboard">Dashboard</button>
+        <button data-tab="clients">Clients</button>
+        <button data-tab="create">Add Client</button>
+        <button onclick="logout()">Log out</button>
+      </div>
+    </aside>
+    <main>
+      <div class="top">
+        <div>
+          <h1 id="title">Dashboard</h1>
+          <div class="muted">API: https://api.buykori.app</div>
+        </div>
+        <button class="primary" onclick="loadAll()">Refresh</button>
+      </div>
+      <section id="dashboard" class="section active">
+        <div class="grid">
+          <div class="card">Total Clients<b id="totalClients">-</b></div>
+          <div class="card">Active<b id="activeClients">-</b></div>
+          <div class="card">Events<b id="totalEvents">-</b></div>
+          <div class="card">Failed<b id="failedEvents">-</b></div>
+        </div>
+        <div class="card"><h2>Client Health</h2><table><thead><tr><th>Client</th><th>Status</th><th>Today</th><th>Success</th><th>Last Event</th></tr></thead><tbody id="healthRows"></tbody></table></div>
+      </section>
+      <section id="clients" class="section">
+        <div class="card"><h2>Clients</h2><table><thead><tr><th>Name</th><th>Domain</th><th>Events</th><th>Keys</th><th>Actions</th></tr></thead><tbody id="clientRows"></tbody></table></div>
+      </section>
+      <section id="create" class="section">
+        <div class="card">
+          <h2>Add Client</h2>
+          <div class="formgrid">
+            <div><label>Name</label><input id="newName"></div>
+            <div><label>Domain</label><input id="newDomain" placeholder="example.com"></div>
+            <div><label>Facebook Pixel ID</label><input id="newPixel"></div>
+            <div><label>Facebook Access Token</label><input id="newToken" type="password"></div>
+            <div><label>TikTok Pixel ID</label><input id="newTiktokPixel"></div>
+            <div><label>GA4 Measurement ID</label><input id="newGa4"></div>
+          </div>
+          <div style="height:14px"></div>
+          <button class="primary" onclick="createClient()">Create client</button>
+          <p id="createMsg" class="muted"></p>
+        </div>
+      </section>
+    </main>
+  </div>
+  <script>
+    const API_BASE = "https://api.buykori.app/api/v1";
+    const $ = (id) => document.getElementById(id);
+    const fmt = (n) => Number(n || 0).toLocaleString();
+    const key = () => localStorage.getItem("buykori_admin_api_key") || "";
+    async function api(path, options = {}) {
+      const res = await fetch(API_BASE + path, {
+        ...options,
+        headers: { "Content-Type": "application/json", "X-Admin-API-Key": key(), ...(options.headers || {}) }
+      });
+      if (!res.ok) throw new Error(await res.text());
+      return res.json();
+    }
+    async function saveKey() {
+      localStorage.setItem("buykori_admin_api_key", $("adminKey").value.trim());
+      try { await loadAll(); showApp(); } catch (e) { $("loginError").textContent = "Could not connect with this admin key."; }
+    }
+    function showApp() { $("login").style.display = "none"; $("app").style.display = "grid"; }
+    function logout() { localStorage.removeItem("buykori_admin_api_key"); location.reload(); }
+    async function loadAll() {
+      const [summary, clients, health] = await Promise.all([
+        api("/admin/api/summary"), api("/admin/api/clients"), api("/admin/clients/health")
+      ]);
+      $("totalClients").textContent = fmt(summary.total_clients);
+      $("activeClients").textContent = fmt(summary.active_clients);
+      $("totalEvents").textContent = fmt(summary.total_events);
+      $("failedEvents").textContent = fmt(summary.failed_events);
+      $("healthRows").innerHTML = (health.clients || []).map(c => `<tr><td>${c.client_name}</td><td><span class="pill ${c.health_status === "inactive" ? "off" : ""}">${c.health_status}</span></td><td>${fmt(c.today_events)}</td><td>${c.success_rate}%</td><td>${c.last_event_at || "-"}</td></tr>`).join("");
+      $("clientRows").innerHTML = (clients.clients || []).map(c => `<tr><td><b>${c.name}</b><div class="muted">ID ${c.id}</div></td><td>${c.display_domain || "-"}</td><td>${fmt(c.event_total)}</td><td><div class="muted">API ${c.api_key.slice(0,8)}...</div><div class="muted">Portal ${c.portal_key ? c.portal_key.slice(0,8) + "..." : "-"}</div></td><td><button class="danger" onclick="toggleClient(${c.id}, ${!c.is_active})">${c.is_active ? "Deactivate" : "Activate"}</button></td></tr>`).join("");
+    }
+    async function toggleClient(id, isActive) {
+      await api(`/admin/api/clients/${id}`, { method: "PATCH", body: JSON.stringify({ is_active: isActive }) });
+      await loadAll();
+    }
+    async function createClient() {
+      $("createMsg").textContent = "Creating...";
+      try {
+        await api("/admin/api/clients", {
+          method: "POST",
+          body: JSON.stringify({
+            name: $("newName").value, domain: $("newDomain").value, pixel_id: $("newPixel").value,
+            access_token: $("newToken").value, tiktok_pixel_id: $("newTiktokPixel").value || null,
+            ga4_measurement_id: $("newGa4").value || null
+          })
+        });
+        $("createMsg").textContent = "Client created.";
+        await loadAll();
+      } catch (e) { $("createMsg").textContent = "Create failed. Check required fields."; }
+    }
+    document.querySelectorAll(".nav button[data-tab]").forEach(btn => btn.onclick = () => {
+      document.querySelectorAll(".nav button").forEach(b => b.classList.remove("active"));
+      document.querySelectorAll(".section").forEach(s => s.classList.remove("active"));
+      btn.classList.add("active"); $(btn.dataset.tab).classList.add("active"); $("title").textContent = btn.textContent;
+    });
+    if (key()) loadAll().then(showApp).catch(logout);
+  </script>
+</body>
+</html>
