@@ -1,358 +1,46 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" class="dark">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Buykori Admin Portal</title>
-  <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
-
-    :root {
-      color-scheme: dark;
-      --bg-main: #0B1120;
-      --bg-sidebar: #0F172A;
-      --bg-card: #1E293B;
-      --bg-card-hover: #273449;
-      --border: rgba(148, 163, 184, 0.15);
-      --border-bright: rgba(148, 163, 184, 0.25);
-      --primary: #ff8b45;
-      --primary-hover: #ffae6b;
-      --indigo: #3B82F6;
-      --purple: #8B5CF6;
-      --text-main: #F8FAFC;
-      --text-muted: #94A3B8;
-      --text-subtle: #64748B;
-      --success: #10B981;
-      --success-bg: rgba(16, 185, 129, 0.15);
-      --warning: #F59E0B;
-      --warning-bg: rgba(245, 158, 11, 0.15);
-      --danger: #EF4444;
-      --danger-bg: rgba(239, 68, 68, 0.15);
-      --sidebar-width: 250px;
-      --header-height: 70px;
-      --radius: 12px;
-      --radius-sm: 8px;
-    }
-
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: Inter, system-ui, sans-serif; }
-    body { background: var(--bg-main); color: var(--text-main); min-height: 100vh; overflow-x: hidden; font-size: 13px; }
-    button, input { font: inherit; }
-    button { cursor: pointer; }
-    svg { flex-shrink: 0; }
-
-    .login {
-      width: min(440px, calc(100% - 32px));
-      margin: 12vh auto;
-      padding: 28px;
-      background: var(--bg-card);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      box-shadow: 0 28px 70px rgba(0,0,0,0.35);
-    }
-    .login .brand { padding: 0; margin-bottom: 20px; }
-    .login h1 { font-size: 26px; line-height: 1.1; letter-spacing: -0.5px; margin-bottom: 10px; }
-    .login p { color: var(--text-muted); line-height: 1.6; margin-bottom: 18px; }
-    .login label { display: block; color: var(--text-muted); font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 8px; }
-    .login input {
-      width: 100%;
-      background: #0F172A;
-      color: var(--text-main);
-      border: 1px solid var(--border-bright);
-      border-radius: var(--radius-sm);
-      padding: 12px 14px;
-      outline: none;
-    }
-    .login input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(255,139,69,0.14); }
-    .login-error { color: #FCA5A5; min-height: 20px; margin-top: 12px; font-size: 12px; }
-
-    .shell { min-height: 100vh; display: none; }
-    .sidebar {
-      width: var(--sidebar-width);
-      background: var(--bg-sidebar);
-      border-right: 1px solid var(--border);
-      display: flex;
-      flex-direction: column;
-      position: fixed;
-      height: 100vh;
-      left: 0;
-      top: 0;
-      z-index: 50;
-    }
-    .brand { padding: 24px 20px; display: flex; align-items: center; gap: 12px; }
-    .brand-logo {
-      width: 28px;
-      height: 28px;
-      background: linear-gradient(135deg, var(--primary), var(--primary-hover));
-      border-radius: 6px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: #111827;
-      font-weight: 800;
-      font-size: 16px;
-    }
-    .brand-text { font-size: 16px; font-weight: 700; color: #E2E8F0; letter-spacing: -0.3px; }
-    .brand-text span { color: var(--primary); }
-
-    .nav-menu { padding: 12px; flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 4px; }
-    .nav-item {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      width: 100%;
-      padding: 10px 14px;
-      color: var(--text-muted);
-      background: transparent;
-      border: 0;
-      border-radius: var(--radius-sm);
-      font-weight: 600;
-      font-size: 13.5px;
-      text-align: left;
-      transition: all 0.2s;
-    }
-    .nav-item svg { width: 18px; height: 18px; stroke-width: 2; opacity: 0.8; }
-    .nav-item:hover { background: rgba(255,255,255,0.05); color: #E2E8F0; }
-    .nav-item.active { background: linear-gradient(90deg, rgba(255,139,69,0.24), rgba(255,139,69,0.08)); color: white; }
-    .nav-item.active svg { opacity: 1; color: var(--primary); }
-
-    .pro-plan-box {
-      margin: 16px;
-      padding: 16px;
-      border-radius: var(--radius);
-      border: 1px solid rgba(245, 158, 11, 0.2);
-      background: rgba(0,0,0,0.2);
-    }
-    .pro-plan-title { color: #FBBF24; font-weight: 700; font-size: 12px; margin-bottom: 12px; }
-    .progress-bar-bg { width: 100%; height: 6px; background: rgba(255,255,255,0.1); border-radius: 99px; overflow: hidden; margin-bottom: 6px; }
-    .progress-bar-fill { height: 100%; background: linear-gradient(90deg, var(--primary), var(--indigo)); border-radius: 99px; }
-    .pro-plan-stats { display: flex; justify-content: space-between; font-size: 11px; color: var(--text-muted); }
-    .sidebar-bottom { padding: 12px; border-top: 1px solid var(--border); display: flex; flex-direction: column; gap: 4px; }
-
-    .main-wrapper { flex: 1; margin-left: var(--sidebar-width); display: flex; flex-direction: column; min-height: 100vh; }
-    .topbar {
-      height: var(--header-height);
-      border-bottom: 1px solid var(--border);
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 0 32px;
-      background: var(--bg-main);
-      position: sticky;
-      top: 0;
-      z-index: 20;
-    }
-    .search-box {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      background: #0F172A;
-      border: 1px solid rgba(255,255,255,0.08);
-      border-radius: 8px;
-      padding: 8px 16px;
-      width: 320px;
-    }
-    .search-box svg { width: 16px; height: 16px; color: var(--text-muted); }
-    .search-box input { background: none; border: none; outline: none; color: white; width: 100%; font-size: 13px; }
-    .search-box .kbd { background: rgba(255,255,255,0.1); padding: 2px 6px; border-radius: 4px; font-size: 10px; color: var(--text-muted); font-family: monospace; }
-    .topbar-right { display: flex; align-items: center; gap: 20px; }
-    .env-badge {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      padding: 4px 10px;
-      background: rgba(16,185,129,0.1);
-      border-radius: 99px;
-      border: 1px solid rgba(16,185,129,0.2);
-      font-size: 11px;
-      font-weight: 700;
-      color: #10B981;
-      letter-spacing: 0.5px;
-    }
-    .env-badge::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: #10B981; }
-    .icon-btn { position: relative; background: none; border: none; color: var(--text-muted); display: flex; align-items: center; justify-content: center; }
-    .icon-btn svg { width: 20px; height: 20px; }
-    .icon-btn:hover { color: white; }
-    .badge-dot { position: absolute; top: -2px; right: -2px; min-width: 14px; height: 14px; background: #EF4444; border-radius: 50%; border: 2px solid var(--bg-main); display: flex; align-items: center; justify-content: center; font-size: 8px; color: white; font-weight: bold; }
-    .user-profile { display: flex; align-items: center; gap: 10px; border-left: 1px solid var(--border); padding-left: 20px; }
-    .avatar { width: 32px; height: 32px; border-radius: 50%; background: var(--primary); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 800; color: #111827; }
-    .user-info { display: flex; flex-direction: column; }
-    .user-info .name { font-size: 13px; font-weight: 700; color: white; }
-    .user-info .email { font-size: 11px; color: var(--text-muted); }
-    .content { padding: 32px; }
-
-    .page-header { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 24px; gap: 20px; }
-    .page-title { font-size: 24px; font-weight: 800; color: white; margin-bottom: 4px; letter-spacing: -0.5px; }
-    .page-sub { color: var(--text-muted); font-size: 13px; }
-    .header-actions { display: flex; gap: 12px; flex-wrap: wrap; }
-    .btn {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      padding: 8px 16px;
-      border-radius: 6px;
-      font-size: 13px;
-      font-weight: 700;
-      border: none;
-      text-decoration: none;
-    }
-    .btn-outline { background: transparent; border: 1px solid var(--border-bright); color: #E2E8F0; }
-    .btn-outline:hover { background: rgba(255,255,255,0.05); }
-    .btn-primary { background: var(--primary); color: #111827; border: 1px solid rgba(255,139,69,0.45); }
-    .btn-primary:hover { background: var(--primary-hover); }
-    .btn-danger { background: rgba(239,68,68,0.12); color: #FCA5A5; border: 1px solid rgba(239,68,68,0.28); }
-
-    .section { display: none; }
-    .section.active { display: block; }
-    .metrics-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin-bottom: 24px; }
-    .metric-card { background: var(--bg-card); border-radius: var(--radius); border: 1px solid var(--border); padding: 20px; display: flex; flex-direction: column; min-width: 0; }
-    .metric-card:hover { border-color: var(--border-bright); }
-    .metric-header { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
-    .m-icon { width: 28px; height: 28px; border-radius: 6px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-    .m-icon svg { width: 14px; height: 14px; }
-    .m-title { font-size: 12.5px; font-weight: 700; color: #E2E8F0; }
-    .metric-value { font-size: 32px; font-weight: 800; color: white; letter-spacing: -1px; margin-bottom: 8px; line-height: 1; overflow-wrap: anywhere; }
-    .trend { font-size: 12px; display: flex; align-items: center; gap: 6px; color: var(--text-subtle); }
-    .trend span { font-weight: 700; display: inline-flex; align-items: center; gap: 2px; }
-    .trend-up span { color: var(--success); }
-    .trend-down span { color: var(--danger); }
-
-    .card { background: var(--bg-card); border-radius: var(--radius); border: 1px solid var(--border); overflow: hidden; margin-bottom: 24px; }
-    .card-header { padding: 16px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); gap: 16px; }
-    .card-title { font-size: 15px; font-weight: 700; color: white; }
-    .card-tools { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
-    table { width: 100%; border-collapse: collapse; }
-    th { text-align: left; padding: 12px 20px; font-size: 12px; font-weight: 700; color: var(--text-muted); border-bottom: 1px solid var(--border); }
-    td { padding: 16px 20px; font-size: 13px; border-bottom: 1px solid rgba(255,255,255,0.03); color: #E2E8F0; vertical-align: middle; }
-    tr:hover td { background: rgba(255,255,255,0.02); }
-    tr:last-child td { border-bottom: none; }
-    .table-wrap { overflow-x: auto; }
-    .client-name { font-weight: 700; color: white; display: flex; align-items: center; gap: 8px; }
-    .client-sub { font-size: 11px; color: var(--text-muted); margin-top: 4px; font-family: monospace; }
-    .domain-link { display: inline-flex; align-items: center; gap: 4px; color: #E2E8F0; text-decoration: none; }
-    .domain-link:hover { text-decoration: underline; }
-    .status-badge { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 4px; font-size: 11px; font-weight: 700; }
-    .status-badge::before { content: ""; width: 6px; height: 6px; border-radius: 50%; }
-    .status-healthy { background: var(--success-bg); color: var(--success); border: 1px solid rgba(16,185,129,0.2); }
-    .status-healthy::before { background: var(--success); }
-    .status-warning { background: var(--warning-bg); color: var(--warning); border: 1px solid rgba(245,158,11,0.2); }
-    .status-warning::before { background: var(--warning); }
-    .status-degraded, .status-critical, .status-inactive { background: var(--danger-bg); color: #F87171; border: 1px solid rgba(239,68,68,0.2); }
-    .status-degraded::before, .status-critical::before, .status-inactive::before { background: var(--danger); }
-    .integration-status { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; white-space: nowrap; }
-    .integration-status svg { width: 16px; height: 16px; }
-    .dot { width: 6px; height: 6px; border-radius: 50%; }
-    .dot-active { background: var(--success); }
-    .dot-inactive { background: var(--danger); }
-    .action-btn { background: rgba(255,255,255,0.05); border: 1px solid var(--border); color: white; width: 32px; height: 32px; border-radius: 6px; display: inline-flex; align-items: center; justify-content: center; }
-    .action-btn:hover { background: rgba(255,255,255,0.1); }
-    .grid-layout { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; }
-    .view-all { font-size: 12px; color: var(--primary); text-decoration: none; font-weight: 700; background: none; border: 0; }
-    .stream-item { display: flex; align-items: flex-start; gap: 12px; padding: 14px 20px; border-bottom: 1px solid rgba(255,255,255,0.03); }
-    .stream-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; margin-top: 5px; }
-    .stream-dot.info { background: var(--indigo); box-shadow: 0 0 8px rgba(59,130,246,0.6); }
-    .stream-dot.success { background: var(--success); box-shadow: 0 0 8px rgba(16,185,129,0.6); }
-    .stream-dot.warning { background: var(--warning); box-shadow: 0 0 8px rgba(245,158,11,0.6); }
-    .stream-content { flex: 1; min-width: 0; }
-    .stream-title { font-size: 13px; font-weight: 700; color: #E2E8F0; margin-bottom: 2px; }
-    .stream-desc { font-size: 12px; color: var(--text-muted); overflow-wrap: anywhere; }
-    .stream-time { font-size: 11px; color: var(--text-muted); font-family: monospace; white-space: nowrap; margin-left: 10px; }
-    .alert-rank { font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 99px; margin-right: 10px; }
-    .alert-high { color: #EF4444; border: 1px solid rgba(239,68,68,0.3); }
-    .alert-medium { color: #F59E0B; border: 1px solid rgba(245,158,11,0.3); }
-    .alert-low { color: #3B82F6; border: 1px solid rgba(59,130,246,0.3); }
-
-    .connection-footer { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px 20px; display: flex; gap: 22px; flex-wrap: wrap; }
-    .conn-item { display: flex; align-items: center; gap: 12px; }
-    .conn-icon { width: 32px; height: 32px; border-radius: 6px; display: grid; place-items: center; font-weight: 800; }
-    .conn-title { font-size: 12px; font-weight: 700; color: white; }
-    .conn-status { font-size: 11px; color: var(--text-muted); display: flex; align-items: center; gap: 4px; }
-    .conn-status::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--success); }
-    .text-success { color: var(--success); }
-    .text-danger { color: var(--danger); }
-    .bg-blue { background: rgba(59,130,246,0.15); color: #60A5FA; border: 1px solid rgba(59,130,246,0.25); }
-    .bg-purple { background: rgba(139,92,246,0.15); color: #A78BFA; border: 1px solid rgba(139,92,246,0.25); }
-    .bg-red { background: rgba(239,68,68,0.15); color: #F87171; border: 1px solid rgba(239,68,68,0.25); }
-    .bg-indigo { background: rgba(99,102,241,0.15); color: #818CF8; border: 1px solid rgba(99,102,241,0.25); }
-
-    .form-card { padding: 20px; }
-    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-    .field label { display: block; margin-bottom: 7px; color: var(--text-muted); font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; font-weight: 700; }
-    .field input {
-      width: 100%;
-      background: #0F172A;
-      color: var(--text-main);
-      border: 1px solid var(--border);
-      border-radius: var(--radius-sm);
-      padding: 11px 12px;
-      outline: none;
-    }
-    .field input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(255,139,69,0.12); }
-    .notice { margin-top: 12px; color: var(--success); min-height: 18px; }
-    .empty { padding: 36px 20px; text-align: center; color: var(--text-muted); }
-
-    @media (max-width: 1180px) {
-      .metrics-grid { grid-template-columns: repeat(2, 1fr); }
-      .grid-layout { grid-template-columns: 1fr; }
-    }
-    @media (max-width: 820px) {
-      .sidebar { position: static; width: 100%; height: auto; }
-      .shell { display: none; }
-      .shell.ready { display: block; }
-      .main-wrapper { margin-left: 0; }
-      .topbar { height: auto; padding: 16px; display: grid; gap: 14px; }
-      .search-box { width: 100%; }
-      .topbar-right { flex-wrap: wrap; gap: 12px; }
-      .content { padding: 18px; }
-      .page-header { align-items: flex-start; flex-direction: column; }
-      .metrics-grid, .form-grid { grid-template-columns: 1fr; }
-      th, td { padding: 12px; }
-    }
-  
-    /* Modals & Tabs */
-    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); z-index: 99; display: none; align-items: center; justify-content: center; padding: 20px; }
-    .modal { background: var(--bg-card); width: 100%; max-width: 720px; border-radius: var(--radius); border: 1px solid var(--border); box-shadow: 0 24px 48px rgba(0,0,0,0.4); max-height: 90vh; display: flex; flex-direction: column; overflow: hidden; }
-    .modal-header { padding: 20px 24px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
-    .modal-title { font-size: 18px; font-weight: 700; color: white; }
-    .modal-close { background: none; border: none; color: var(--text-muted); font-size: 24px; cursor: pointer; }
-    .modal-close:hover { color: white; }
-    .modal-body { padding: 24px; overflow-y: auto; flex: 1; }
-    
-    .tabs { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 24px; border-bottom: 2px solid rgba(255,255,255,0.05); }
-    .tab-btn { padding: 10px 16px; background: none; border: none; border-bottom: 2px solid transparent; color: var(--text-muted); font-size: 13px; font-weight: 600; cursor: pointer; margin-bottom: -2px; transition: all 0.15s; }
-    .tab-btn:hover { color: #E2E8F0; }
-    .tab-btn.active { color: var(--primary); border-bottom-color: var(--primary); }
-    .tab-content { display: none; }
-    .tab-content.active { display: block; }
-    
-    .api-key-cell { display: flex; align-items: center; gap: 8px; background: rgba(0,0,0,0.3); border: 1px solid var(--border); border-radius: 6px; padding: 8px 12px; font-family: monospace; font-size: 13px; color: #94A3B8; margin-bottom: 16px; }
-    .api-key-cell span { flex: 1; word-break: break-all; }
-    .copy-icon { background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 14px; padding: 0; }
-    .copy-icon:hover { color: var(--primary); }
-    
-    .instr-box { background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.05); border-radius: 8px; padding: 16px; font-family: monospace; font-size: 13px; color: #93c5fd; white-space: pre-wrap; word-break: break-all; margin: 0 0 16px 0; overflow-x: auto; }
-    
-    .btn-sm { padding: 4px 10px; font-size: 12px; border-radius: 4px; }
-
-  </style>
+  <link rel="stylesheet" href="styles.css">
+  <!-- Initialize theme instantly before render to prevent flash of unstyled content -->
+  <script>
+    (function() {
+      const savedTheme = localStorage.getItem("buykori_admin_theme") || "dark";
+      if (savedTheme === "dark") {
+        document.documentElement.classList.add("dark");
+      } else {
+        document.documentElement.classList.remove("dark");
+      }
+    })();
+  </script>
 </head>
 <body>
+
   <div id="login" class="login">
     <div class="brand">
       <div class="brand-logo">B</div>
       <div class="brand-text">Buykori <span>AdSync</span></div>
     </div>
-    <h1>Admin portal</h1>
+    <h1>Admin Portal</h1>
     <p>Use the backend admin key to monitor clients, usage and workspace health. This portal stays separate from the public website and client portal.</p>
     <label for="adminKey">Admin API Key</label>
-    <input id="adminKey" type="password" placeholder="Paste ADMIN_API_KEY" autocomplete="current-password">
-    <div style="height:14px"></div>
-    <button class="btn btn-primary" style="width:100%" onclick="saveKey()">Open dashboard</button>
+    <div style="position:relative;display:flex;align-items:center">
+      <input id="adminKey" type="password" placeholder="Paste ADMIN_API_KEY" autocomplete="current-password" style="padding-right:40px">
+      <button type="button" onclick="toggleAdminPassword()" style="position:absolute;right:10px;background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center" id="adminPassEye">👁️</button>
+    </div>
+    <div style="height:16px"></div>
+    <button class="btn btn-primary" style="width:100%" onclick="saveKey()">Open Dashboard</button>
     <p id="loginError" class="login-error"></p>
   </div>
 
+  <button class="hamburger" id="hamburger" onclick="toggleSidebar()" aria-label="Open menu"><span></span><span></span><span></span></button>
+  <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+
   <div id="app" class="shell">
-    <aside class="sidebar">
+    <aside class="sidebar" id="sidebar">
       <div class="brand">
         <div class="brand-logo">B</div>
         <div class="brand-text">Buykori <span>AdSync</span></div>
@@ -393,7 +81,7 @@
         <div class="pro-plan-title">Plan: Pro</div>
         <div class="pro-plan-stats" style="margin-bottom:6px;">
           <span>Events Used</span>
-          <span style="color:white;font-weight:700;"><span id="planUsed">0</span> / 2M</span>
+          <span style="color:var(--text-main);font-weight:750;"><span id="planUsed">0</span> / 2M</span>
         </div>
         <div class="progress-bar-bg"><div id="planProgress" class="progress-bar-fill" style="width:0%"></div></div>
         <div style="font-size:10px;color:var(--text-muted);margin-top:8px;">Reset on Jun 1, 2026</div>
@@ -420,6 +108,10 @@
         </div>
         <div class="topbar-right">
           <div class="env-badge">PRODUCTION</div>
+          <button class="theme-toggle-btn" id="themeToggle" onclick="toggleTheme()" title="Toggle Theme">
+            <span class="theme-icon-light">☀️ LIGHT</span>
+            <span class="theme-icon-dark">🌙 DARK</span>
+          </button>
           <button class="icon-btn" title="Notifications">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M18 8a6 6 0 00-12 0c0 7-3 7-3 7h18s-3 0-3-7M13.73 21a2 2 0 01-3.46 0"/></svg>
             <span class="badge-dot" id="alertCount">0</span>
@@ -512,11 +204,11 @@
                     <tbody id="integrationRows"></tbody>
                   </table>
                 </div>
-                <div style="padding:14px 20px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;">
+                <div style="padding:14px 20px;border-top:1px solid var(--card-border);display:flex;justify-content:space-between;align-items:center;">
                   <div style="font-size:12px;color:var(--text-muted);" id="tableMeta">Showing 0 clients</div>
                   <div style="display:flex;gap:4px;">
                     <button class="action-btn" title="Previous">&#8249;</button>
-                    <button class="action-btn" style="background:var(--primary);color:#111827;border-color:rgba(255,139,69,0.45)">1</button>
+                    <button class="action-btn" style="background:var(--primary);color:white;border-color:rgba(var(--primary-rgb),0.3)">1</button>
                     <button class="action-btn" title="Next">&#8250;</button>
                   </div>
                 </div>
@@ -624,7 +316,7 @@
                 <div class="field"><label>TikTok Pixel ID</label><input id="newTiktokPixel" placeholder="Optional"></div>
                 <div class="field"><label>GA4 Measurement ID</label><input id="newGa4" placeholder="G-XXXXXXXXXX"></div>
               </div>
-              <div style="height:16px"></div>
+              <div style="height:20px"></div>
               <button class="btn btn-primary" onclick="createClient()">Create client</button>
               <p id="createMsg" class="notice"></p>
             </div>
@@ -633,498 +325,6 @@
       </main>
     </div>
   </div>
-
-  <script>
-    const API_BASE = "https://api.buykori.app/api/v1";
-    const $ = id => document.getElementById(id);
-    const state = { summary: null, clients: [], health: [] };
-    const fmt = n => Number(n || 0).toLocaleString();
-    const pct = n => `${Number(n || 0).toFixed(1).replace(".0", "")}%`;
-    const esc = value => {
-      const div = document.createElement("div");
-      div.textContent = String(value ?? "");
-      return div.innerHTML;
-    };
-    const key = () => localStorage.getItem("buykori_admin_api_key") || "";
-
-    async function api(path, options = {}) {
-      const res = await fetch(API_BASE + path, {
-        ...options,
-        headers: {
-          "Content-Type": "application/json",
-          "X-Admin-API-Key": key(),
-          ...(options.headers || {})
-        }
-      });
-      if (!res.ok) throw new Error(await res.text());
-      return res.json();
-    }
-
-    async function saveKey() {
-      localStorage.setItem("buykori_admin_api_key", $("adminKey").value.trim());
-      try {
-        await loadAll();
-        showApp();
-      } catch (error) {
-        $("loginError").textContent = "Could not connect with this admin key.";
-      }
-    }
-
-    function showApp() {
-      $("login").style.display = "none";
-      $("app").style.display = "flex";
-      $("app").classList.add("ready");
-    }
-
-    function logout() {
-      localStorage.removeItem("buykori_admin_api_key");
-      location.reload();
-    }
-
-    async function loadAll() {
-      const [summary, clients, health] = await Promise.all([
-        api("/admin/api/summary"),
-        api("/admin/api/clients"),
-        api("/admin/clients/health")
-      ]);
-      state.summary = summary;
-      state.clients = clients.clients || [];
-      state.health = health.clients || [];
-      renderAll();
-    }
-
-    function healthFor(client) {
-      return state.health.find(item => String(item.client_id) === String(client.id) || item.client_name === client.name) || {};
-    }
-
-    function statusClass(status) {
-      const clean = String(status || "inactive").toLowerCase();
-      if (clean === "healthy") return "status-healthy";
-      if (clean === "warning") return "status-warning";
-      if (clean === "critical") return "status-critical";
-      return "status-inactive";
-    }
-
-    function statusLabel(status, isActive) {
-      if (!isActive) return "Inactive";
-      const clean = String(status || "healthy").toLowerCase();
-      return clean.charAt(0).toUpperCase() + clean.slice(1);
-    }
-
-    function domainLink(client) {
-      const domain = client.display_domain || client.domain || "No domain set";
-      if (!client.display_domain && !client.domain) return `<span class="domain-link">${esc(domain)}</span>`;
-      const href = String(domain).startsWith("http") ? domain : `https://${domain}`;
-      return `<a href="${esc(href)}" target="_blank" rel="noopener" class="domain-link">${esc(domain)} <span style="font-size:12px">open</span></a>`;
-    }
-
-    function integrationBadge(active, label, color, icon) {
-      const dot = active ? "dot-active" : "dot-inactive";
-      return `<div class="integration-status">${icon ? `<span style="color:${color};font-weight:800">${icon}</span>` : ""}<div class="dot ${dot}"></div>${active ? "Active" : "Off"}${label ? ` <span style="color:var(--text-muted)">${label}</span>` : ""}</div>`;
-    }
-
-    function filteredClients() {
-      const query = ($("searchInput")?.value || "").toLowerCase().trim();
-      if (!query) return state.clients;
-      return state.clients.filter(client => {
-        const health = healthFor(client);
-        return [client.name, client.display_domain, client.domain, client.pixel_id, health.health_status]
-          .some(value => String(value || "").toLowerCase().includes(query));
-      });
-    }
-
-    function renderSummary() {
-      const summary = state.summary || {};
-      const totalEvents = Number(summary.total_events || 0);
-      const failed = Number(summary.failed_events || 0);
-      const totalCalls = Math.max(totalEvents + failed, 1);
-      const matchRate = ((totalEvents / totalCalls) * 100);
-      const errorRate = ((failed / totalCalls) * 100);
-      const activeClients = Number(summary.active_clients || 0);
-
-      $("totalEvents").textContent = fmt(totalEvents);
-      $("failedEvents").textContent = fmt(failed);
-      $("activeClients").textContent = `${fmt(activeClients)} / ${fmt(summary.total_clients || 0)}`;
-      $("matchRate").textContent = pct(matchRate);
-      $("errorRate").textContent = pct(errorRate);
-      $("queuedOutbox").textContent = fmt(failed);
-      $("eventsTrend").textContent = activeClients ? "18.6%" : "0%";
-      $("planUsed").textContent = compactNumber(totalEvents);
-      $("planProgress").style.width = `${Math.min((totalEvents / 2000000) * 100, 100)}%`;
-      $("metaEvents").textContent = `Events: ${fmt(Math.round(totalEvents * 0.42))}`;
-      $("tiktokEvents").textContent = `Events: ${fmt(Math.round(totalEvents * 0.31))}`;
-      $("ga4Events").textContent = `Events: ${fmt(Math.round(totalEvents * 0.27))}`;
-    }
-
-    function compactNumber(value) {
-      const n = Number(value || 0);
-      if (n >= 1000000) return `${(n / 1000000).toFixed(1).replace(".0", "")}M`;
-      if (n >= 1000) return `${(n / 1000).toFixed(1).replace(".0", "")}K`;
-      return fmt(n);
-    }
-
-    function renderIntegrationRows() {
-      const clients = filteredClients();
-      $("tableMeta").textContent = `Showing ${clients.length} of ${state.clients.length} clients`;
-      $("integrationRows").innerHTML = clients.map(client => {
-        const health = healthFor(client);
-        const healthStatus = health.health_status || (client.is_active ? "healthy" : "inactive");
-        const today = health.today_events ?? 0;
-        const ga4Active = Boolean(client.ga4_measurement_id || client.enable_ga4);
-        return `<tr>
-          <td><div class="client-name">${esc(client.name)}</div><div class="client-sub">${esc(client.pixel_id || `ID ${client.id}`)}</div></td>
-          <td>${domainLink(client)}</td>
-          <td>${integrationBadge(Boolean(client.enable_facebook ?? true), "", "#1877F2", "f")}</td>
-          <td>${integrationBadge(Boolean(client.tiktok_pixel_id || client.enable_tiktok), "", "#FFFFFF", "T")}</td>
-          <td>${integrationBadge(ga4Active, ga4Active ? "" : "Warning", "#F9AB00", "G")}</td>
-          <td><span class="text-success" style="font-weight:700">${fmt(today)}</span> <span style="font-size:10px;color:var(--text-subtle)">today</span></td>
-          <td><div class="status-badge ${statusClass(healthStatus)}">${statusLabel(healthStatus, client.is_active)}</div></td>
-          <td><button class="action-btn" onclick="toggleClient(${client.id}, ${!client.is_active})" title="${client.is_active ? "Deactivate" : "Activate"}">...</button></td>
-        </tr>`;
-      }).join("") || `<tr><td colspan="8" class="empty">No active client integrations found.</td></tr>`;
-    }
-
-    function renderClientRows() {
-      $("clientRows").innerHTML = filteredClients().map(client => {
-        const health = healthFor(client);
-        const healthStatus = health.health_status || (client.is_active ? "healthy" : "inactive");
-        return `<tr>
-          <td><div class="client-name">${esc(client.name)}</div><div class="client-sub">ID ${esc(client.id)}</div></td>
-          <td>${domainLink(client)}</td>
-          <td>${fmt(client.event_total || 0)}</td>
-          <td><div class="client-sub">API ${esc(String(client.api_key || "").slice(0, 8))}...</div><div class="client-sub">Portal ${client.portal_key ? `${esc(String(client.portal_key).slice(0, 8))}...` : "-"}</div></td>
-          <td><div class="status-badge ${statusClass(healthStatus)}">${statusLabel(healthStatus, client.is_active)}</div></td>
-          <td>
-  <div style="display:flex;gap:8px">
-    <button class="btn btn-outline btn-sm" onclick="openClientModal(${client.id})">Manage</button>
-    <button class="btn btn-sm ${client.is_active ? 'btn-outline' : 'btn-primary'}" onclick="toggleClient(${client.id}, ${!client.is_active})">${client.is_active ? "Deactivate" : "Activate"}</button>
-  </div>
-</td>
-        </tr>`;
-      }).join("") || `<tr><td colspan="6" class="empty">No clients found.</td></tr>`;
-    }
-
-    function renderHealthRows() {
-      $("healthRows").innerHTML = state.health.map(item => `<tr>
-        <td><div class="client-name">${esc(item.client_name)}</div><div class="client-sub">${esc(item.domain || "")}</div></td>
-        <td><div class="status-badge ${statusClass(item.health_status)}">${statusLabel(item.health_status, item.health_status !== "inactive")}</div></td>
-        <td>${fmt(item.today_events)}</td>
-        <td>${pct(item.success_rate)}</td>
-        <td>${esc(item.last_event_at || "-")}</td>
-      </tr>`).join("") || `<tr><td colspan="5" class="empty">No health data found.</td></tr>`;
-    }
-
-    function renderMatrixRows() {
-      $("integrationMatrixRows").innerHTML = filteredClients().map(client => {
-        const health = healthFor(client);
-        const healthStatus = health.health_status || (client.is_active ? "healthy" : "inactive");
-        return `<tr>
-          <td><div class="client-name">${esc(client.name)}</div></td>
-          <td>${integrationBadge(Boolean(client.enable_facebook ?? true), "", "#1877F2", "f")}</td>
-          <td>${integrationBadge(Boolean(client.tiktok_pixel_id || client.enable_tiktok), "", "#FFFFFF", "T")}</td>
-          <td>${integrationBadge(Boolean(client.ga4_measurement_id || client.enable_ga4), "", "#F9AB00", "G")}</td>
-          <td><div class="status-badge ${statusClass(healthStatus)}">${statusLabel(healthStatus, client.is_active)}</div></td>
-        </tr>`;
-      }).join("") || `<tr><td colspan="5" class="empty">No integration data found.</td></tr>`;
-    }
-
-    function derivedActivities() {
-      const totalToday = state.health.reduce((sum, item) => sum + Number(item.today_events || 0), 0);
-      const warnings = state.health.filter(item => ["warning", "critical"].includes(String(item.health_status).toLowerCase()));
-      const latest = state.health.find(item => item.last_event_at);
-      const rows = [
-        { type: "success", title: "Events processed", desc: `${fmt(totalToday)} events processed in the current health window`, time: "now" },
-        { type: "info", title: "Clients synced", desc: `${fmt(state.clients.length)} clients loaded from production backend`, time: "now" },
-        warnings[0] ? { type: "warning", title: "Health warning detected", desc: `${warnings[0].client_name} is ${warnings[0].health_status}`, time: "now" } : null,
-        latest ? { type: "success", title: "Latest event received", desc: `${latest.client_name} reported activity`, time: trimTime(latest.last_event_at) } : null,
-        { type: "info", title: "User admin logged in", desc: "sysop@buykori.app", time: "session" }
-      ].filter(Boolean);
-      return rows;
-    }
-
-    function renderActivity() {
-      const rows = derivedActivities();
-      const html = rows.map((row, index) => `<div class="stream-item" style="${index === rows.length - 1 ? "border-bottom:none" : ""}">
-        <div class="stream-dot ${row.type}"></div>
-        <div class="stream-content"><div class="stream-title">${esc(row.title)}</div><div class="stream-desc">${esc(row.desc)}</div></div>
-        <div class="stream-time">${esc(row.time)}</div>
-      </div>`).join("");
-      $("activityRows").innerHTML = html;
-      $("logsRows").innerHTML = html;
-    }
-
-    function derivedAlerts() {
-      const critical = state.health.filter(item => String(item.health_status).toLowerCase() === "critical");
-      const warning = state.health.filter(item => String(item.health_status).toLowerCase() === "warning");
-      const inactive = state.health.filter(item => String(item.health_status).toLowerCase() === "inactive");
-      const noDomain = state.clients.filter(client => !(client.display_domain || client.domain));
-      return [
-        critical.length ? { rank: "High", cls: "alert-high", title: "Critical client health", desc: `Affects ${critical.length} client${critical.length > 1 ? "s" : ""}`, value: `${critical.length}` } : null,
-        warning.length ? { rank: "Medium", cls: "alert-medium", title: "Warning status detected", desc: `Affects ${warning.length} client${warning.length > 1 ? "s" : ""}`, value: `${warning.length}` } : null,
-        inactive.length ? { rank: "Medium", cls: "alert-medium", title: "Inactive clients", desc: `Affects ${inactive.length} client${inactive.length > 1 ? "s" : ""}`, value: `${inactive.length}` } : null,
-        noDomain.length ? { rank: "Low", cls: "alert-low", title: "Domain validation warning", desc: `Affects ${noDomain.length} domain${noDomain.length > 1 ? "s" : ""}`, value: `${noDomain.length}` } : null
-      ].filter(Boolean);
-    }
-
-    function renderAlerts() {
-      const rows = derivedAlerts();
-      $("alertCount").textContent = rows.length;
-      $("alertRows").innerHTML = rows.map((row, index) => `<div class="stream-item" style="align-items:center;${index === rows.length - 1 ? "border-bottom:none" : ""}">
-        <svg style="width:20px;height:20px;color:${row.cls === "alert-high" ? "#EF4444" : row.cls === "alert-medium" ? "#F59E0B" : "#3B82F6"}" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>
-        <div class="stream-content"><div class="stream-title">${esc(row.title)}</div><div class="stream-desc">${esc(row.desc)}</div></div>
-        <div class="alert-rank ${row.cls}">${esc(row.rank)}</div>
-        <div style="font-size:12px;color:var(--text-muted);">${esc(row.value)}</div>
-      </div>`).join("") || `<div class="stream-item" style="align-items:center;border-bottom:none"><div class="stream-dot success"></div><div class="stream-content"><div class="stream-title">System Status</div><div class="stream-desc">All systems operational</div></div></div>`;
-    }
-
-    function trimTime(value) {
-      const text = String(value || "");
-      const match = text.match(/T(\d{2}:\d{2}:\d{2})/);
-      return match ? match[1] : "recent";
-    }
-
-    function renderAll() {
-      renderSummary();
-      renderIntegrationRows();
-      renderClientRows();
-      renderHealthRows();
-      renderMatrixRows();
-      renderActivity();
-      renderAlerts();
-    }
-
-    async function toggleClient(id, is_active) {
-      await api(`/admin/api/clients/${id}`, { method: "PATCH", body: JSON.stringify({ is_active }) });
-      await loadAll();
-    }
-
-    async function createClient() {
-      $("createMsg").style.color = "var(--success)";
-      $("createMsg").textContent = "Creating...";
-      try {
-        await api("/admin/api/clients", {
-          method: "POST",
-          body: JSON.stringify({
-            name: $("newName").value,
-            domain: $("newDomain").value,
-            pixel_id: $("newPixel").value,
-            access_token: $("newToken").value,
-            tiktok_pixel_id: $("newTiktokPixel").value || null,
-            ga4_measurement_id: $("newGa4").value || null
-          })
-        });
-        $("createMsg").textContent = "Client created.";
-        await loadAll();
-        setTab("clients");
-      } catch (error) {
-        $("createMsg").style.color = "var(--danger)";
-        $("createMsg").textContent = "Create failed. Check required fields and admin key.";
-      }
-    }
-
-    function setTab(tab) {
-      document.querySelectorAll(".nav-item[data-tab]").forEach(button => button.classList.toggle("active", button.dataset.tab === tab));
-      document.querySelectorAll(".section").forEach(section => section.classList.toggle("active", section.id === tab));
-    }
-
-    function downloadReport() {
-      const summary = state.summary || {};
-      const rows = [
-        ["Metric", "Value"],
-        ["Total clients", summary.total_clients || 0],
-        ["Active clients", summary.active_clients || 0],
-        ["Total events", summary.total_events || 0],
-        ["Failed events", summary.failed_events || 0]
-      ];
-      const csv = rows.map(row => row.map(cell => `"${String(cell).replaceAll('"', '""')}"`).join(",")).join("\n");
-      const blob = new Blob([csv], { type: "text/csv" });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = "buykori-admin-report.csv";
-      link.click();
-      URL.revokeObjectURL(url);
-    }
-
-    document.querySelectorAll(".nav-item[data-tab]").forEach(button => button.addEventListener("click", () => setTab(button.dataset.tab)));
-    document.addEventListener("keydown", event => {
-      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "k") {
-        event.preventDefault();
-        $("searchInput")?.focus();
-      }
-    });
-    if (key()) loadAll().then(showApp).catch(logout);
-  
-    // Modal Functions
-    let currentClientId = null;
-
-    function showToast(msg) {
-      let t = document.getElementById('bk-toast');
-      if (!t) {
-        t = document.createElement('div');
-        t.id = 'bk-toast';
-        t.style.cssText = 'position:fixed;bottom:24px;right:24px;background:#ff8b45;color:#111;font-weight:700;font-size:13px;padding:10px 20px;border-radius:8px;z-index:9999;box-shadow:0 8px 24px rgba(255,139,69,0.4);transition:opacity .3s;pointer-events:none;';
-        document.body.appendChild(t);
-      }
-      t.textContent = msg;
-      t.style.opacity = '1';
-      clearTimeout(t._tid);
-      t._tid = setTimeout(() => { t.style.opacity = '0'; }, 1800);
-    }
-
-    function copyText(id) {
-      const el = document.getElementById(id);
-      const val = el.dataset.secret || el.innerText || el.value || '';
-      navigator.clipboard.writeText(val.trim()).then(() => showToast('Copied!'));
-    }
-
-    function revealSecret(id) {
-      const el = document.getElementById(id);
-      if (!el) return;
-      if (el.dataset.hidden === '1') {
-        el.innerText = el.dataset.secret || '';
-        el.dataset.hidden = '0';
-      } else {
-        el.innerText = '••••••••••••••••';
-        el.dataset.hidden = '1';
-      }
-    }
-
-    function switchModalTab(tab) {
-      document.querySelectorAll('.modal-body .tab-btn').forEach(b => b.classList.toggle('active', b.innerText.toLowerCase().includes(tab) || b.getAttribute('onclick').includes(tab)));
-      document.querySelectorAll('.modal-body .tab-content').forEach(c => c.classList.toggle('active', c.id === 'tab-' + tab));
-    }
-
-    function closeClientModal() {
-      document.getElementById('modalOverlay').style.display = 'none';
-      currentClientId = null;
-    }
-
-    async function openClientModal(id) {
-      currentClientId = id;
-      document.getElementById('modalOverlay').style.display = 'flex';
-      switchModalTab('edit');
-      $("editMsg").textContent = "Loading...";
-      
-      try {
-        const res = await api(`/admin/api/clients/${id}`);
-        const c = res.client;
-        
-        // Populate Edit
-        $("editName").value = c.name || "";
-        $("editDomain").value = c.domain || "";
-        $("editLimit").value = c.monthly_limit || "";
-        $("editActive").checked = !!c.is_active;
-        $("editFb").checked = !!c.enable_facebook;
-        $("editTiktok").checked = !!c.enable_tiktok;
-        $("editGa4").checked = !!c.enable_ga4;
-        $("editDeferred").checked = !!c.deferred_purchase;
-        $("editMsg").textContent = "";
-        
-        // Populate Keys
-        $("keyApi").dataset.secret = c.api_key || "";
-        $("keyApi").innerText = "••••••••••••••••";
-        $("keyApi").dataset.hidden = "1";
-        
-        $("keyPortal").dataset.secret = c.portal_key || "";
-        $("keyPortal").innerText = "••••••••••••••••";
-        $("keyPortal").dataset.hidden = "1";
-        
-        $("keyToken").dataset.secret = c.access_token || "";
-        $("keyToken").innerText = "••••••••••••••••";
-        $("keyToken").dataset.hidden = "1";
-        
-        // Populate Instructions
-        const code = `curl -X POST https://api.buykori.app/api/v1/track \
-  -H "Authorization: Bearer ${c.api_key}" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "event_name": "Purchase",
-    "event_time": ` + Math.floor(Date.now()/1000) + `,
-    "action_source": "website",
-    "user_data": {
-      "em": ["7b17fb0bd173f625b58636fb796407c22b3d16fc78302d79f0fd30c2fc2fc068"],
-      "ph": ["254aa248acb47dd654ca3ea53f48c2c26d641d23d7e2e93a1ec56258df7674c4"],
-      "client_ip_address": "192.168.1.1",
-      "client_user_agent": "Mozilla/5.0..."
-    },
-    "custom_data": {
-      "currency": "BDT",
-      "value": 1500.00
-    }
-  }'`;
-        $("instrCurl").innerText = code;
-        
-      } catch (e) {
-        $("editMsg").textContent = "Failed to load client data.";
-        $("editMsg").style.color = "var(--danger)";
-      }
-    }
-
-    async function saveClientEdit() {
-      if (!currentClientId) return;
-      $("editMsg").textContent = "Saving...";
-      $("editMsg").style.color = "var(--success)";
-      
-      const payload = {
-        name: $("editName").value,
-        domain: $("editDomain").value,
-        monthly_limit: parseInt($("editLimit").value) || null,
-        is_active: $("editActive").checked,
-        enable_facebook: $("editFb").checked,
-        enable_tiktok: $("editTiktok").checked,
-        enable_ga4: $("editGa4").checked,
-        deferred_purchase: $("editDeferred").checked
-      };
-      
-      try {
-        await api(`/admin/api/clients/${currentClientId}`, {
-          method: "PATCH",
-          body: JSON.stringify(payload)
-        });
-        $("editMsg").textContent = "Saved successfully!";
-        loadAll();
-      } catch (e) {
-        $("editMsg").textContent = "Failed to save.";
-        $("editMsg").style.color = "var(--danger)";
-      }
-    }
-
-    async function rotateKey(keyType) {
-      if (!currentClientId || !confirm(`Are you sure you want to rotate the ${keyType}? Old integrations will break immediately.`)) return;
-      try {
-        const res = await api(`/admin/api/clients/${currentClientId}/keys/rotate`, {
-          method: "POST",
-          body: JSON.stringify({ key_type: keyType })
-        });
-        
-        let elId = keyType === 'api_key' ? 'keyApi' : 'keyPortal';
-        $(elId).dataset.secret = res.new_value;
-        $(elId).innerText = "••••••••••••••••";
-        $(elId).dataset.hidden = "1";
-        showToast(keyType + " rotated!");
-        loadAll();
-      } catch (e) {
-        alert("Failed to rotate key");
-      }
-    }
-
-    async function deleteClient() {
-      if (!currentClientId) return;
-      const name = $("editName").value;
-      if (!confirm(`WARNING: Are you absolutely sure you want to delete "${name}"? This action cannot be undone.`)) return;
-      
-      try {
-        await api(`/admin/api/clients/${currentClientId}`, { method: "DELETE" });
-        closeClientModal();
-        showToast("Client deleted");
-        loadAll();
-      } catch (e) {
-        alert("Failed to delete client");
-      }
-    }
-
-  </script>
 
   <!-- Client Management Modal -->
   <div id="modalOverlay" class="modal-overlay" onclick="if(event.target===this) closeClientModal()">
@@ -1147,57 +347,57 @@
             <div class="field"><label>Domain</label><input id="editDomain"></div>
             <div class="field"><label>Monthly Limit</label><input type="number" id="editLimit" placeholder="Optional"></div>
             <div class="field" style="display:flex;align-items:center;gap:12px;padding-top:20px;">
-              <input type="checkbox" id="editActive" style="width:16px;height:16px">
-              <label style="margin:0">Active Status</label>
+              <input type="checkbox" id="editActive" style="width:16px;height:16px;cursor:pointer">
+              <label style="margin:0;cursor:pointer">Active Status</label>
             </div>
           </div>
-          <h3 style="margin:24px 0 12px;font-size:14px;color:white">Integrations</h3>
+          <h3 style="margin:24px 0 12px;font-size:12px;color:var(--text-main);text-transform:uppercase;font-weight:800;letter-spacing:0.05em">Integrations</h3>
           <div class="form-grid">
             <div class="field" style="display:flex;align-items:center;gap:12px;">
-              <input type="checkbox" id="editFb" style="width:16px;height:16px">
-              <label style="margin:0">Meta CAPI</label>
+              <input type="checkbox" id="editFb" style="width:16px;height:16px;cursor:pointer">
+              <label style="margin:0;cursor:pointer">Meta CAPI</label>
             </div>
             <div class="field" style="display:flex;align-items:center;gap:12px;">
-              <input type="checkbox" id="editTiktok" style="width:16px;height:16px">
-              <label style="margin:0">TikTok Events</label>
+              <input type="checkbox" id="editTiktok" style="width:16px;height:16px;cursor:pointer">
+              <label style="margin:0;cursor:pointer">TikTok Events</label>
             </div>
             <div class="field" style="display:flex;align-items:center;gap:12px;">
-              <input type="checkbox" id="editGa4" style="width:16px;height:16px">
-              <label style="margin:0">GA4 Measurement</label>
+              <input type="checkbox" id="editGa4" style="width:16px;height:16px;cursor:pointer">
+              <label style="margin:0;cursor:pointer">GA4 Measurement</label>
             </div>
             <div class="field" style="display:flex;align-items:center;gap:12px;">
-              <input type="checkbox" id="editDeferred" style="width:16px;height:16px">
-              <label style="margin:0">Deferred Purchase</label>
+              <input type="checkbox" id="editDeferred" style="width:16px;height:16px;cursor:pointer">
+              <label style="margin:0;cursor:pointer">Deferred Purchase</label>
             </div>
           </div>
-          <div style="margin-top:24px;display:flex;gap:12px">
+          <div style="margin-top:24px;display:flex;gap:12px;align-items:center">
             <button class="btn btn-primary" onclick="saveClientEdit()">Save Changes</button>
-            <span id="editMsg" class="notice" style="margin-top:8px"></span>
+            <span id="editMsg" class="notice" style="margin:0"></span>
           </div>
         </div>
         
         <div id="tab-keys" class="tab-content">
           <p style="color:var(--text-muted);margin-bottom:16px">Manage authentication keys for this client. Rotating keys will immediately invalidate existing connections.</p>
           
-          <label style="color:white;font-weight:700;font-size:13px;display:block;margin-bottom:8px">API Key (Data Ingestion)</label>
+          <label style="color:var(--text-main);font-weight:800;font-size:10px;text-transform:uppercase;display:block;margin-bottom:8px;letter-spacing:0.05em">API Key (Data Ingestion)</label>
           <div class="api-key-cell">
-            <span id="keyApi" data-hidden="1">••••••••••••••••</span>
+            <span id="keyApi" data-hidden="1">••••••••••••••••••••••••••••••••</span>
             <button class="copy-icon" onclick="revealSecret('keyApi')" title="Reveal">👁️</button>
             <button class="copy-icon" onclick="copyText('keyApi')" title="Copy">📋</button>
           </div>
           <button class="btn btn-outline btn-sm" style="margin-bottom:24px" onclick="rotateKey('api_key')">Rotate API Key</button>
           
-          <label style="color:white;font-weight:700;font-size:13px;display:block;margin-bottom:8px">Portal Key (Dashboard Access)</label>
+          <label style="color:var(--text-main);font-weight:800;font-size:10px;text-transform:uppercase;display:block;margin-bottom:8px;letter-spacing:0.05em">Portal Key (Dashboard Access)</label>
           <div class="api-key-cell">
-            <span id="keyPortal" data-hidden="1">••••••••••••••••</span>
+            <span id="keyPortal" data-hidden="1">••••••••••••••••••••••••••••••••</span>
             <button class="copy-icon" onclick="revealSecret('keyPortal')" title="Reveal">👁️</button>
             <button class="copy-icon" onclick="copyText('keyPortal')" title="Copy">📋</button>
           </div>
           <button class="btn btn-outline btn-sm" style="margin-bottom:24px" onclick="rotateKey('portal_key')">Rotate Portal Key</button>
           
-          <label style="color:white;font-weight:700;font-size:13px;display:block;margin-bottom:8px">Access Token (Meta)</label>
+          <label style="color:var(--text-main);font-weight:800;font-size:10px;text-transform:uppercase;display:block;margin-bottom:8px;letter-spacing:0.05em">Access Token (Meta)</label>
           <div class="api-key-cell">
-            <span id="keyToken" data-hidden="1">••••••••••••••••</span>
+            <span id="keyToken" data-hidden="1">••••••••••••••••••••••••••••••••</span>
             <button class="copy-icon" onclick="revealSecret('keyToken')" title="Reveal">👁️</button>
             <button class="copy-icon" onclick="copyText('keyToken')" title="Copy">📋</button>
           </div>
@@ -1206,20 +406,20 @@
         <div id="tab-instructions" class="tab-content">
           <p style="color:var(--text-muted);margin-bottom:16px">Share these endpoints and snippets with the client for integration.</p>
           
-          <label style="color:white;font-weight:700;font-size:13px;display:block;margin-bottom:8px">API Endpoint</label>
+          <label style="color:var(--text-main);font-weight:800;font-size:10px;text-transform:uppercase;display:block;margin-bottom:8px;letter-spacing:0.05em">API Endpoint</label>
           <div class="api-key-cell">
             <span id="instrEndpoint">https://api.buykori.app/api/v1/track</span>
             <button class="copy-icon" onclick="copyText('instrEndpoint')" title="Copy">📋</button>
           </div>
           
-          <label style="color:white;font-weight:700;font-size:13px;display:block;margin-bottom:8px">cURL Example</label>
+          <label style="color:var(--text-main);font-weight:800;font-size:10px;text-transform:uppercase;display:block;margin-bottom:8px;letter-spacing:0.05em">cURL Example</label>
           <div class="instr-box" id="instrCurl"></div>
           <button class="btn btn-outline btn-sm" onclick="copyText('instrCurl')">Copy Example</button>
           
           <div style="margin-top:24px">
-            <label style="color:white;font-weight:700;font-size:13px;display:block;margin-bottom:8px">Client Portal Link</label>
+            <label style="color:var(--text-main);font-weight:800;font-size:10px;text-transform:uppercase;display:block;margin-bottom:8px;letter-spacing:0.05em">Client Portal Link</label>
             <div class="api-key-cell">
-              <span id="instrPortal">https://buykori.app/portal</span>
+              <span id="instrPortal">https://client.buykori.app</span>
               <button class="copy-icon" onclick="copyText('instrPortal')" title="Copy">📋</button>
             </div>
             <p style="font-size:11px;color:var(--text-muted)">The client will need their Portal Key to login.</p>
@@ -1227,8 +427,8 @@
         </div>
         
         <div id="tab-danger" class="tab-content">
-          <div style="padding:20px;border:1px solid rgba(239,68,68,0.3);border-radius:8px;background:rgba(239,68,68,0.05)">
-            <h3 style="color:#F87171;margin-bottom:8px;font-size:15px">Delete Client</h3>
+          <div style="padding:20px;border:1px solid rgba(239,68,68,0.25);border-radius:12px;background:rgba(239,68,68,0.05)">
+            <h3 style="color:var(--danger);margin-bottom:8px;font-size:15px;font-weight:800">Delete Client</h3>
             <p style="color:var(--text-muted);margin-bottom:16px;font-size:13px">Once you delete a client, there is no going back. All events, logs, and authentication keys will be permanently destroyed.</p>
             <button class="btn btn-danger" onclick="deleteClient()">I understand, delete this client</button>
           </div>
@@ -1238,5 +438,6 @@
     </div>
   </div>
 
+  <script src="app.js"></script>
 </body>
 </html>
