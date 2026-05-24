@@ -1,6 +1,14 @@
 const API_BASE = "https://api.buykori.app/api/v1";
 const $ = id => document.getElementById(id);
 const state = { summary: null, clients: [], health: [] };
+const eventsState = {
+  events: [],
+  totalCount: 0,
+  limit: 50,
+  offset: 0,
+  currentPage: 1,
+  expandedEventId: null
+};
 const fmt = n => Number(n || 0).toLocaleString();
 const pct = n => `${Number(n || 0).toFixed(1).replace(".0", "")}%`;
 const esc = value => {
@@ -83,6 +91,10 @@ async function loadAll() {
   state.clients = clients.clients || [];
   state.health = health.clients || [];
   renderAll();
+  
+  // Populate event logs filters and fetch
+  populateClientFilter();
+  loadEvents();
 }
 
 function healthFor(client) {
@@ -569,4 +581,166 @@ async function deleteClient() {
   } catch (e) {
     alert("Failed to delete client");
   }
+}
+
+function populateClientFilter() {
+  const filterEl = $("eventsClientFilter");
+  if (!filterEl) return;
+  const selected = filterEl.value;
+  filterEl.innerHTML = '<option value="">All Clients</option>';
+  state.clients.forEach(client => {
+    const opt = document.createElement("option");
+    opt.value = client.id;
+    opt.textContent = client.name;
+    filterEl.appendChild(opt);
+  });
+  if (selected && state.clients.some(c => String(c.id) === selected)) {
+    filterEl.value = selected;
+  }
+}
+
+async function loadEvents() {
+  const client_id = $("eventsClientFilter")?.value || "";
+  const platform = $("eventsPlatformFilter")?.value || "";
+  const statusVal = $("eventsStatusFilter")?.value || "";
+  const search = ($("eventsSearch")?.value || "").trim();
+  
+  let status = "";
+  if (statusVal === "Success") status = "success";
+  if (statusVal === "Failed") status = "failed";
+  
+  let queryParams = [];
+  queryParams.push(`limit=${eventsState.limit}`);
+  queryParams.push(`offset=${eventsState.offset}`);
+  if (client_id) queryParams.push(`client_id=${client_id}`);
+  if (platform) queryParams.push(`platform=${encodeURIComponent(platform)}`);
+  if (status) queryParams.push(`status=${status}`);
+  if (search) queryParams.push(`search=${encodeURIComponent(search)}`);
+  
+  const queryString = queryParams.join("&");
+  
+  const tbody = $("eventsTableBody");
+  if (tbody) {
+    tbody.innerHTML = `<tr><td colspan="7" class="empty">Loading events...</td></tr>`;
+  }
+
+  try {
+    const res = await api(`/admin/api/events?${queryString}`);
+    eventsState.events = res.events || [];
+    eventsState.totalCount = res.totalCount || 0;
+    renderEvents();
+  } catch (e) {
+    console.error("Failed to load events", e);
+    if (tbody) {
+      tbody.innerHTML = `<tr><td colspan="7" class="empty text-danger">Failed to load events. Please try again.</td></tr>`;
+    }
+  }
+}
+
+function renderEvents() {
+  const tbody = $("eventsTableBody");
+  if (!tbody) return;
+  
+  const count = eventsState.events.length;
+  const startIdx = eventsState.offset + 1;
+  const endIdx = Math.min(eventsState.offset + eventsState.limit, eventsState.totalCount);
+  
+  const metaEl = $("eventsTableMeta");
+  if (metaEl) {
+    metaEl.textContent = eventsState.totalCount > 0 
+      ? `Showing ${startIdx}-${endIdx} of ${fmt(eventsState.totalCount)} events` 
+      : "Showing 0 events";
+  }
+  
+  const pageEl = $("eventsCurrentPage");
+  if (pageEl) {
+    pageEl.textContent = eventsState.currentPage;
+  }
+  
+  if (count === 0) {
+    tbody.innerHTML = `<tr><td colspan="7" class="empty">No events found matching your criteria.</td></tr>`;
+    return;
+  }
+  
+  tbody.innerHTML = eventsState.events.flatMap(event => {
+    const isExpanded = eventsState.expandedEventId === event.id;
+    const statusClass = event.status === "Success" ? "status-healthy" : "status-critical";
+    const displayTime = toDeviceDateTime(event.timestamp);
+    
+    const mainRow = `
+      <tr onclick="toggleEventDetail('${event.id}')" style="cursor:pointer;" class="event-row">
+        <td class="code-text" style="white-space:nowrap;">${esc(displayTime)}</td>
+        <td><div class="client-name" style="font-size:12.5px;">${esc(event.client_name)}</div><div class="client-sub">ID ${event.client_id}</div></td>
+        <td><span style="color:#818cf8;font-weight:700">${esc(event.name)}</span></td>
+        <td style="font-weight:600; font-size:12px;">${esc(event.platform)}</td>
+        <td><div class="status-badge ${statusClass}">${esc(event.status)}</div></td>
+        <td class="code-text">${esc(event.httpCode)}</td>
+        <td class="code-text" style="font-size:11px; color:var(--text-muted);">${esc(event.deduplicationKey)}</td>
+      </tr>
+    `;
+    
+    const detailRow = `
+      <tr id="detail-${event.id}" style="display: ${isExpanded ? "table-row" : "none"};">
+        <td colspan="7" style="padding:20px; background:rgba(0,0,0,0.06); border-bottom:1px solid var(--card-border);">
+          <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:16px;">
+            <div>
+              <div style="font-weight:800; font-size:11px; text-transform:uppercase; color:var(--text-muted); margin-bottom:8px; letter-spacing:0.05em;">Payload</div>
+              <pre class="instr-box" style="margin:0; font-family:JetBrains Mono, monospace; font-size:11.5px; max-height:250px; overflow-y:auto; white-space:pre-wrap; word-break:break-all;">${esc(JSON.stringify(event.payload, null, 2))}</pre>
+            </div>
+            <div>
+              <div style="font-weight:800; font-size:11px; text-transform:uppercase; color:var(--text-muted); margin-bottom:8px; letter-spacing:0.05em;">HTTP Headers</div>
+              <pre class="instr-box" style="margin:0; font-family:JetBrains Mono, monospace; font-size:11.5px; max-height:250px; overflow-y:auto; white-space:pre-wrap; word-break:break-all;">${esc(JSON.stringify(event.headers, null, 2))}</pre>
+            </div>
+            <div>
+              <div style="font-weight:800; font-size:11px; text-transform:uppercase; color:var(--text-muted); margin-bottom:8px; letter-spacing:0.05em;">Upstream Response</div>
+              <pre class="instr-box" style="margin:0; font-family:JetBrains Mono, monospace; font-size:11.5px; max-height:180px; overflow-y:auto; white-space:pre-wrap; word-break:break-all;">${esc(JSON.stringify(event.responseBody, null, 2))}</pre>
+              <div style="margin-top:12px; display:flex; gap:16px; font-size:11px; color:var(--text-muted);">
+                <div><strong>Latency:</strong> <span style="color:var(--primary); font-weight:700;">${event.latencyMs}ms</span></div>
+                <div><strong>HTTP Code:</strong> <span style="color:${event.status === 'Success' ? 'var(--success)' : 'var(--danger)'}; font-weight:700;">${event.httpCode}</span></div>
+              </div>
+            </div>
+          </div>
+        </td>
+      </tr>
+    `;
+    
+    return [mainRow, detailRow];
+  }).join("");
+}
+
+function toggleEventDetail(id) {
+  const row = document.getElementById(`detail-${id}`);
+  if (!row) return;
+  
+  if (eventsState.expandedEventId === id) {
+    row.style.display = "none";
+    eventsState.expandedEventId = null;
+  } else {
+    if (eventsState.expandedEventId) {
+      const oldRow = document.getElementById(`detail-${eventsState.expandedEventId}`);
+      if (oldRow) oldRow.style.display = "none";
+    }
+    row.style.display = "table-row";
+    eventsState.expandedEventId = id;
+  }
+}
+
+function handleEventsFilterChange() {
+  eventsState.offset = 0;
+  eventsState.currentPage = 1;
+  eventsState.expandedEventId = null;
+  loadEvents();
+}
+
+function changeEventsPage(dir) {
+  const newPage = eventsState.currentPage + dir;
+  if (newPage < 1) return;
+  
+  const maxPage = Math.ceil(eventsState.totalCount / eventsState.limit);
+  if (newPage > maxPage && maxPage > 0) return;
+  
+  eventsState.currentPage = newPage;
+  eventsState.offset = (newPage - 1) * eventsState.limit;
+  eventsState.expandedEventId = null;
+  loadEvents();
 }

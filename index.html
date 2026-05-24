@@ -273,9 +273,79 @@
 
         <section id="events" class="section">
           <div class="page-header">
-            <div><h1 class="page-title">Events</h1><p class="page-sub">Event overview currently uses summary and health data from the backend.</p></div>
+            <div>
+              <h1 class="page-title">Event Logs</h1>
+              <p class="page-sub">Real-time tracking events from all clients, platforms, and endpoints.</p>
+            </div>
           </div>
-          <div class="card"><div class="empty">Detailed event log UI will connect here after the backend exposes a paginated admin event endpoint.</div></div>
+          
+          <div class="card" style="margin-bottom:24px; padding:20px;">
+            <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:16px;">
+              <div class="field">
+                <label for="eventsSearch">Search</label>
+                <input type="text" id="eventsSearch" placeholder="Search event, IP, error..." oninput="handleEventsFilterChange()">
+              </div>
+              <div class="field">
+                <label for="eventsClientFilter">Client</label>
+                <select id="eventsClientFilter" onchange="handleEventsFilterChange()">
+                  <option value="">All Clients</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="eventsPlatformFilter">Platform</label>
+                <select id="eventsPlatformFilter" onchange="handleEventsFilterChange()">
+                  <option value="">All Platforms</option>
+                  <option value="Meta CAPI">Meta CAPI</option>
+                  <option value="TikTok Events API">TikTok Events API</option>
+                  <option value="GA4">GA4</option>
+                  <option value="Webhook">Webhook</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="eventsStatusFilter">Status</label>
+                <select id="eventsStatusFilter" onchange="handleEventsFilterChange()">
+                  <option value="">All Statuses</option>
+                  <option value="Success">Success</option>
+                  <option value="Failed">Failed</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <h2 class="card-title">Live Event Stream</h2>
+              <div class="card-tools">
+                <button class="view-all" onclick="loadEvents()">Refresh</button>
+              </div>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Time</th>
+                    <th>Client</th>
+                    <th>Event Name</th>
+                    <th>Platform</th>
+                    <th>Status</th>
+                    <th>Code</th>
+                    <th>Deduplication Key</th>
+                  </tr>
+                </thead>
+                <tbody id="eventsTableBody">
+                  <tr><td colspan="7" class="empty">Loading events...</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <div style="padding:14px 20px;border-top:1px solid var(--card-border);display:flex;justify-content:space-between;align-items:center;">
+              <div style="font-size:12px;color:var(--text-muted);" id="eventsTableMeta">Showing 0 events</div>
+              <div style="display:flex;gap:4px;">
+                <button class="action-btn" title="Previous" onclick="changeEventsPage(-1)">&#8249;</button>
+                <button class="action-btn" style="background:var(--primary);color:white;border-color:rgba(var(--primary-rgb),0.3)" id="eventsCurrentPage">1</button>
+                <button class="action-btn" title="Next" onclick="changeEventsPage(1)">&#8250;</button>
+              </div>
+            </div>
+          </div>
         </section>
 
         <section id="integrations" class="section">
