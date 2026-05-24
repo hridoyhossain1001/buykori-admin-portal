@@ -25,14 +25,18 @@
       <div class="brand-text">Buykori <span>AdSync</span></div>
     </div>
     <h1>Admin Portal</h1>
-    <p>Use the backend admin key to monitor clients, usage and workspace health. This portal stays separate from the public website and client portal.</p>
-    <label for="adminKey">Admin API Key</label>
+    <p>Log in with your administrator credentials to monitor clients, usage, and workspace health.</p>
+    
+    <label for="adminUsername">Username</label>
+    <input id="adminUsername" type="text" placeholder="Enter username" style="margin-bottom:16px">
+    
+    <label for="adminPassword">Password</label>
     <div style="position:relative;display:flex;align-items:center">
-      <input id="adminKey" type="password" placeholder="Paste ADMIN_API_KEY" autocomplete="current-password" style="padding-right:40px">
+      <input id="adminPassword" type="password" placeholder="Enter password" autocomplete="current-password" style="padding-right:40px">
       <button type="button" onclick="toggleAdminPassword()" style="position:absolute;right:10px;background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center" id="adminPassEye">👁️</button>
     </div>
-    <div style="height:16px"></div>
-    <button class="btn btn-primary" style="width:100%" onclick="saveKey()">Open Dashboard</button>
+    <div style="height:20px"></div>
+    <button class="btn btn-primary" style="width:100%" onclick="loginAdmin()">Sign In</button>
     <p id="loginError" class="login-error"></p>
   </div>
 

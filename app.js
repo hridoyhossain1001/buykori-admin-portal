@@ -23,13 +23,42 @@ async function api(path, options = {}) {
   return res.json();
 }
 
-async function saveKey() {
-  localStorage.setItem("buykori_admin_api_key", $("adminKey").value.trim());
+async function loginAdmin() {
+  const username = $("adminUsername").value.trim();
+  const password = $("adminPassword").value.trim();
+  
+  if (!username || !password) {
+    $("loginError").style.color = "var(--danger)";
+    $("loginError").textContent = "Please fill in all fields.";
+    return;
+  }
+  
+  $("loginError").textContent = "Signing in...";
+  $("loginError").style.color = "var(--primary)";
+  
   try {
+    const res = await fetch(API_BASE + "/admin/api/login", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ username, password })
+    });
+    
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || "Authentication failed");
+    }
+    
+    const data = await res.json();
+    localStorage.setItem("buykori_admin_api_key", data.admin_api_key);
+    
     await loadAll();
     showApp();
+    $("loginError").textContent = "";
   } catch (error) {
-    $("loginError").textContent = "Could not connect with this admin key.";
+    $("loginError").style.color = "var(--danger)";
+    $("loginError").textContent = error.message || "Could not connect with this admin key.";
   }
 }
 
@@ -316,7 +345,7 @@ function toggleSidebar() {
 }
 
 function toggleAdminPassword() {
-  const input = $("adminKey");
+  const input = $("adminPassword");
   const eye = $("adminPassEye");
   if (input.type === "password") {
     input.type = "text";
