@@ -202,7 +202,7 @@ function renderHealthRows() {
     <td><div class="status-badge ${statusClass(item.health_status)}">${statusLabel(item.health_status, item.health_status !== "inactive")}</div></td>
     <td>${fmt(item.today_events)}</td>
     <td>${pct(item.success_rate)}</td>
-    <td>${esc(item.last_event_at || "-")}</td>
+    <td>${esc(toDeviceDateTime(item.last_event_at))}</td>
   </tr>`).join("") || `<tr><td colspan="5" class="empty">No health data found.</td></tr>`;
 }
 
@@ -269,10 +269,36 @@ function renderAlerts() {
   </div>`).join("") || `<div class="stream-item" style="align-items:center;border-bottom:none"><div class="stream-dot success"></div><div class="stream-content"><div class="stream-title">System Status</div><div class="stream-desc">All systems operational</div></div></div>`;
 }
 
+function toDeviceDateTime(value) {
+  if (!value) return "-";
+  try {
+    let iso = String(value);
+    if (!iso.endsWith("Z") && !iso.includes("+") && !iso.includes("-", 10)) {
+      iso += "Z";
+    }
+    const d = new Date(iso);
+    if (isNaN(d.getTime())) return value;
+    const dateStr = d.toLocaleDateString(undefined, { year: 'numeric', month: '2-digit', day: '2-digit' });
+    const timeStr = d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
+    return `${dateStr} ${timeStr}`;
+  } catch (e) {
+    return value;
+  }
+}
+
 function trimTime(value) {
-  const text = String(value || "");
-  const match = text.match(/T(\d{2}:\d{2}:\d{2})/);
-  return match ? match[1] : "recent";
+  if (!value) return "recent";
+  try {
+    let iso = String(value);
+    if (!iso.endsWith("Z") && !iso.includes("+") && !iso.includes("-", 10)) {
+      iso += "Z";
+    }
+    const d = new Date(iso);
+    if (isNaN(d.getTime())) return "recent";
+    return d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
+  } catch (e) {
+    return "recent";
+  }
 }
 
 function renderAll() {
