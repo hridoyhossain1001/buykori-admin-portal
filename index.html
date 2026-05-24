@@ -319,9 +319,9 @@
                 <button class="view-all" onclick="loadEvents()">Refresh</button>
               </div>
             </div>
-            <div class="table-wrap">
+            <div class="table-wrap" style="max-height: calc(100vh - 320px); overflow-y: auto;">
               <table>
-                <thead>
+                <thead style="position: sticky; top: 0; background: var(--bg-color); z-index: 10;">
                   <tr>
                     <th>Time</th>
                     <th>Client</th>
