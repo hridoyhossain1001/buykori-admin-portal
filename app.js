@@ -1,6 +1,7 @@
 const API_BASE = "https://api.buykori.app/api/v1";
 const $ = id => document.getElementById(id);
 const state = { summary: null, clients: [], health: [] };
+const modalSecrets = new Map();
 const eventsState = {
   events: [],
   totalCount: 0,
@@ -16,14 +17,14 @@ const esc = value => {
   div.textContent = String(value ?? "");
   return div.innerHTML;
 };
-const key = () => localStorage.getItem("buykori_admin_api_key") || "";
+const key = () => sessionStorage.getItem("buykori_admin_jwt") || "";
 
 async function api(path, options = {}) {
   const res = await fetch(API_BASE + path, {
     ...options,
     headers: {
       "Content-Type": "application/json",
-      "X-Admin-API-Key": key(),
+      "Authorization": `Bearer ${key()}`,
       ...(options.headers || {})
     }
   });
@@ -59,7 +60,7 @@ async function loginAdmin() {
     }
     
     const data = await res.json();
-    localStorage.setItem("buykori_admin_api_key", data.admin_api_key);
+    sessionStorage.setItem("buykori_admin_jwt", data.admin_api_key || data.token);
     
     await loadAll();
     showApp();
@@ -77,7 +78,7 @@ function showApp() {
 }
 
 function logout() {
-  localStorage.removeItem("buykori_admin_api_key");
+  sessionStorage.removeItem("buykori_admin_jwt");
   location.reload();
 }
 
@@ -433,7 +434,7 @@ function showToast(msg) {
 
 function copyText(id) {
   const el = document.getElementById(id);
-  const val = el.dataset.secret || el.innerText || el.value || '';
+  const val = modalSecrets.get(id) || el.innerText || el.value || '';
   navigator.clipboard.writeText(val.trim()).then(() => showToast('Copied to Clipboard!'));
 }
 
@@ -441,7 +442,7 @@ function revealSecret(id) {
   const el = document.getElementById(id);
   if (!el) return;
   if (el.dataset.hidden === '1') {
-    el.innerText = el.dataset.secret || '';
+    el.innerText = modalSecrets.get(id) || '';
     el.dataset.hidden = '0';
   } else {
     el.innerText = '••••••••••••••••••••••••••••••••';
@@ -457,6 +458,7 @@ function switchModalTab(tab) {
 function closeClientModal() {
   document.getElementById('modalOverlay').style.display = 'none';
   currentClientId = null;
+  modalSecrets.clear();
 }
 
 async function openClientModal(id) {
@@ -481,21 +483,21 @@ async function openClientModal(id) {
     $("editMsg").textContent = "";
     
     // Populate Keys
-    $("keyApi").dataset.secret = c.api_key || "";
+    modalSecrets.set("keyApi", c.api_key || "");
     $("keyApi").innerText = "••••••••••••••••••••••••••••••••";
     $("keyApi").dataset.hidden = "1";
     
-    $("keyPortal").dataset.secret = c.portal_key || "";
+    modalSecrets.set("keyPortal", c.portal_key || "");
     $("keyPortal").innerText = "••••••••••••••••••••••••••••••••";
     $("keyPortal").dataset.hidden = "1";
     
-    $("keyToken").dataset.secret = c.access_token || "";
+    modalSecrets.set("keyToken", c.access_token || "");
     $("keyToken").innerText = "••••••••••••••••••••••••••••••••";
     $("keyToken").dataset.hidden = "1";
     
     // Populate Instructions
-    const code = `curl -X POST https://api.buykori.app/api/v1/track \\
-  -H "Authorization: Bearer ${c.api_key}" \\
+    const code = `curl -X POST https://api.buykori.app/api/v1/events \\
+  -H "X-API-Key: ${c.api_key}" \\
   -H "Content-Type: application/json" \\
   -d '{
     "event_name": "Purchase",
@@ -558,7 +560,7 @@ async function rotateKey(keyType) {
     });
     
     let elId = keyType === 'api_key' ? 'keyApi' : 'keyPortal';
-    $(elId).dataset.secret = res.new_value;
+    modalSecrets.set(elId, res.new_value);
     $(elId).innerText = "••••••••••••••••••••••••••••••••";
     $(elId).dataset.hidden = "1";
     showToast(keyType + " rotated!");
@@ -695,7 +697,7 @@ function renderEvents() {
               <div style="font-weight:800; font-size:11px; text-transform:uppercase; color:var(--text-muted); margin-bottom:8px; letter-spacing:0.05em;">Upstream Response</div>
               <pre class="instr-box" style="margin:0; font-family:JetBrains Mono, monospace; font-size:11.5px; max-height:180px; overflow-y:auto; white-space:pre-wrap; word-break:break-all;">${esc(JSON.stringify(event.responseBody, null, 2))}</pre>
               <div style="margin-top:12px; display:flex; gap:16px; font-size:11px; color:var(--text-muted);">
-                <div><strong>Latency:</strong> <span style="color:var(--primary); font-weight:700;">${event.latencyMs}ms</span></div>
+                <div><strong>Latency:</strong> <span style="color:var(--primary); font-weight:700;">${event.latencyMs != null ? event.latencyMs + 'ms' : 'N/A'}</span></div>
                 <div><strong>HTTP Code:</strong> <span style="color:${event.status === 'Success' ? 'var(--success)' : 'var(--danger)'}; font-weight:700;">${event.httpCode}</span></div>
               </div>
             </div>
