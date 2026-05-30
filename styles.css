@@ -7,11 +7,11 @@
                  radial-gradient(at 100% 100%, hsla(285,100%,91%,1) 0px, transparent 50%),
                  radial-gradient(at 0% 100%, hsla(202,100%,88%,1) 0px, transparent 50%);
   --bg-color: #f0f4fd;
-  --text-main: #1e293b;
-  --text-muted: #64748b;
-  --text-subtle: #94a3b8;
+  --text-main: #0f172a; /* Slate 900 for high contrast */
+  --text-muted: #475569; /* Slate 600 for better readability */
+  --text-subtle: #64748b; /* Slate 500 */
   
-  --card-bg: rgba(255, 255, 255, 0.4);
+  --card-bg: rgba(255, 255, 255, 0.65); /* More opaque for readability */
   --card-border: rgba(255, 255, 255, 0.7);
   --card-shadow: 0 12px 40px 0 rgba(31, 38, 135, 0.06);
   
@@ -45,11 +45,11 @@
                  radial-gradient(at 100% 100%, hsla(285,40%,12%,1) 0px, transparent 50%),
                  radial-gradient(at 0% 100%, hsla(202,60%,11%,1) 0px, transparent 50%);
   --bg-color: #0b1329;
-  --text-main: #f8fafc;
-  --text-muted: #94a3b8;
-  --text-subtle: #64748b;
+  --text-main: #f8fafc; /* Slate 50 */
+  --text-muted: #cbd5e1; /* Slate 300 for better readability */
+  --text-subtle: #94a3b8; /* Slate 400 */
   
-  --card-bg: rgba(15, 23, 42, 0.45);
+  --card-bg: rgba(15, 23, 42, 0.65); /* More opaque */
   --card-border: rgba(255, 255, 255, 0.08);
   --card-shadow: 0 16px 48px 0 rgba(0, 0, 0, 0.4);
   
@@ -173,12 +173,12 @@ svg { flex-shrink: 0; }
 .nav-item svg { width: 18px; height: 18px; stroke-width: 2.2; opacity: 0.8; }
 .nav-item:hover { background: rgba(var(--primary-rgb), 0.08); color: var(--text-main); }
 .nav-item.active {
-  background: linear-gradient(135deg, rgba(99, 102, 241, 0.8), rgba(139, 92, 246, 0.9));
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.9), rgba(139, 92, 246, 1));
   color: white;
-  box-shadow: 0 4px 15px rgba(var(--primary-rgb), 0.2);
+  box-shadow: 0 4px 15px rgba(var(--primary-rgb), 0.3);
 }
 .dark .nav-item.active {
-  background: linear-gradient(135deg, rgba(129, 140, 248, 0.95), rgba(167, 139, 250, 0.95));
+  background: linear-gradient(135deg, rgba(129, 140, 248, 1), rgba(167, 139, 250, 1));
   color: #0b1329;
 }
 .nav-item.active svg { opacity: 1; color: inherit; }
