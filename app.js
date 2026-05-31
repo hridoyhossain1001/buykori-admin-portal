@@ -381,6 +381,7 @@ function downloadReport() {
 function toggleSidebar() {
   $("sidebar").classList.toggle("open");
   $("sidebarOverlay").classList.toggle("open");
+  $("hamburger").classList.toggle("open");
 }
 
 function toggleAdminPassword() {
@@ -404,6 +405,14 @@ function toggleTheme() {
     docEl.classList.add("dark");
     localStorage.setItem("buykori_admin_theme", "dark");
   }
+}
+
+let searchTimeout;
+function handleSearchInput() {
+  clearTimeout(searchTimeout);
+  searchTimeout = setTimeout(() => {
+    renderAll();
+  }, 200);
 }
 
 document.querySelectorAll(".nav-item[data-tab]").forEach(button => button.addEventListener("click", () => setTab(button.dataset.tab)));

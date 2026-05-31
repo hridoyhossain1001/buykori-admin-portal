@@ -4,6 +4,9 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Buykori Admin Portal</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Space+Grotesk:wght@600&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
   <!-- Initialize theme instantly before render to prevent flash of unstyled content -->
   <script>
@@ -107,14 +110,14 @@
       <header class="topbar">
         <div class="search-box">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
-          <input id="searchInput" placeholder="Search clients, events, IPs..." oninput="renderAll()">
+          <input id="searchInput" placeholder="Search clients, events, IPs..." oninput="handleSearchInput()">
           <span class="kbd">CTRL K</span>
         </div>
         <div class="topbar-right">
           <div class="env-badge">PRODUCTION</div>
-          <button class="theme-toggle-btn" id="themeToggle" onclick="toggleTheme()" title="Toggle Theme">
-            <span class="theme-icon-light">☀️ LIGHT</span>
-            <span class="theme-icon-dark">🌙 DARK</span>
+          <button class="theme-toggle-btn" id="themeToggle" onclick="toggleTheme()" title="Toggle Theme" aria-label="Toggle Theme">
+            <span class="theme-icon-light">☀️ <span class="theme-btn-text">LIGHT</span></span>
+            <span class="theme-icon-dark">🌙 <span class="theme-btn-text">DARK</span></span>
           </button>
           <button class="icon-btn" title="Notifications">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M18 8a6 6 0 00-12 0c0 7-3 7-3 7h18s-3 0-3-7M13.73 21a2 2 0 01-3.46 0"/></svg>
