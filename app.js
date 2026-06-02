@@ -379,10 +379,13 @@ function renderClientIntelligence() {
 function renderOpsMonitor() {
   const health = state.serverHealth || {};
   const server = health.server || {};
+  const cpu = server.cpu || {};
   const memory = server.memory || {};
   const disk = server.disk || {};
   const worker = health.worker_monitor || {};
   if ($("serverHealthStatus")) $("serverHealthStatus").textContent = String(health.status || "-").toUpperCase();
+  if ($("serverCpuUsed")) $("serverCpuUsed").textContent = cpu.used_percent == null ? "-" : pct(cpu.used_percent);
+  if ($("serverCpuMeta")) $("serverCpuMeta").textContent = cpu.cores ? `${fmt(cpu.cores)} cores, load/core ${cpu.load_1m_per_core ?? "-"}` : "cores unavailable";
   if ($("serverRamUsed")) $("serverRamUsed").textContent = memory.used_percent == null ? "-" : pct(memory.used_percent);
   if ($("serverLoadAvg")) $("serverLoadAvg").textContent = (server.load_average || []).length ? server.load_average.map(n => Number(n).toFixed(2)).join(" / ") : "-";
   if ($("serverDiskUsed")) $("serverDiskUsed").textContent = disk.used_percent == null ? "-" : pct(disk.used_percent);

@@ -484,11 +484,12 @@
 
         <section id="opsMonitor" class="section">
           <div class="page-header">
-            <div><h1 class="page-title">Ops Monitor</h1><p class="page-sub">Lightweight server RAM, load, disk, DB/Redis and worker queue status.</p></div>
+            <div><h1 class="page-title">Ops Monitor</h1><p class="page-sub">Lightweight server CPU, RAM, load, disk, DB/Redis and worker queue status.</p></div>
             <button class="btn btn-outline" onclick="loadAll()">Refresh Ops</button>
           </div>
           <div class="metrics-grid">
             <div class="metric-card"><div class="metric-header"><div class="m-icon bg-blue">S</div><span class="m-title">Server</span></div><div class="metric-value" id="serverHealthStatus">-</div><div class="trend">overall status</div></div>
+            <div class="metric-card"><div class="metric-header"><div class="m-icon bg-blue">C</div><span class="m-title">CPU Used</span></div><div class="metric-value" id="serverCpuUsed">-</div><div class="trend" id="serverCpuMeta">cores unavailable</div></div>
             <div class="metric-card"><div class="metric-header"><div class="m-icon bg-purple">R</div><span class="m-title">RAM Used</span></div><div class="metric-value" id="serverRamUsed">-</div><div class="trend">system memory</div></div>
             <div class="metric-card"><div class="metric-header"><div class="m-icon bg-indigo">L</div><span class="m-title">Load Avg</span></div><div class="metric-value" id="serverLoadAvg">-</div><div class="trend">1m / 5m / 15m</div></div>
             <div class="metric-card"><div class="metric-header"><div class="m-icon bg-red">D</div><span class="m-title">Disk Used</span></div><div class="metric-value" id="serverDiskUsed">-</div><div class="trend">root volume</div></div>
