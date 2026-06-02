@@ -558,6 +558,153 @@ tr:last-child td { border-bottom: none; }
   background: var(--success-bg);
   border-color: rgba(16,185,129,0.24);
 }
+.queue-health-banner {
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 20px;
+  padding: 16px 18px;
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius);
+  color: var(--text-main);
+}
+.queue-health-banner strong {
+  display: block;
+  margin-bottom: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-size: 12px;
+}
+.queue-health-banner span {
+  color: var(--text-muted);
+  font-size: 13px;
+  font-weight: 650;
+}
+.queue-health-critical {
+  background: var(--danger-bg);
+  border-color: rgba(239,68,68,0.28);
+}
+.queue-health-warning {
+  background: var(--warning-bg);
+  border-color: rgba(245,158,11,0.28);
+}
+.queue-health-healthy {
+  background: var(--success-bg);
+  border-color: rgba(16,185,129,0.24);
+}
+.refresh-status {
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 750;
+  white-space: nowrap;
+}
+.queue-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.drawer-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 120;
+  display: none;
+  justify-content: flex-end;
+  background: rgba(0,0,0,0.5);
+  backdrop-filter: blur(8px);
+}
+.queue-drawer {
+  width: min(520px, 100%);
+  height: 100vh;
+  background: var(--card-bg);
+  border-left: 1px solid var(--card-border);
+  box-shadow: -24px 0 60px rgba(0,0,0,0.35);
+  display: flex;
+  flex-direction: column;
+}
+.drawer-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 22px 24px;
+  border-bottom: 1px solid var(--card-border);
+}
+.drawer-kicker {
+  color: var(--text-muted);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 850;
+  margin-bottom: 6px;
+}
+.drawer-header h2 {
+  margin: 0;
+  color: var(--text-main);
+  font-size: 20px;
+}
+.drawer-body {
+  padding: 22px 24px;
+  overflow-y: auto;
+  flex: 1;
+}
+.drawer-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 18px 24px;
+  border-top: 1px solid var(--card-border);
+}
+.drawer-status-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+.drawer-status-row span {
+  color: var(--text-muted);
+  font-weight: 750;
+}
+.drawer-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+.drawer-grid > div,
+.drawer-block {
+  background: rgba(var(--primary-rgb), 0.05);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-sm);
+  padding: 13px;
+  min-width: 0;
+}
+.drawer-grid span,
+.drawer-block span {
+  display: block;
+  color: var(--text-muted);
+  font-size: 10px;
+  font-weight: 850;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  margin-bottom: 7px;
+}
+.drawer-grid strong {
+  display: block;
+  color: var(--text-main);
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+.drawer-block {
+  margin-top: 12px;
+}
+.drawer-block pre {
+  margin: 0;
+  color: var(--text-main);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-family: JetBrains Mono, monospace;
+  font-size: 12px;
+}
 
 .connection-footer { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: var(--radius); padding: 18px 24px; display: flex; gap: 24px; flex-wrap: wrap; justify-content: space-between; }
 .conn-item { display: flex; align-items: center; gap: 12px; }
@@ -672,6 +819,8 @@ tr:last-child td { border-bottom: none; }
   .topbar-right { flex-wrap: wrap; gap: 10px; }
   .content { padding: 18px; }
   .page-header { align-items: flex-start; flex-direction: column; gap: 12px; }
+  .header-actions { flex-wrap: wrap; }
+  .queue-health-banner { align-items: flex-start; flex-direction: column; }
   
   /* Keep high-efficiency 2-column layout on tablets (iPad size) */
   .metrics-grid, .form-grid { grid-template-columns: repeat(2, 1fr); }
@@ -714,6 +863,8 @@ tr:last-child td { border-bottom: none; }
   .connection-footer { flex-direction: column; align-items: flex-start; gap: 14px; padding: 16px; }
   .queue-summary { grid-template-columns: 1fr; }
   .queue-alert { align-items: flex-start; flex-direction: column; }
+  .drawer-grid { grid-template-columns: 1fr; }
+  .queue-drawer { width: 100%; }
   
   /* Modal optimization to prevent clipping and cramping */
   .modal-overlay { padding: 10px; }

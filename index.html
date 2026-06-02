@@ -159,6 +159,8 @@
             </div>
           </div>
 
+          <div id="courierQueueHealthBanner" class="queue-health-banner" style="display:none"></div>
+
           <div class="metrics-grid">
             <div class="metric-card">
               <div class="metric-header">
@@ -290,6 +292,8 @@
               <p class="page-sub">Track durable courier booking jobs, worker delays, and dead-letter retries.</p>
             </div>
             <div class="header-actions">
+              <span id="courierQueueRefreshStatus" class="refresh-status">Not refreshed yet</span>
+              <button id="courierQueueAutoRefreshToggle" class="btn btn-primary btn-sm" onclick="toggleCourierQueueAutoRefresh()">Auto Refresh On</button>
               <button class="btn btn-outline" onclick="refreshCourierQueue()">Refresh Queue</button>
             </div>
           </div>
@@ -329,7 +333,7 @@
               <div class="table-wrap">
                 <table>
                   <thead>
-                    <tr><th>Job</th><th>Order</th><th>Provider</th><th>Status</th><th>Attempts</th><th>Next Attempt</th><th>Last Error</th><th>Action</th></tr>
+                    <tr><th>Job</th><th>Order</th><th>Provider</th><th>Status</th><th>Attempts</th><th>Next Attempt</th><th>Last Error</th><th>Actions</th></tr>
                   </thead>
                   <tbody id="courierQueueRows"></tbody>
                 </table>
@@ -649,6 +653,23 @@
         
       </div>
     </div>
+  </div>
+
+  <div id="queueDrawerOverlay" class="drawer-overlay" onclick="if(event.target===this) closeCourierJobDrawer()">
+    <aside class="queue-drawer" role="dialog" aria-modal="true" aria-labelledby="queueDrawerTitle">
+      <div class="drawer-header">
+        <div>
+          <div class="drawer-kicker">Courier Queue</div>
+          <h2 id="queueDrawerTitle">Courier Job</h2>
+        </div>
+        <button class="modal-close" onclick="closeCourierJobDrawer()" aria-label="Close">&times;</button>
+      </div>
+      <div id="queueDrawerBody" class="drawer-body"></div>
+      <div class="drawer-footer">
+        <button class="btn btn-outline" onclick="closeCourierJobDrawer()">Close</button>
+        <button id="queueDrawerRetry" class="btn btn-primary" style="display:none">Retry Job</button>
+      </div>
+    </aside>
   </div>
 
   <script src="app.js"></script>

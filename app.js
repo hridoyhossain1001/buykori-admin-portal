@@ -1,6 +1,17 @@
 const API_BASE = "https://api.buykori.app/api/v1";
 const $ = id => document.getElementById(id);
-const state = { summary: null, clients: [], health: [], courierQueue: null };
+const COURIER_QUEUE_REFRESH_MS = 15000;
+const state = {
+  summary: null,
+  clients: [],
+  health: [],
+  courierQueue: null,
+  courierQueueAutoRefresh: true,
+  courierQueueLastRefresh: null,
+  courierQueueTimer: null,
+  courierQueueRefreshing: false,
+  activeCourierJobId: null
+};
 const modalSecrets = new Map();
 const eventsState = {
   events: [],
@@ -78,6 +89,7 @@ function showApp() {
 }
 
 function logout() {
+  stopCourierQueueAutoRefresh();
   sessionStorage.removeItem("buykori_admin_jwt");
   location.reload();
 }
@@ -93,7 +105,9 @@ async function loadAll() {
   state.clients = clients.clients || [];
   state.health = health.clients || [];
   state.courierQueue = courierQueue;
+  state.courierQueueLastRefresh = new Date();
   renderAll();
+  startCourierQueueAutoRefresh();
   
   // Populate event logs filters and fetch
   populateClientFilter();
@@ -137,6 +151,58 @@ function courierQueueStatusClass(status) {
   return "status-healthy";
 }
 
+function courierQueueJobById(jobId) {
+  return (state.courierQueue?.jobs || []).find(job => Number(job.id) === Number(jobId));
+}
+
+function queueStatusText(queue) {
+  const status = String(queue.alert_status || "healthy").toLowerCase();
+  const queued = Number(queue.queued || 0);
+  const processing = Number(queue.processing || 0);
+  const dead = Number(queue.dead || 0);
+  const oldest = Math.max(queue.oldest_queued_age_seconds || 0, queue.oldest_processing_age_seconds || 0);
+  if (status === "critical") return `${fmt(dead)} dead job${dead === 1 ? "" : "s"} need retry. Oldest active job: ${formatDuration(oldest)}.`;
+  if (status === "warning") return `${fmt(queued + processing)} active job${queued + processing === 1 ? "" : "s"} need attention. Oldest: ${formatDuration(oldest)}.`;
+  if (queued + processing > 0) return `${fmt(queued + processing)} active courier booking job${queued + processing === 1 ? "" : "s"} moving through the worker.`;
+  return "Courier booking queue is healthy.";
+}
+
+function renderCourierQueueBanner(queue) {
+  const banner = $("courierQueueHealthBanner");
+  if (!banner) return;
+  const status = String(queue.alert_status || "healthy").toLowerCase();
+  const activeJobs = Number(queue.queued || 0) + Number(queue.processing || 0);
+  const deadJobs = Number(queue.dead || 0);
+  if (status === "healthy" && activeJobs === 0 && deadJobs === 0) {
+    banner.style.display = "none";
+    banner.innerHTML = "";
+    return;
+  }
+  banner.style.display = "flex";
+  banner.className = `queue-health-banner queue-health-${status === "critical" ? "critical" : status === "warning" ? "warning" : "healthy"}`;
+  banner.innerHTML = `
+    <div>
+      <strong>Courier queue ${esc(status)}</strong>
+      <span>${esc(queueStatusText(queue))}</span>
+    </div>
+    <button class="btn btn-outline btn-sm" onclick="setTab('courierQueue')">Open Queue</button>
+  `;
+}
+
+function renderCourierQueueRefreshMeta() {
+  const statusEl = $("courierQueueRefreshStatus");
+  if (statusEl) {
+    statusEl.textContent = state.courierQueueLastRefresh
+      ? `Last refresh ${trimTime(state.courierQueueLastRefresh.toISOString())}`
+      : "Not refreshed yet";
+  }
+  const toggle = $("courierQueueAutoRefreshToggle");
+  if (toggle) {
+    toggle.textContent = state.courierQueueAutoRefresh ? "Auto Refresh On" : "Auto Refresh Off";
+    toggle.className = `btn btn-sm ${state.courierQueueAutoRefresh ? "btn-primary" : "btn-outline"}`;
+  }
+}
+
 function domainLink(client) {
   const domain = client.display_domain || client.domain || "No domain set";
   if (!client.display_domain && !client.domain) return `<span class="domain-link">${esc(domain)}</span>`;
@@ -176,6 +242,7 @@ function renderSummary() {
   $("errorRate").textContent = pct(errorRate);
   $("queuedOutbox").textContent = fmt(failed);
   $("eventsTrend").textContent = activeClients ? "18.6%" : "0%";
+  renderCourierQueueBanner(queue);
   if ($("courierQueueDashboardStatus")) {
     $("courierQueueDashboardStatus").className = `status-badge ${courierQueueStatusClass(queue.alert_status)}`;
     $("courierQueueDashboardStatus").textContent = String(queue.alert_status || "healthy").toUpperCase();
@@ -323,6 +390,7 @@ function renderCourierQueue() {
   const queue = courierQueueCounts();
   const jobs = state.courierQueue?.jobs || [];
   const status = String(queue.alert_status || "healthy").toLowerCase();
+  renderCourierQueueRefreshMeta();
   if ($("courierQueueStatus")) {
     $("courierQueueStatus").className = `status-badge ${courierQueueStatusClass(status)}`;
     $("courierQueueStatus").textContent = status.toUpperCase();
@@ -351,18 +419,112 @@ function renderCourierQueue() {
         <td>${fmt(job.attempts)} / ${fmt(job.max_attempts)}</td>
         <td>${esc(toDeviceDateTime(job.next_attempt_at))}</td>
         <td><div class="client-sub" style="max-width:260px;white-space:normal">${esc(job.last_error || "-")}</div></td>
-        <td>${job.status === "dead" ? `<button class="btn btn-primary btn-sm" onclick="retryCourierBookingJob(${Number(job.id)})">Retry</button>` : `<span class="client-sub">-</span>`}</td>
+        <td>
+          <div class="queue-actions">
+            <button class="btn btn-outline btn-sm" onclick="openCourierJobDrawer(${Number(job.id)})">Details</button>
+            ${job.status === "dead" ? `<button class="btn btn-primary btn-sm" onclick="retryCourierBookingJob(${Number(job.id)})">Retry</button>` : ""}
+          </div>
+        </td>
       </tr>
     `).join("") || `<tr><td colspan="8" class="empty">No courier booking jobs found.</td></tr>`;
   }
 }
 
-async function refreshCourierQueue() {
-  state.courierQueue = await api("/admin/api/courier-booking-queue?limit=20");
-  state.summary = { ...(state.summary || {}), courier_booking_queue: state.courierQueue.counts };
-  renderSummary();
-  renderAlerts();
-  renderCourierQueue();
+async function refreshCourierQueue(options = {}) {
+  if (state.courierQueueRefreshing) return;
+  state.courierQueueRefreshing = true;
+  const silent = Boolean(options.silent);
+  try {
+    state.courierQueue = await api("/admin/api/courier-booking-queue?limit=20");
+    state.summary = { ...(state.summary || {}), courier_booking_queue: state.courierQueue.counts };
+    state.courierQueueLastRefresh = new Date();
+    renderSummary();
+    renderAlerts();
+    renderCourierQueue();
+    if (state.activeCourierJobId) renderCourierJobDrawer(state.activeCourierJobId);
+  } catch (error) {
+    if (!silent) showToast(`Queue refresh failed: ${error.message || "unknown error"}`);
+  } finally {
+    state.courierQueueRefreshing = false;
+    renderCourierQueueRefreshMeta();
+  }
+}
+
+function startCourierQueueAutoRefresh() {
+  stopCourierQueueAutoRefresh();
+  if (!state.courierQueueAutoRefresh) {
+    renderCourierQueueRefreshMeta();
+    return;
+  }
+  state.courierQueueTimer = window.setInterval(() => {
+    if (key()) refreshCourierQueue({ silent: true });
+  }, COURIER_QUEUE_REFRESH_MS);
+  renderCourierQueueRefreshMeta();
+}
+
+function stopCourierQueueAutoRefresh() {
+  if (state.courierQueueTimer) {
+    window.clearInterval(state.courierQueueTimer);
+    state.courierQueueTimer = null;
+  }
+}
+
+function toggleCourierQueueAutoRefresh() {
+  state.courierQueueAutoRefresh = !state.courierQueueAutoRefresh;
+  startCourierQueueAutoRefresh();
+  showToast(`Courier queue auto refresh ${state.courierQueueAutoRefresh ? "enabled" : "disabled"}.`);
+}
+
+function renderCourierJobDrawer(jobId) {
+  const job = courierQueueJobById(jobId);
+  if (!job) {
+    closeCourierJobDrawer();
+    return;
+  }
+  state.activeCourierJobId = Number(job.id);
+  const title = $("queueDrawerTitle");
+  const body = $("queueDrawerBody");
+  const retryButton = $("queueDrawerRetry");
+  if (title) title.textContent = `Courier Job #${job.id}`;
+  if (retryButton) {
+    retryButton.style.display = job.status === "dead" ? "inline-flex" : "none";
+    retryButton.onclick = () => retryCourierBookingJob(job.id);
+  }
+  if (body) {
+    body.innerHTML = `
+      <div class="drawer-status-row">
+        <div class="status-badge ${statusClass(job.status === "sent" ? "healthy" : job.status === "dead" ? "critical" : ["queued", "processing"].includes(job.status) ? "warning" : "inactive")}">${esc(job.status)}</div>
+        <span>${esc(job.provider || "-")}</span>
+      </div>
+      <div class="drawer-grid">
+        <div><span>Order ID</span><strong>${esc(job.order_id || "-")}</strong></div>
+        <div><span>Client ID</span><strong>${esc(job.client_id)}</strong></div>
+        <div><span>Courier Order Row</span><strong>${esc(job.courier_order_id)}</strong></div>
+        <div><span>Attempts</span><strong>${fmt(job.attempts)} / ${fmt(job.max_attempts)}</strong></div>
+        <div><span>Created</span><strong>${esc(toDeviceDateTime(job.created_at))}</strong></div>
+        <div><span>Next Attempt</span><strong>${esc(toDeviceDateTime(job.next_attempt_at))}</strong></div>
+        <div><span>Locked At</span><strong>${esc(toDeviceDateTime(job.locked_at))}</strong></div>
+        <div><span>Locked By</span><strong>${esc(job.locked_by || "-")}</strong></div>
+        <div><span>Sent At</span><strong>${esc(toDeviceDateTime(job.sent_at))}</strong></div>
+      </div>
+      <div class="drawer-block">
+        <span>Last Error</span>
+        <pre>${esc(job.last_error || "No provider error recorded.")}</pre>
+      </div>
+    `;
+  }
+}
+
+function openCourierJobDrawer(jobId) {
+  renderCourierJobDrawer(jobId);
+  const overlay = $("queueDrawerOverlay");
+  if (overlay) overlay.style.display = "flex";
+}
+
+function closeCourierJobDrawer() {
+  state.activeCourierJobId = null;
+  const overlay = $("queueDrawerOverlay");
+  if (overlay) overlay.style.display = "none";
 }
 
 async function retryCourierBookingJob(jobId) {
@@ -452,6 +614,7 @@ function setTab(tab) {
   document.querySelectorAll(".nav-item[data-tab]").forEach(button => button.classList.toggle("active", button.dataset.tab === tab));
   document.querySelectorAll(".section").forEach(section => section.classList.toggle("active", section.id === tab));
   if (window.innerWidth <= 820 && $("sidebar").classList.contains("open")) toggleSidebar();
+  if (tab === "courierQueue") refreshCourierQueue({ silent: true });
 }
 
 function downloadReport() {
