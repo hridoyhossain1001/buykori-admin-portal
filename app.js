@@ -1,6 +1,6 @@
 const API_BASE = "https://api.buykori.app/api/v1";
 const $ = id => document.getElementById(id);
-const state = { summary: null, clients: [], health: [] };
+const state = { summary: null, clients: [], health: [], courierQueue: null };
 const modalSecrets = new Map();
 const eventsState = {
   events: [],
@@ -83,14 +83,16 @@ function logout() {
 }
 
 async function loadAll() {
-  const [summary, clients, health] = await Promise.all([
+  const [summary, clients, health, courierQueue] = await Promise.all([
     api("/admin/api/summary"),
     api("/admin/api/clients"),
-    api("/admin/clients/health")
+    api("/admin/clients/health"),
+    api("/admin/api/courier-booking-queue?limit=20")
   ]);
   state.summary = summary;
   state.clients = clients.clients || [];
   state.health = health.clients || [];
+  state.courierQueue = courierQueue;
   renderAll();
   
   // Populate event logs filters and fetch
@@ -114,6 +116,25 @@ function statusLabel(status, isActive) {
   if (!isActive) return "Inactive";
   const clean = String(status || "healthy").toLowerCase();
   return clean.charAt(0).toUpperCase() + clean.slice(1);
+}
+
+function formatDuration(seconds) {
+  const value = Math.max(0, Number(seconds || 0));
+  if (value >= 86400) return `${Math.floor(value / 86400)}d ${Math.floor((value % 86400) / 3600)}h`;
+  if (value >= 3600) return `${Math.floor(value / 3600)}h ${Math.floor((value % 3600) / 60)}m`;
+  if (value >= 60) return `${Math.floor(value / 60)}m ${Math.floor(value % 60)}s`;
+  return `${Math.floor(value)}s`;
+}
+
+function courierQueueCounts() {
+  return state.courierQueue?.counts || state.summary?.courier_booking_queue || {};
+}
+
+function courierQueueStatusClass(status) {
+  const clean = String(status || "healthy").toLowerCase();
+  if (clean === "critical") return "status-critical";
+  if (clean === "warning") return "status-warning";
+  return "status-healthy";
 }
 
 function domainLink(client) {
@@ -140,6 +161,7 @@ function filteredClients() {
 
 function renderSummary() {
   const summary = state.summary || {};
+  const queue = courierQueueCounts();
   const totalEvents = Number(summary.total_events || 0);
   const failed = Number(summary.failed_events || 0);
   const totalCalls = Math.max(totalEvents + failed, 1);
@@ -154,6 +176,13 @@ function renderSummary() {
   $("errorRate").textContent = pct(errorRate);
   $("queuedOutbox").textContent = fmt(failed);
   $("eventsTrend").textContent = activeClients ? "18.6%" : "0%";
+  if ($("courierQueueDashboardStatus")) {
+    $("courierQueueDashboardStatus").className = `status-badge ${courierQueueStatusClass(queue.alert_status)}`;
+    $("courierQueueDashboardStatus").textContent = String(queue.alert_status || "healthy").toUpperCase();
+    $("courierQueueDashboardDepth").textContent = fmt((queue.queued || 0) + (queue.processing || 0));
+    $("courierQueueDashboardDead").textContent = fmt(queue.dead || 0);
+    $("courierQueueDashboardOldest").textContent = formatDuration(Math.max(queue.oldest_queued_age_seconds || 0, queue.oldest_processing_age_seconds || 0));
+  }
   $("planUsed").textContent = compactNumber(totalEvents);
   $("planProgress").style.width = `${Math.min((totalEvents / 2000000) * 100, 100)}%`;
   $("metaEvents").textContent = `Events: ${fmt(Math.round(totalEvents * 0.42))}`;
@@ -272,7 +301,15 @@ function derivedAlerts() {
 }
 
 function renderAlerts() {
-  const rows = derivedAlerts();
+  const queue = courierQueueCounts();
+  const queueAlerts = (queue.alerts || []).map(alert => ({
+    rank: alert.severity === "critical" ? "High" : "Medium",
+    cls: alert.severity === "critical" ? "alert-high" : "alert-medium",
+    title: alert.code === "dead_letter_jobs" ? "Courier booking dead letters" : alert.code === "processing_stalled" ? "Courier worker stalled" : "Courier booking queue delayed",
+    desc: alert.count ? `${fmt(alert.count)} job${alert.count > 1 ? "s" : ""} need operator retry` : `Age ${formatDuration(alert.age_seconds)}`,
+    value: alert.count || formatDuration(alert.age_seconds)
+  }));
+  const rows = [...queueAlerts, ...derivedAlerts()];
   $("alertCount").textContent = rows.length;
   $("alertRows").innerHTML = rows.map((row, index) => `<div class="stream-item" style="align-items:center;${index === rows.length - 1 ? "border-bottom:none" : ""}">
     <svg style="width:20px;height:20px;color:${row.cls === "alert-high" ? "var(--danger)" : row.cls === "alert-medium" ? "var(--warning)" : "var(--primary)"}" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>
@@ -280,6 +317,63 @@ function renderAlerts() {
     <div class="alert-rank ${row.cls}">${esc(row.rank)}</div>
     <div style="font-size:12px;color:var(--text-muted);font-weight:700">${esc(row.value)}</div>
   </div>`).join("") || `<div class="stream-item" style="align-items:center;border-bottom:none"><div class="stream-dot success"></div><div class="stream-content"><div class="stream-title">System Status</div><div class="stream-desc">All systems operational</div></div></div>`;
+}
+
+function renderCourierQueue() {
+  const queue = courierQueueCounts();
+  const jobs = state.courierQueue?.jobs || [];
+  const status = String(queue.alert_status || "healthy").toLowerCase();
+  if ($("courierQueueStatus")) {
+    $("courierQueueStatus").className = `status-badge ${courierQueueStatusClass(status)}`;
+    $("courierQueueStatus").textContent = status.toUpperCase();
+  }
+  if ($("courierQueueQueued")) $("courierQueueQueued").textContent = fmt(queue.queued || 0);
+  if ($("courierQueueProcessing")) $("courierQueueProcessing").textContent = fmt(queue.processing || 0);
+  if ($("courierQueueDead")) $("courierQueueDead").textContent = fmt(queue.dead || 0);
+  if ($("courierQueueSent")) $("courierQueueSent").textContent = fmt(queue.sent || 0);
+  if ($("courierQueueOldestQueued")) $("courierQueueOldestQueued").textContent = formatDuration(queue.oldest_queued_age_seconds || 0);
+  if ($("courierQueueOldestProcessing")) $("courierQueueOldestProcessing").textContent = formatDuration(queue.oldest_processing_age_seconds || 0);
+  if ($("courierQueueAlerts")) {
+    $("courierQueueAlerts").innerHTML = (queue.alerts || []).map(alert => `
+      <div class="queue-alert queue-alert-${esc(alert.severity)}">
+        <strong>${esc(alert.code.replaceAll("_", " "))}</strong>
+        <span>${alert.count ? `${fmt(alert.count)} affected` : `age ${formatDuration(alert.age_seconds)}`}</span>
+      </div>
+    `).join("") || `<div class="queue-alert queue-alert-healthy"><strong>Healthy</strong><span>No courier queue alerts.</span></div>`;
+  }
+  if ($("courierQueueRows")) {
+    $("courierQueueRows").innerHTML = jobs.map(job => `
+      <tr>
+        <td><div class="client-name">#${esc(job.id)}</div><div class="client-sub">client ${esc(job.client_id)}</div></td>
+        <td><div class="client-name">${esc(job.order_id || "-")}</div><div class="client-sub">order row ${esc(job.courier_order_id)}</div></td>
+        <td>${esc(job.provider)}</td>
+        <td><div class="status-badge ${statusClass(job.status === "sent" ? "healthy" : job.status === "dead" ? "critical" : ["queued", "processing"].includes(job.status) ? "warning" : "inactive")}">${esc(job.status)}</div></td>
+        <td>${fmt(job.attempts)} / ${fmt(job.max_attempts)}</td>
+        <td>${esc(toDeviceDateTime(job.next_attempt_at))}</td>
+        <td><div class="client-sub" style="max-width:260px;white-space:normal">${esc(job.last_error || "-")}</div></td>
+        <td>${job.status === "dead" ? `<button class="btn btn-primary btn-sm" onclick="retryCourierBookingJob(${Number(job.id)})">Retry</button>` : `<span class="client-sub">-</span>`}</td>
+      </tr>
+    `).join("") || `<tr><td colspan="8" class="empty">No courier booking jobs found.</td></tr>`;
+  }
+}
+
+async function refreshCourierQueue() {
+  state.courierQueue = await api("/admin/api/courier-booking-queue?limit=20");
+  state.summary = { ...(state.summary || {}), courier_booking_queue: state.courierQueue.counts };
+  renderSummary();
+  renderAlerts();
+  renderCourierQueue();
+}
+
+async function retryCourierBookingJob(jobId) {
+  if (!confirm(`Retry courier booking job #${jobId}?`)) return;
+  try {
+    await api(`/admin/api/courier-booking-queue/${jobId}/retry`, { method: "POST" });
+    showToast(`Courier booking job #${jobId} requeued.`);
+    await refreshCourierQueue();
+  } catch (error) {
+    showToast(`Retry failed: ${error.message || "unknown error"}`);
+  }
 }
 
 function toDeviceDateTime(value) {
@@ -322,6 +416,7 @@ function renderAll() {
   renderMatrixRows();
   renderActivity();
   renderAlerts();
+  renderCourierQueue();
 }
 
 async function toggleClient(id, is_active) {

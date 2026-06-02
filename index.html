@@ -66,6 +66,10 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7h8v8M21 7l-8 8-4-4-6 6"/></svg>
           Events
         </button>
+        <button class="nav-item" data-tab="courierQueue">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M4 7h11v8H4zM15 10h3l2 3v2h-5zM7 19a2 2 0 100-4 2 2 0 000 4zM17 19a2 2 0 100-4 2 2 0 000 4z"/></svg>
+          Courier Queue
+        </button>
         <button class="nav-item" data-tab="integrations">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M10 13a5 5 0 007.07 0l2.83-2.83a5 5 0 00-7.07-7.07L11 4.93M14 11a5 5 0 00-7.07 0L4.1 13.83a5 5 0 007.07 7.07L13 19.07"/></svg>
           Integrations
@@ -236,6 +240,30 @@
                 </div>
                 <div id="alertRows"></div>
               </div>
+              <div class="card">
+                <div class="card-header">
+                  <h2 class="card-title">Courier Booking Queue</h2>
+                  <button class="view-all" onclick="setTab('courierQueue')">Open</button>
+                </div>
+                <div class="queue-summary">
+                  <div>
+                    <span class="m-title">Status</span>
+                    <div id="courierQueueDashboardStatus" class="status-badge status-healthy">HEALTHY</div>
+                  </div>
+                  <div>
+                    <span class="m-title">Active Jobs</span>
+                    <strong id="courierQueueDashboardDepth">0</strong>
+                  </div>
+                  <div>
+                    <span class="m-title">Dead</span>
+                    <strong id="courierQueueDashboardDead">0</strong>
+                  </div>
+                  <div>
+                    <span class="m-title">Oldest</span>
+                    <strong id="courierQueueDashboardOldest">0s</strong>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -251,6 +279,80 @@
             <div class="conn-item">
               <div class="conn-icon" style="background:#F9AB00;color:#111827">G</div>
               <div><div class="conn-title">GA4 Measurement</div><div class="conn-status">Connected <span id="ga4Events"></span></div></div>
+            </div>
+          </div>
+        </section>
+
+        <section id="courierQueue" class="section">
+          <div class="page-header">
+            <div>
+              <h1 class="page-title">Courier Queue Monitor</h1>
+              <p class="page-sub">Track durable courier booking jobs, worker delays, and dead-letter retries.</p>
+            </div>
+            <div class="header-actions">
+              <button class="btn btn-outline" onclick="refreshCourierQueue()">Refresh Queue</button>
+            </div>
+          </div>
+
+          <div class="metrics-grid">
+            <div class="metric-card">
+              <div class="metric-header"><div class="m-icon bg-blue">Q</div><span class="m-title">Queued</span></div>
+              <div class="metric-value" id="courierQueueQueued">0</div>
+              <div class="trend">waiting for worker claim</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-header"><div class="m-icon bg-purple">P</div><span class="m-title">Processing</span></div>
+              <div class="metric-value" id="courierQueueProcessing">0</div>
+              <div class="trend">claimed by booking worker</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-header"><div class="m-icon bg-red">D</div><span class="m-title">Dead Letters</span></div>
+              <div class="metric-value" id="courierQueueDead">0</div>
+              <div class="trend">manual retry required</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-header"><div class="m-icon bg-indigo">S</div><span class="m-title">Sent</span></div>
+              <div class="metric-value" id="courierQueueSent">0</div>
+              <div class="trend">provider accepted</div>
+            </div>
+          </div>
+
+          <div class="grid-layout">
+            <div class="card">
+              <div class="card-header">
+                <h2 class="card-title">Recent Courier Booking Jobs</h2>
+                <div class="card-tools">
+                  <div id="courierQueueStatus" class="status-badge status-healthy">HEALTHY</div>
+                  <button class="view-all" onclick="refreshCourierQueue()">Refresh</button>
+                </div>
+              </div>
+              <div class="table-wrap">
+                <table>
+                  <thead>
+                    <tr><th>Job</th><th>Order</th><th>Provider</th><th>Status</th><th>Attempts</th><th>Next Attempt</th><th>Last Error</th><th>Action</th></tr>
+                  </thead>
+                  <tbody id="courierQueueRows"></tbody>
+                </table>
+              </div>
+            </div>
+            <div>
+              <div class="card">
+                <div class="card-header"><h2 class="card-title">Queue Alerts</h2></div>
+                <div id="courierQueueAlerts" class="queue-alerts"></div>
+              </div>
+              <div class="card">
+                <div class="card-header"><h2 class="card-title">Latency Windows</h2></div>
+                <div class="queue-summary queue-summary-stack">
+                  <div>
+                    <span class="m-title">Oldest Queued</span>
+                    <strong id="courierQueueOldestQueued">0s</strong>
+                  </div>
+                  <div>
+                    <span class="m-title">Oldest Processing</span>
+                    <strong id="courierQueueOldestProcessing">0s</strong>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </section>
