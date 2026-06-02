@@ -705,6 +705,59 @@ tr:last-child td { border-bottom: none; }
   font-family: JetBrains Mono, monospace;
   font-size: 12px;
 }
+.funnel-list {
+  display: grid;
+  gap: 8px;
+  margin-top: 14px;
+}
+.funnel-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-sm);
+  color: var(--text-main);
+  font-size: 12px;
+  font-weight: 750;
+}
+.funnel-item span {
+  min-width: 46px;
+  color: var(--warning);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.funnel-item.done {
+  background: var(--success-bg);
+  border-color: rgba(16,185,129,0.2);
+}
+.funnel-item.done span {
+  color: var(--success);
+}
+.support-notes-list {
+  display: grid;
+  gap: 10px;
+  margin-top: 16px;
+}
+.support-note {
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+  background: rgba(var(--primary-rgb), 0.05);
+  color: var(--text-main);
+}
+.support-note div {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-size: 13px;
+  margin-bottom: 8px;
+}
+.support-note span {
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 750;
+}
 
 .connection-footer { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: var(--radius); padding: 18px 24px; display: flex; gap: 24px; flex-wrap: wrap; justify-content: space-between; }
 .conn-item { display: flex; align-items: center; gap: 12px; }

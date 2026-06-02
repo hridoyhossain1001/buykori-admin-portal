@@ -5,6 +5,9 @@ const state = {
   summary: null,
   clients: [],
   health: [],
+  intelligence: null,
+  serverHealth: null,
+  supportNotes: [],
   courierQueue: null,
   courierQueueAutoRefresh: true,
   courierQueueLastRefresh: null,
@@ -95,15 +98,19 @@ function logout() {
 }
 
 async function loadAll() {
-  const [summary, clients, health, courierQueue] = await Promise.all([
+  const [summary, clients, health, courierQueue, intelligence, serverHealth] = await Promise.all([
     api("/admin/api/summary"),
     api("/admin/api/clients"),
     api("/admin/clients/health"),
-    api("/admin/api/courier-booking-queue?limit=20")
+    api("/admin/api/courier-booking-queue?limit=20"),
+    api("/admin/api/client-intelligence"),
+    api("/admin/api/server-health")
   ]);
   state.summary = summary;
   state.clients = clients.clients || [];
   state.health = health.clients || [];
+  state.intelligence = intelligence;
+  state.serverHealth = serverHealth;
   state.courierQueue = courierQueue;
   state.courierQueueLastRefresh = new Date();
   renderAll();
@@ -116,6 +123,10 @@ async function loadAll() {
 
 function healthFor(client) {
   return state.health.find(item => String(item.client_id) === String(client.id) || item.client_name === client.name) || {};
+}
+
+function intelligenceFor(clientId) {
+  return (state.intelligence?.clients || []).find(row => String(row.client?.id) === String(clientId)) || null;
 }
 
 function statusClass(status) {
@@ -138,6 +149,19 @@ function formatDuration(seconds) {
   if (value >= 3600) return `${Math.floor(value / 3600)}h ${Math.floor((value % 3600) / 60)}m`;
   if (value >= 60) return `${Math.floor(value / 60)}m ${Math.floor(value % 60)}s`;
   return `${Math.floor(value)}s`;
+}
+
+function formatBytes(bytes) {
+  const value = Number(bytes || 0);
+  if (!value) return "-";
+  if (value >= 1024 ** 3) return `${(value / (1024 ** 3)).toFixed(1)} GB`;
+  if (value >= 1024 ** 2) return `${(value / (1024 ** 2)).toFixed(1)} MB`;
+  if (value >= 1024) return `${(value / 1024).toFixed(1)} KB`;
+  return `${value} B`;
+}
+
+function doneCount(items) {
+  return (items || []).filter(item => item.done).length;
 }
 
 function courierQueueCounts() {
@@ -288,13 +312,14 @@ function renderIntegrationRows() {
 function renderClientRows() {
   $("clientRows").innerHTML = filteredClients().map(client => {
     const health = healthFor(client);
+    const intel = intelligenceFor(client.id);
     const healthStatus = health.health_status || (client.is_active ? "healthy" : "inactive");
     return `<tr>
-      <td><div class="client-name">${esc(client.name)}</div><div class="client-sub">ID ${esc(client.id)}</div></td>
+      <td><div class="client-name">${esc(client.name)}</div><div class="client-sub">ID ${esc(client.id)}${intel?.owner?.phone_number ? ` - ${esc(intel.owner.phone_number)}` : ""}</div></td>
       <td>${domainLink(client)}</td>
       <td>${fmt(client.event_total || 0)}</td>
       <td><div class="client-sub">API ${esc(String(client.api_key || "").slice(0, 8))}...</div><div class="client-sub">Portal ${client.portal_key ? `${esc(String(client.portal_key).slice(0, 8))}...` : "-"}</div></td>
-      <td><div class="status-badge ${statusClass(healthStatus)}">${statusLabel(healthStatus, client.is_active)}</div></td>
+      <td><div class="status-badge ${statusClass(intel?.health_score?.status || healthStatus)}">${intel?.health_score ? `${fmt(intel.health_score.score)}%` : statusLabel(healthStatus, client.is_active)}</div></td>
       <td>
         <div style="display:flex;gap:8px">
           <button class="btn btn-outline btn-sm" onclick="openClientModal(${client.id})">Manage</button>
@@ -313,6 +338,77 @@ function renderHealthRows() {
     <td>${pct(item.success_rate)}</td>
     <td>${esc(toDeviceDateTime(item.last_event_at))}</td>
   </tr>`).join("") || `<tr><td colspan="5" class="empty">No health data found.</td></tr>`;
+}
+
+function renderClientIntelligence() {
+  const rows = state.intelligence?.clients || [];
+  const followups = state.intelligence?.trial_followups || [];
+  if ($("trialFollowupRows")) {
+    $("trialFollowupRows").innerHTML = followups.map(row => {
+      const c = row.client || {};
+      const owner = row.owner || {};
+      const followup = row.trial_followup || {};
+      return `<tr>
+        <td><div class="client-name">${esc(c.name)}</div><div class="client-sub">${esc(owner.full_name || "-")} - ${esc(owner.phone_number || "no phone")}</div></td>
+        <td><div class="status-badge ${followup.priority === "high" ? "status-critical" : followup.priority === "medium" ? "status-warning" : "status-healthy"}">${esc(followup.priority)}</div></td>
+        <td>${esc(followup.reason)}</td>
+        <td>${esc(followup.action)}</td>
+        <td><button class="btn btn-outline btn-sm" onclick="openClientModal(${Number(c.id)})">Open 360</button></td>
+      </tr>`;
+    }).join("") || `<tr><td colspan="5" class="empty">No trial follow-ups right now.</td></tr>`;
+  }
+  if ($("clientIntelRows")) {
+    $("clientIntelRows").innerHTML = rows.map(row => {
+      const c = row.client || {};
+      const owner = row.owner || {};
+      const funnel = row.onboarding_funnel || [];
+      const score = row.health_score || {};
+      const followup = row.trial_followup;
+      return `<tr>
+        <td><div class="client-name">${esc(c.name)}</div><div class="client-sub">${esc(owner.email || "-")} - ${esc(owner.phone_number || "no phone")}</div></td>
+        <td><div class="status-badge ${statusClass(score.status)}">${fmt(score.score)}%</div><div class="client-sub">${esc((score.reasons || []).slice(0, 2).join(", ") || "Looks good")}</div></td>
+        <td>${doneCount(funnel)} / ${funnel.length}</td>
+        <td>${followup ? esc(followup.reason) : "No action"}</td>
+        <td>${fmt(row.support_note_count || 0)}</td>
+        <td><button class="btn btn-outline btn-sm" onclick="openClientModal(${Number(c.id)})">Open 360</button></td>
+      </tr>`;
+    }).join("") || `<tr><td colspan="6" class="empty">No client intelligence data found.</td></tr>`;
+  }
+}
+
+function renderOpsMonitor() {
+  const health = state.serverHealth || {};
+  const server = health.server || {};
+  const memory = server.memory || {};
+  const disk = server.disk || {};
+  const worker = health.worker_monitor || {};
+  if ($("serverHealthStatus")) $("serverHealthStatus").textContent = String(health.status || "-").toUpperCase();
+  if ($("serverRamUsed")) $("serverRamUsed").textContent = memory.used_percent == null ? "-" : pct(memory.used_percent);
+  if ($("serverLoadAvg")) $("serverLoadAvg").textContent = (server.load_average || []).length ? server.load_average.map(n => Number(n).toFixed(2)).join(" / ") : "-";
+  if ($("serverDiskUsed")) $("serverDiskUsed").textContent = disk.used_percent == null ? "-" : pct(disk.used_percent);
+  if ($("serverUptime")) $("serverUptime").textContent = formatDuration(server.uptime_seconds || 0);
+  if ($("serverProcessMem")) $("serverProcessMem").textContent = formatBytes(server.process?.rss_bytes);
+  if ($("serverDbStatus")) $("serverDbStatus").textContent = health.db ? "OK" : "FAIL";
+  if ($("serverRedisStatus")) $("serverRedisStatus").textContent = health.redis ? "OK" : "FAIL";
+  if ($("workerMonitorStatus")) {
+    $("workerMonitorStatus").className = `status-badge ${statusClass(worker.status)}`;
+    $("workerMonitorStatus").textContent = String(worker.status || "unknown").toUpperCase();
+  }
+  if ($("workerMonitorRows")) {
+    const eventOutbox = worker.event_outbox || {};
+    const failedEvents = worker.failed_events || {};
+    const courier = worker.courier_booking_queue || {};
+    $("workerMonitorRows").innerHTML = [
+      ["Event outbox queued", eventOutbox.queued || 0],
+      ["Event outbox processing", eventOutbox.processing || 0],
+      ["Event outbox dead", eventOutbox.dead || 0],
+      ["Failed events pending", failedEvents.pending || 0],
+      ["Failed events dead", failedEvents.dead || 0],
+      ["Courier queued", courier.queued || 0],
+      ["Courier processing", courier.processing || 0],
+      ["Courier dead", courier.dead || 0],
+    ].map(row => `<tr><td>${esc(row[0])}</td><td>${fmt(row[1])}</td></tr>`).join("");
+  }
 }
 
 function renderMatrixRows() {
@@ -579,6 +675,8 @@ function renderAll() {
   renderActivity();
   renderAlerts();
   renderCourierQueue();
+  renderClientIntelligence();
+  renderOpsMonitor();
 }
 
 async function toggleClient(id, is_active) {
@@ -722,10 +820,64 @@ function switchModalTab(tab) {
   document.querySelectorAll('.modal-body .tab-content').forEach(c => c.classList.toggle('active', c.id === 'tab-' + tab));
 }
 
+function renderClientModalIntel(clientId) {
+  const intel = intelligenceFor(clientId);
+  if (!$("client360Summary")) return;
+  if (!intel) {
+    $("client360Summary").innerHTML = `<div class="empty">Client intelligence not loaded yet.</div>`;
+    return;
+  }
+  const score = intel.health_score || {};
+  const owner = intel.owner || {};
+  const funnel = intel.onboarding_funnel || [];
+  $("client360Summary").innerHTML = `
+    <div class="drawer-grid">
+      <div><span>Owner</span><strong>${esc(owner.full_name || "-")}</strong></div>
+      <div><span>Phone</span><strong>${esc(owner.phone_number || "-")}</strong></div>
+      <div><span>Health Score</span><strong>${fmt(score.score)}% (${esc(score.status)})</strong></div>
+      <div><span>Onboarding</span><strong>${doneCount(funnel)} / ${funnel.length}</strong></div>
+      <div><span>Trial Follow-up</span><strong>${esc(intel.trial_followup?.reason || "No action")}</strong></div>
+      <div><span>Support Notes</span><strong>${fmt(intel.support_note_count || 0)}</strong></div>
+    </div>
+    <div class="funnel-list">${funnel.map(item => `<div class="funnel-item ${item.done ? "done" : ""}"><span>${item.done ? "Done" : "Todo"}</span>${esc(item.label)}</div>`).join("")}</div>
+  `;
+}
+
+function renderSupportNotes() {
+  if (!$("supportNotesList")) return;
+  $("supportNotesList").innerHTML = state.supportNotes.map(note => `
+    <div class="support-note">
+      <div>${esc(note.note)}</div>
+      <span>${esc(toDeviceDateTime(note.created_at))} by ${esc(note.created_by || "admin")}</span>
+    </div>
+  `).join("") || `<div class="empty">No support notes yet.</div>`;
+}
+
+async function loadSupportNotes(clientId) {
+  const res = await api(`/admin/api/clients/${clientId}/support-notes`);
+  state.supportNotes = res.notes || [];
+  renderSupportNotes();
+}
+
+async function addSupportNote() {
+  if (!currentClientId) return;
+  const note = $("supportNoteInput").value.trim();
+  if (!note) return;
+  await api(`/admin/api/clients/${currentClientId}/support-notes`, {
+    method: "POST",
+    body: JSON.stringify({ note })
+  });
+  $("supportNoteInput").value = "";
+  await loadSupportNotes(currentClientId);
+  await loadAll();
+  showToast("Support note added.");
+}
+
 function closeClientModal() {
   document.getElementById('modalOverlay').style.display = 'none';
   currentClientId = null;
   modalSecrets.clear();
+  state.supportNotes = [];
 }
 
 async function openClientModal(id) {
@@ -789,6 +941,8 @@ async function openClientModal(id) {
     }
   }'`;
     $("instrCurl").innerText = code;
+    renderClientModalIntel(id);
+    await loadSupportNotes(id);
     
   } catch (e) {
     $("editMsg").textContent = "Failed to load client data.";

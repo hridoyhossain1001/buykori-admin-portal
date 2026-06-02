@@ -70,6 +70,14 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M4 7h11v8H4zM15 10h3l2 3v2h-5zM7 19a2 2 0 100-4 2 2 0 000 4zM17 19a2 2 0 100-4 2 2 0 000 4z"/></svg>
           Courier Queue
         </button>
+        <button class="nav-item" data-tab="clientIntel">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3 3h18v4H3zM5 11h14M5 16h9M17 16h2M5 21h6"/></svg>
+          Client Intel
+        </button>
+        <button class="nav-item" data-tab="opsMonitor">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M4 19V5M4 19h18M8 16v-5M13 16V8M18 16v-9"/></svg>
+          Ops Monitor
+        </button>
         <button class="nav-item" data-tab="integrations">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M10 13a5 5 0 007.07 0l2.83-2.83a5 5 0 00-7.07-7.07L11 4.93M14 11a5 5 0 00-7.07 0L4.1 13.83a5 5 0 007.07 7.07L13 19.07"/></svg>
           Integrations
@@ -457,6 +465,54 @@
           </div>
         </section>
 
+        <section id="clientIntel" class="section">
+          <div class="page-header">
+            <div><h1 class="page-title">Client Intelligence</h1><p class="page-sub">Client 360, trial follow-ups, onboarding funnel and support context.</p></div>
+            <button class="btn btn-outline" onclick="loadAll()">Refresh Intel</button>
+          </div>
+          <div class="grid-layout">
+            <div class="card">
+              <div class="card-header"><h2 class="card-title">Trial Follow-up Queue</h2></div>
+              <div class="table-wrap"><table><thead><tr><th>Client</th><th>Priority</th><th>Reason</th><th>Action</th><th>Open</th></tr></thead><tbody id="trialFollowupRows"></tbody></table></div>
+            </div>
+            <div class="card">
+              <div class="card-header"><h2 class="card-title">Client 360 Snapshot</h2></div>
+              <div class="table-wrap"><table><thead><tr><th>Client</th><th>Health</th><th>Funnel</th><th>Follow-up</th><th>Notes</th><th>Open</th></tr></thead><tbody id="clientIntelRows"></tbody></table></div>
+            </div>
+          </div>
+        </section>
+
+        <section id="opsMonitor" class="section">
+          <div class="page-header">
+            <div><h1 class="page-title">Ops Monitor</h1><p class="page-sub">Lightweight server RAM, load, disk, DB/Redis and worker queue status.</p></div>
+            <button class="btn btn-outline" onclick="loadAll()">Refresh Ops</button>
+          </div>
+          <div class="metrics-grid">
+            <div class="metric-card"><div class="metric-header"><div class="m-icon bg-blue">S</div><span class="m-title">Server</span></div><div class="metric-value" id="serverHealthStatus">-</div><div class="trend">overall status</div></div>
+            <div class="metric-card"><div class="metric-header"><div class="m-icon bg-purple">R</div><span class="m-title">RAM Used</span></div><div class="metric-value" id="serverRamUsed">-</div><div class="trend">system memory</div></div>
+            <div class="metric-card"><div class="metric-header"><div class="m-icon bg-indigo">L</div><span class="m-title">Load Avg</span></div><div class="metric-value" id="serverLoadAvg">-</div><div class="trend">1m / 5m / 15m</div></div>
+            <div class="metric-card"><div class="metric-header"><div class="m-icon bg-red">D</div><span class="m-title">Disk Used</span></div><div class="metric-value" id="serverDiskUsed">-</div><div class="trend">root volume</div></div>
+          </div>
+          <div class="grid-layout">
+            <div class="card">
+              <div class="card-header"><h2 class="card-title">Runtime Health</h2></div>
+              <div class="queue-summary">
+                <div><span class="m-title">Uptime</span><strong id="serverUptime">-</strong></div>
+                <div><span class="m-title">Process Memory</span><strong id="serverProcessMem">-</strong></div>
+                <div><span class="m-title">Database</span><strong id="serverDbStatus">-</strong></div>
+                <div><span class="m-title">Redis</span><strong id="serverRedisStatus">-</strong></div>
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-header">
+                <h2 class="card-title">Worker Monitor</h2>
+                <div id="workerMonitorStatus" class="status-badge status-healthy">-</div>
+              </div>
+              <div class="table-wrap"><table><thead><tr><th>Queue</th><th>Count</th></tr></thead><tbody id="workerMonitorRows"></tbody></table></div>
+            </div>
+          </div>
+        </section>
+
         <section id="integrations" class="section">
           <div class="page-header">
             <div><h1 class="page-title">Integrations</h1><p class="page-sub">Meta CAPI, TikTok Events API and GA4 status per client.</p></div>
@@ -521,6 +577,7 @@
           <button class="tab-btn active" onclick="switchModalTab('edit')">Settings</button>
           <button class="tab-btn" onclick="switchModalTab('keys')">API Keys</button>
           <button class="tab-btn" onclick="switchModalTab('instructions')">Instructions</button>
+          <button class="tab-btn" onclick="switchModalTab('intel')">360 & Notes</button>
           <button class="tab-btn" onclick="switchModalTab('danger')">Danger Zone</button>
         </div>
         
@@ -641,6 +698,19 @@
             </div>
             <p style="font-size:11px;color:var(--text-muted)">The client will need their Portal Key to login.</p>
           </div>
+        </div>
+
+        <div id="tab-intel" class="tab-content">
+          <div id="client360Summary"></div>
+          <h3 style="margin:24px 0 12px;font-size:12px;color:var(--text-main);text-transform:uppercase;font-weight:800;letter-spacing:0.05em">Support Notes</h3>
+          <div class="field">
+            <label>Add Internal Note</label>
+            <textarea id="supportNoteInput" rows="3" placeholder="Call summary, feedback, upgrade interest, setup blocker..."></textarea>
+          </div>
+          <div style="margin-top:12px;display:flex;gap:12px;align-items:center">
+            <button class="btn btn-primary" onclick="addSupportNote()">Add Note</button>
+          </div>
+          <div id="supportNotesList" class="support-notes-list"></div>
         </div>
         
         <div id="tab-danger" class="tab-content">
