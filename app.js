@@ -483,7 +483,14 @@ async function openClientModal(id) {
     // Populate Edit
     $("editName").value = c.name || "";
     $("editDomain").value = c.domain || "";
+    $("editPlanTier").value = c.plan_tier || "free";
+    $("editBillingStatus").value = c.billing_status || "free";
     $("editLimit").value = c.monthly_limit || "";
+    $("editDailyQuota").value = c.daily_quota !== undefined && c.daily_quota !== null ? c.daily_quota : "";
+    $("editRateLimit").value = c.rate_limit !== undefined && c.rate_limit !== null ? c.rate_limit : "";
+    $("editFbTestCode").value = c.test_event_code || "";
+    $("editTiktokTestCode").value = c.tiktok_test_event_code || "";
+    $("editWebhookUrl").value = c.webhook_url || "";
     $("editActive").checked = !!c.is_active;
     $("editFb").checked = !!c.enable_facebook;
     $("editTiktok").checked = !!c.enable_tiktok;
@@ -540,11 +547,18 @@ async function saveClientEdit() {
     name: $("editName").value,
     domain: $("editDomain").value,
     monthly_limit: parseInt($("editLimit").value) || null,
+    rate_limit: parseInt($("editRateLimit").value) || null,
+    daily_quota: parseInt($("editDailyQuota").value) || null,
     is_active: $("editActive").checked,
     enable_facebook: $("editFb").checked,
     enable_tiktok: $("editTiktok").checked,
     enable_ga4: $("editGa4").checked,
-    deferred_purchase: $("editDeferred").checked
+    deferred_purchase: $("editDeferred").checked,
+    plan_tier: $("editPlanTier").value,
+    billing_status: $("editBillingStatus").value,
+    webhook_url: $("editWebhookUrl").value.trim() || null,
+    test_event_code: $("editFbTestCode").value.trim() || null,
+    tiktok_test_event_code: $("editTiktokTestCode").value.trim() || null
   };
   
   try {
