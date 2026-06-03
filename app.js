@@ -9,6 +9,7 @@ const state = {
   serverHealth: null,
   supportNotes: [],
   courierQueue: null,
+  siteBindings: [],
   courierQueueAutoRefresh: true,
   courierQueueLastRefresh: null,
   courierQueueTimer: null,
@@ -98,13 +99,14 @@ function logout() {
 }
 
 async function loadAll() {
-  const [summary, clients, health, courierQueue, intelligence, serverHealth] = await Promise.all([
+  const [summary, clients, health, courierQueue, intelligence, serverHealth, siteBindings] = await Promise.all([
     api("/admin/api/summary"),
     api("/admin/api/clients"),
     api("/admin/clients/health"),
     api("/admin/api/courier-booking-queue?limit=20"),
     api("/admin/api/client-intelligence"),
-    api("/admin/api/server-health")
+    api("/admin/api/server-health"),
+    api("/admin/api/site-bindings?status=all").catch(() => ({ bindings: [] }))
   ]);
   state.summary = summary;
   state.clients = clients.clients || [];
@@ -112,12 +114,14 @@ async function loadAll() {
   state.intelligence = intelligence;
   state.serverHealth = serverHealth;
   state.courierQueue = courierQueue;
+  state.siteBindings = siteBindings.bindings || [];
   state.courierQueueLastRefresh = new Date();
   renderAll();
   startCourierQueueAutoRefresh();
   
   // Populate event logs filters and fetch
   populateClientFilter();
+  populateBindingClientFilters();
   loadEvents();
 }
 
@@ -328,6 +332,114 @@ function renderClientRows() {
       </td>
     </tr>`;
   }).join("") || `<tr><td colspan="6" class="empty">No clients found.</td></tr>`;
+}
+
+function bindingStatusClass(status) {
+  const clean = String(status || "active").toLowerCase();
+  if (clean === "active") return "status-healthy";
+  if (clean === "released") return "status-warning";
+  if (clean === "transferred") return "status-inactive";
+  return "status-inactive";
+}
+
+function filteredSiteBindings() {
+  const status = $("bindingStatusFilter")?.value || "all";
+  const clientId = $("bindingClientFilter")?.value || "";
+  const query = ($("searchInput")?.value || "").toLowerCase().trim();
+  return (state.siteBindings || []).filter(binding => {
+    if (status !== "all" && String(binding.status || "").toLowerCase() !== status) return false;
+    if (clientId && String(binding.client_id) !== clientId) return false;
+    if (!query) return true;
+    return [
+      binding.site_host,
+      binding.root_domain,
+      binding.client_name,
+      binding.client_id,
+      binding.status,
+      binding.source,
+      binding.release_reason
+    ].some(value => String(value || "").toLowerCase().includes(query));
+  });
+}
+
+function populateBindingClientFilters() {
+  const bindingFilter = $("bindingClientFilter");
+  const transferTarget = $("transferTargetClient");
+  if (!bindingFilter || !transferTarget) return;
+  const selectedFilter = bindingFilter.value;
+  const selectedTarget = transferTarget.value;
+  bindingFilter.innerHTML = '<option value="">All clients</option>';
+  transferTarget.innerHTML = '<option value="">Select client</option>';
+  state.clients.forEach(client => {
+    const filterOpt = document.createElement("option");
+    filterOpt.value = client.id;
+    filterOpt.textContent = `${client.name} (#${client.id})`;
+    bindingFilter.appendChild(filterOpt);
+
+    const targetOpt = document.createElement("option");
+    targetOpt.value = client.id;
+    targetOpt.textContent = `${client.name} (#${client.id})`;
+    transferTarget.appendChild(targetOpt);
+  });
+  if (selectedFilter && state.clients.some(c => String(c.id) === selectedFilter)) bindingFilter.value = selectedFilter;
+  if (selectedTarget && state.clients.some(c => String(c.id) === selectedTarget)) transferTarget.value = selectedTarget;
+}
+
+function renderSiteBindingMetrics() {
+  const bindings = state.siteBindings || [];
+  const counts = bindings.reduce((acc, binding) => {
+    const status = String(binding.status || "active").toLowerCase();
+    acc[status] = (acc[status] || 0) + 1;
+    if (binding.installation_id) acc.fingerprinted += 1;
+    return acc;
+  }, { active: 0, released: 0, transferred: 0, fingerprinted: 0 });
+  if ($("bindingActiveCount")) $("bindingActiveCount").textContent = fmt(counts.active);
+  if ($("bindingReleasedCount")) $("bindingReleasedCount").textContent = fmt(counts.released);
+  if ($("bindingTransferredCount")) $("bindingTransferredCount").textContent = fmt(counts.transferred);
+  if ($("bindingFingerprintCount")) $("bindingFingerprintCount").textContent = fmt(counts.fingerprinted);
+}
+
+function renderSiteBindings() {
+  renderSiteBindingMetrics();
+  const tbody = $("siteBindingRows");
+  if (!tbody) return;
+  const bindings = filteredSiteBindings();
+  const meta = $("siteBindingMeta");
+  if (meta) meta.textContent = `Showing ${bindings.length} of ${(state.siteBindings || []).length} bindings`;
+  tbody.innerHTML = bindings.map(binding => {
+    const status = String(binding.status || "active").toLowerCase();
+    const canRelease = status === "active";
+    const canTransfer = status === "active";
+    return `<tr>
+      <td>
+        <div class="client-name">${esc(binding.site_host || binding.root_domain)}</div>
+        <div class="client-sub">${esc(binding.root_domain || "-")} · ${esc(binding.source || "-")}</div>
+      </td>
+      <td>
+        <div class="client-name">${esc(binding.client_name || "Unknown client")}</div>
+        <div class="client-sub">Client #${esc(binding.client_id)}</div>
+      </td>
+      <td><div class="status-badge ${bindingStatusClass(status)}">${esc(status.toUpperCase())}</div></td>
+      <td>
+        <div class="code-text">${esc(binding.installation_id || "not captured")}</div>
+        <div class="client-sub">Connected ${esc(toDeviceDateTime(binding.connected_at))}</div>
+      </td>
+      <td>
+        <div class="client-sub">Seen ${esc(toDeviceDateTime(binding.last_seen_at))}</div>
+        <div class="client-sub">Event ${esc(toDeviceDateTime(binding.last_event_at))}</div>
+      </td>
+      <td>
+        <div class="client-sub">${binding.released_at ? esc(toDeviceDateTime(binding.released_at)) : "-"}</div>
+        <div class="client-sub">${esc(binding.release_reason || "")}</div>
+      </td>
+      <td>
+        <div class="queue-actions">
+          <button class="btn btn-outline btn-sm" onclick="prepareSiteBindingTransfer(${Number(binding.id)})" ${canTransfer ? "" : "disabled"}>Transfer</button>
+          <button class="btn btn-danger btn-sm" onclick="releaseSiteBinding(${Number(binding.id)})" ${canRelease ? "" : "disabled"}>Release</button>
+        </div>
+      </td>
+    </tr>`;
+  }).join("") || `<tr><td colspan="7" class="empty">No site bindings found.</td></tr>`;
 }
 
 function renderHealthRows() {
@@ -673,6 +785,7 @@ function renderAll() {
   renderSummary();
   renderIntegrationRows();
   renderClientRows();
+  renderSiteBindings();
   renderHealthRows();
   renderMatrixRows();
   renderActivity();
@@ -680,6 +793,87 @@ function renderAll() {
   renderCourierQueue();
   renderClientIntelligence();
   renderOpsMonitor();
+}
+
+async function refreshSiteBindings(options = {}) {
+  try {
+    const res = await api("/admin/api/site-bindings?status=all");
+    state.siteBindings = res.bindings || [];
+    populateBindingClientFilters();
+    renderSiteBindings();
+    if (!options.silent) showToast("Site bindings refreshed.");
+  } catch (error) {
+    if (!options.silent) showToast(`Site binding refresh failed: ${error.message || "unknown error"}`);
+  }
+}
+
+function prepareSiteBindingTransfer(bindingId) {
+  const binding = (state.siteBindings || []).find(item => Number(item.id) === Number(bindingId));
+  if (!binding) return;
+  if ($("transferSiteHost")) $("transferSiteHost").value = binding.site_host || binding.root_domain || "";
+  if ($("bindingClientFilter")) $("bindingClientFilter").value = String(binding.client_id || "");
+  if ($("transferReason") && !$("transferReason").value.trim()) {
+    $("transferReason").value = `Verified owner requested transfer for ${binding.root_domain || binding.site_host}.`;
+  }
+  renderSiteBindings();
+  $("transferSiteHost")?.focus();
+}
+
+async function releaseSiteBinding(bindingId) {
+  const binding = (state.siteBindings || []).find(item => Number(item.id) === Number(bindingId));
+  if (!binding) return;
+  const reason = prompt(`Release ${binding.root_domain || binding.site_host}? Enter support reason:`);
+  if (!reason || !reason.trim()) return;
+  if (!confirm(`Release active binding for ${binding.root_domain || binding.site_host}? Tracking will require reconnect.`)) return;
+  try {
+    await api(`/admin/api/site-bindings/${bindingId}/release`, {
+      method: "POST",
+      body: JSON.stringify({ reason: reason.trim() })
+    });
+    showToast("Site binding released.");
+    await refreshSiteBindings();
+  } catch (error) {
+    showToast(`Release failed: ${error.message || "unknown error"}`);
+  }
+}
+
+async function transferSiteBinding() {
+  const siteHost = $("transferSiteHost")?.value.trim();
+  const targetClientId = $("transferTargetClient")?.value;
+  const reason = $("transferReason")?.value.trim();
+  const msg = $("siteBindingMsg");
+  if (msg) {
+    msg.style.color = "var(--danger)";
+    msg.textContent = "";
+  }
+  if (!siteHost || !targetClientId || !reason) {
+    if (msg) msg.textContent = "Site host, target client, and support reason are required.";
+    return;
+  }
+  if (!confirm(`Transfer ${siteHost} to client #${targetClientId}?`)) return;
+  if (msg) {
+    msg.style.color = "var(--success)";
+    msg.textContent = "Transferring binding...";
+  }
+  try {
+    await api("/admin/api/site-bindings/transfer", {
+      method: "POST",
+      body: JSON.stringify({
+        site_host: siteHost,
+        target_client_id: Number(targetClientId),
+        reason
+      })
+    });
+    if (msg) msg.textContent = "Binding transferred.";
+    $("transferReason").value = "";
+    await loadAll();
+    setTab("siteBindings");
+  } catch (error) {
+    if (msg) {
+      msg.style.color = "var(--danger)";
+      msg.textContent = `Transfer failed: ${error.message || "unknown error"}`;
+    }
+  }
 }
 
 async function toggleClient(id, is_active) {
@@ -716,6 +910,7 @@ function setTab(tab) {
   document.querySelectorAll(".section").forEach(section => section.classList.toggle("active", section.id === tab));
   if (window.innerWidth <= 820 && $("sidebar").classList.contains("open")) toggleSidebar();
   if (tab === "courierQueue") refreshCourierQueue({ silent: true });
+  if (tab === "siteBindings") refreshSiteBindings({ silent: true });
 }
 
 function downloadReport() {

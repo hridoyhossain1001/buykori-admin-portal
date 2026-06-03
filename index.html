@@ -62,6 +62,10 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
           Clients
         </button>
+        <button class="nav-item" data-tab="siteBindings">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3l8 4v5c0 5-3.4 8.7-8 9-4.6-.3-8-4-8-9V7l8-4zM9 12l2 2 4-5"/></svg>
+          Site Bindings
+        </button>
         <button class="nav-item" data-tab="events">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7h8v8M21 7l-8 8-4-4-6 6"/></svg>
           Events
@@ -384,6 +388,104 @@
                 <thead><tr><th>Name</th><th>Domain</th><th>Total Events</th><th>Keys</th><th>Status</th><th>Actions</th></tr></thead>
                 <tbody id="clientRows"></tbody>
               </table>
+            </div>
+          </div>
+        </section>
+
+        <section id="siteBindings" class="section">
+          <div class="page-header">
+            <div>
+              <h1 class="page-title">Site Bindings</h1>
+              <p class="page-sub">Control connected WordPress domains, installation fingerprints, release, and transfer workflows.</p>
+            </div>
+            <div class="header-actions">
+              <button class="btn btn-outline" onclick="refreshSiteBindings()">Refresh Bindings</button>
+            </div>
+          </div>
+
+          <div class="metrics-grid site-binding-metrics">
+            <div class="metric-card">
+              <div class="metric-header"><div class="m-icon bg-blue">A</div><span class="m-title">Active Locks</span></div>
+              <div class="metric-value" id="bindingActiveCount">0</div>
+              <div class="trend">currently protected</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-header"><div class="m-icon bg-purple">R</div><span class="m-title">Released</span></div>
+              <div class="metric-value" id="bindingReleasedCount">0</div>
+              <div class="trend">support unlocked</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-header"><div class="m-icon bg-indigo">T</div><span class="m-title">Transferred</span></div>
+              <div class="metric-value" id="bindingTransferredCount">0</div>
+              <div class="trend">moved to another workspace</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-header"><div class="m-icon bg-red">I</div><span class="m-title">Fingerprinted</span></div>
+              <div class="metric-value" id="bindingFingerprintCount">0</div>
+              <div class="trend">installation IDs captured</div>
+            </div>
+          </div>
+
+          <div class="grid-layout">
+            <div class="card">
+              <div class="card-header">
+                <h2 class="card-title">Connected Websites</h2>
+                <div class="card-tools">
+                  <select id="bindingStatusFilter" onchange="renderSiteBindings()">
+                    <option value="all">All statuses</option>
+                    <option value="active">Active</option>
+                    <option value="released">Released</option>
+                    <option value="transferred">Transferred</option>
+                  </select>
+                  <select id="bindingClientFilter" onchange="renderSiteBindings()">
+                    <option value="">All clients</option>
+                  </select>
+                </div>
+              </div>
+              <div class="table-wrap">
+                <table>
+                  <thead>
+                    <tr><th>Website</th><th>Client</th><th>Status</th><th>Install</th><th>Activity</th><th>Release</th><th>Actions</th></tr>
+                  </thead>
+                  <tbody id="siteBindingRows">
+                    <tr><td colspan="7" class="empty">Loading bindings...</td></tr>
+                  </tbody>
+                </table>
+              </div>
+              <div class="table-footer-meta" id="siteBindingMeta">Showing 0 bindings</div>
+            </div>
+            <div>
+              <div class="card">
+                <div class="card-header">
+                  <h2 class="card-title">Transfer Website</h2>
+                </div>
+                <div class="site-binding-panel">
+                  <div class="field">
+                    <label for="transferSiteHost">Site Host</label>
+                    <input id="transferSiteHost" placeholder="example.com">
+                  </div>
+                  <div class="field">
+                    <label for="transferTargetClient">Target Client</label>
+                    <select id="transferTargetClient">
+                      <option value="">Select client</option>
+                    </select>
+                  </div>
+                  <div class="field">
+                    <label for="transferReason">Support Reason</label>
+                    <textarea id="transferReason" rows="4" placeholder="Approved transfer request, billing/account merge, or verified owner request."></textarea>
+                  </div>
+                  <button class="btn btn-primary" onclick="transferSiteBinding()">Transfer Binding</button>
+                  <p id="siteBindingMsg" class="form-msg"></p>
+                </div>
+              </div>
+              <div class="card">
+                <div class="card-header"><h2 class="card-title">Policy</h2></div>
+                <div class="site-binding-policy">
+                  <div><strong>Release</strong><span>Stops the active lock. The WordPress plugin must reconnect before tracking resumes cleanly.</span></div>
+                  <div><strong>Transfer</strong><span>Moves the active lock to another workspace and keeps the installation fingerprint.</span></div>
+                  <div><strong>Disconnect</strong><span>WordPress disconnect does not release the server lock by design.</span></div>
+                </div>
+              </div>
             </div>
           </div>
         </section>

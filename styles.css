@@ -353,6 +353,13 @@ svg { flex-shrink: 0; }
 .btn-danger:hover {
   box-shadow: 0 6px 20px rgba(239, 68, 68, 0.3);
 }
+.btn:disabled,
+.btn[disabled] {
+  opacity: 0.45;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
 
 .section { display: none; }
 .section.active { display: block; }
@@ -403,6 +410,17 @@ polyline[stroke="#818CF8"] { filter: drop-shadow(0 2px 4px rgba(129, 140, 248, 0
 .card-header { padding: 18px 24px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--card-border); gap: 16px; }
 .card-title { font-size: 14px; font-weight: 800; color: var(--text-main); text-transform: uppercase; letter-spacing: 0.05em; }
 .card-tools { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+.card-tools select {
+  min-width: 150px;
+  background: var(--input-bg);
+  color: var(--text-main);
+  border: 1px solid var(--input-border);
+  border-radius: var(--radius-sm);
+  padding: 8px 12px;
+  outline: none;
+  font-size: 12px;
+  font-weight: 700;
+}
 
 table { width: 100%; border-collapse: collapse; }
 th { text-align: left; padding: 14px 20px; font-size: 11px; font-weight: 750; color: var(--text-muted); border-bottom: 1px solid var(--card-border); text-transform: uppercase; letter-spacing: 0.05em; }
@@ -597,6 +615,56 @@ tr:last-child td { border-bottom: none; }
   font-size: 12px;
   font-weight: 750;
   white-space: nowrap;
+}
+.site-binding-metrics {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+.table-footer-meta {
+  padding: 14px 20px;
+  border-top: 1px solid var(--card-border);
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+.site-binding-panel {
+  display: grid;
+  gap: 16px;
+  padding: 20px;
+}
+.site-binding-panel textarea {
+  resize: vertical;
+  min-height: 96px;
+}
+.form-msg {
+  min-height: 18px;
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+.site-binding-policy {
+  display: grid;
+  gap: 12px;
+  padding: 18px 20px;
+}
+.site-binding-policy > div {
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-sm);
+  padding: 13px;
+  background: rgba(var(--primary-rgb), 0.05);
+}
+.site-binding-policy strong {
+  display: block;
+  color: var(--text-main);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 6px;
+}
+.site-binding-policy span {
+  display: block;
+  color: var(--text-muted);
+  font-size: 12px;
+  line-height: 1.5;
 }
 .queue-actions {
   display: flex;
