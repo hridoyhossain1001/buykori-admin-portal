@@ -1,6 +1,10 @@
 const API_BASE = "https://api.buykori.app/api/v1";
 const $ = id => document.getElementById(id);
 const COURIER_QUEUE_REFRESH_MS = 15000;
+const ADMIN_CSRF_COOKIE = "buykori_admin_csrf";
+const ADMIN_CSRF_HEADER = "X-Admin-CSRF-Token";
+const CSRF_MUTATION_METHODS = new Set(["POST", "PATCH", "DELETE"]);
+let adminCsrfToken = "";
 const state = {
   summary: null,
   clients: [],
@@ -32,16 +36,36 @@ const esc = value => {
   div.textContent = String(value ?? "");
   return div.innerHTML;
 };
-const key = () => sessionStorage.getItem("buykori_admin_jwt") || "";
+
+function csrfFromCookie() {
+  const prefix = `${ADMIN_CSRF_COOKIE}=`;
+  return document.cookie
+    .split(";")
+    .map(part => part.trim())
+    .find(part => part.startsWith(prefix))
+    ?.slice(prefix.length) || "";
+}
+
+function currentCsrfToken() {
+  adminCsrfToken = adminCsrfToken || csrfFromCookie();
+  return adminCsrfToken;
+}
 
 async function api(path, options = {}) {
+  const method = String(options.method || "GET").toUpperCase();
+  const headers = {
+    "Content-Type": "application/json",
+    ...(options.headers || {})
+  };
+  if (CSRF_MUTATION_METHODS.has(method)) {
+    const token = currentCsrfToken();
+    if (token) headers[ADMIN_CSRF_HEADER] = token;
+  }
+
   const res = await fetch(API_BASE + path, {
     ...options,
-    headers: {
-      "Content-Type": "application/json",
-      "Authorization": `Bearer ${key()}`,
-      ...(options.headers || {})
-    }
+    credentials: "include",
+    headers
   });
   if (!res.ok) throw new Error(await res.text());
   return res.json();
@@ -63,6 +87,7 @@ async function loginAdmin() {
   try {
     const res = await fetch(API_BASE + "/admin/api/login", {
       method: "POST",
+      credentials: "include",
       headers: {
         "Content-Type": "application/json"
       },
@@ -75,7 +100,7 @@ async function loginAdmin() {
     }
     
     const data = await res.json();
-    sessionStorage.setItem("buykori_admin_jwt", data.admin_api_key || data.token);
+    adminCsrfToken = data.csrf_token || csrfFromCookie();
     
     await loadAll();
     showApp();
@@ -94,8 +119,12 @@ function showApp() {
 
 function logout() {
   stopCourierQueueAutoRefresh();
-  sessionStorage.removeItem("buykori_admin_jwt");
-  location.reload();
+  const token = currentCsrfToken();
+  fetch(API_BASE + "/admin/api/logout", {
+    method: "POST",
+    credentials: "include",
+    headers: token ? { [ADMIN_CSRF_HEADER]: token } : {}
+  }).finally(() => location.reload());
 }
 
 async function loadAll() {
@@ -976,7 +1005,10 @@ document.addEventListener("keydown", event => {
     $("searchInput")?.focus();
   }
 });
-if (key()) loadAll().then(showApp).catch(logout);
+loadAll().then(showApp).catch(() => {
+  $("login").style.display = "flex";
+  $("app").style.display = "none";
+});
 
 // Modal Functions
 let currentClientId = null;
