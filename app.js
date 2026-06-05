@@ -67,8 +67,31 @@ async function api(path, options = {}) {
     credentials: "include",
     headers
   });
-  if (!res.ok) throw new Error(await res.text());
+  if (!res.ok) {
+    const error = new Error(await res.text());
+    error.status = res.status;
+    throw error;
+  }
   return res.json();
+}
+
+function readableApiError(error, fallback = "Request failed.") {
+  const raw = String(error?.message || "").trim();
+  let detail = raw;
+  try {
+    const parsed = JSON.parse(raw);
+    detail = parsed.detail || parsed.message || raw;
+  } catch {
+    detail = raw;
+  }
+  if (Array.isArray(detail)) {
+    detail = detail.map(item => item?.msg || item?.message || JSON.stringify(item)).join("; ");
+  }
+  if (!detail) detail = fallback;
+  if (error?.status === 401 || error?.status === 403) {
+    return `${detail} Please refresh the admin panel and login again if this continues.`;
+  }
+  return detail;
 }
 
 async function loginAdmin() {
@@ -1211,7 +1234,7 @@ async function saveClientEdit() {
     $("editMsg").textContent = "Saved successfully!";
     loadAll();
   } catch (e) {
-    $("editMsg").textContent = "Failed to save.";
+    $("editMsg").textContent = readableApiError(e, "Failed to save.");
     $("editMsg").style.color = "var(--danger)";
   }
 }
