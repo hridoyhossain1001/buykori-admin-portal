@@ -4,6 +4,13 @@ const COURIER_QUEUE_REFRESH_MS = 15000;
 const ADMIN_CSRF_COOKIE = "buykori_admin_csrf";
 const ADMIN_CSRF_HEADER = "X-Admin-CSRF-Token";
 const CSRF_MUTATION_METHODS = new Set(["POST", "PATCH", "DELETE"]);
+const PLAN_DEFAULTS = Object.freeze({
+  free: Object.freeze({ events: 5000, orders: 100 }),
+  trial: Object.freeze({ events: 25000, orders: 300 }),
+  growth: Object.freeze({ events: 500000, orders: 2000 }),
+  scale: Object.freeze({ events: 1000000, orders: 10000 }),
+  agency: Object.freeze({ events: 0, orders: 0 })
+});
 let adminCsrfToken = "";
 const state = {
   summary: null,
@@ -31,6 +38,12 @@ const eventsState = {
 };
 const fmt = n => Number(n || 0).toLocaleString();
 const pct = n => `${Number(n || 0).toFixed(1).replace(".0", "")}%`;
+const optionalInteger = value => {
+  const cleaned = String(value ?? "").trim();
+  if (!cleaned) return null;
+  const parsed = Number.parseInt(cleaned, 10);
+  return Number.isNaN(parsed) ? null : parsed;
+};
 const esc = value => {
   const div = document.createElement("div");
   div.textContent = String(value ?? "");
@@ -92,6 +105,45 @@ function readableApiError(error, fallback = "Request failed.") {
     return `${detail} Please refresh the admin panel and login again if this continues.`;
   }
   return detail;
+}
+
+function selectedPlanDefaults() {
+  const billingStatus = $("editBillingStatus")?.value || "free";
+  const planTier = $("editPlanTier")?.value || "free";
+  if (billingStatus === "trial") return PLAN_DEFAULTS.trial;
+  if (billingStatus === "free" || planTier === "free") return PLAN_DEFAULTS.free;
+  return PLAN_DEFAULTS[planTier] || PLAN_DEFAULTS.growth;
+}
+
+function syncPlanQuotaFields() {
+  const planTier = $("editPlanTier");
+  const billingStatus = $("editBillingStatus");
+  if (!planTier || !billingStatus) return;
+
+  if (billingStatus.value === "trial") {
+    planTier.value = "growth";
+  } else if (billingStatus.value === "free") {
+    planTier.value = "free";
+  } else if (planTier.value === "free") {
+    planTier.value = "growth";
+  }
+
+  const defaults = selectedPlanDefaults();
+  $("editLimit").value = defaults.events;
+  $("editOrderLimit").value = defaults.orders;
+}
+
+function syncBillingForPlanSelection() {
+  const planTier = $("editPlanTier");
+  const billingStatus = $("editBillingStatus");
+  if (!planTier || !billingStatus) return;
+
+  if (planTier.value === "free") {
+    billingStatus.value = "free";
+  } else if (billingStatus.value === "free") {
+    billingStatus.value = "paid";
+  }
+  syncPlanQuotaFields();
 }
 
 async function loginAdmin() {
@@ -1022,6 +1074,8 @@ function handleSearchInput() {
 }
 
 document.querySelectorAll(".nav-item[data-tab]").forEach(button => button.addEventListener("click", () => setTab(button.dataset.tab)));
+$("editPlanTier")?.addEventListener("change", syncBillingForPlanSelection);
+$("editBillingStatus")?.addEventListener("change", syncPlanQuotaFields);
 document.addEventListener("keydown", event => {
   if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "k") {
     event.preventDefault();
@@ -1149,6 +1203,7 @@ async function openClientModal(id) {
     $("editPlanTier").value = c.plan_tier || "free";
     $("editBillingStatus").value = c.billing_status || "free";
     $("editLimit").value = c.monthly_limit || "";
+    $("editOrderLimit").value = c.orders_quota ?? selectedPlanDefaults().orders;
     $("editDailyQuota").value = c.daily_quota !== undefined && c.daily_quota !== null ? c.daily_quota : "";
     $("editRateLimit").value = c.rate_limit !== undefined && c.rate_limit !== null ? c.rate_limit : "";
     $("editFbTestCode").value = c.test_event_code || "";
@@ -1211,9 +1266,9 @@ async function saveClientEdit() {
   const payload = {
     name: $("editName").value,
     domain: $("editDomain").value,
-    monthly_limit: parseInt($("editLimit").value) || null,
-    rate_limit: parseInt($("editRateLimit").value) || null,
-    daily_quota: parseInt($("editDailyQuota").value) || null,
+    monthly_limit: optionalInteger($("editLimit").value),
+    rate_limit: optionalInteger($("editRateLimit").value),
+    daily_quota: optionalInteger($("editDailyQuota").value),
     is_active: $("editActive").checked,
     enable_facebook: $("editFb").checked,
     enable_tiktok: $("editTiktok").checked,
