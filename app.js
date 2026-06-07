@@ -38,6 +38,7 @@ const eventsState = {
 };
 const fmt = n => Number(n || 0).toLocaleString();
 const pct = n => `${Number(n || 0).toFixed(1).replace(".0", "")}%`;
+let adminDecisionResolve = null;
 const optionalInteger = value => {
   const cleaned = String(value ?? "").trim();
   if (!cleaned) return null;
@@ -366,6 +367,9 @@ function renderSummary() {
   const matchRate = ((totalEvents / totalCalls) * 100);
   const errorRate = ((failed / totalCalls) * 100);
   const activeClients = Number(summary.active_clients || 0);
+  const metaActive = state.clients.filter((client) => Boolean(client.enable_facebook ?? true)).length;
+  const tiktokActive = state.clients.filter((client) => Boolean(client.tiktok_pixel_id || client.enable_tiktok)).length;
+  const ga4Active = state.clients.filter((client) => Boolean(client.ga4_measurement_id || client.enable_ga4)).length;
 
   $("totalEvents").textContent = fmt(totalEvents);
   $("failedEvents").textContent = fmt(failed);
@@ -373,7 +377,7 @@ function renderSummary() {
   $("matchRate").textContent = pct(matchRate);
   $("errorRate").textContent = pct(errorRate);
   $("queuedOutbox").textContent = fmt(failed);
-  $("eventsTrend").textContent = activeClients ? "18.6%" : "0%";
+  $("eventsTrend").textContent = totalEvents ? "Live event total" : "No events yet";
   renderCourierQueueBanner(queue);
   if ($("courierQueueDashboardStatus")) {
     $("courierQueueDashboardStatus").className = `status-badge ${courierQueueStatusClass(queue.alert_status)}`;
@@ -384,9 +388,9 @@ function renderSummary() {
   }
   $("planUsed").textContent = compactNumber(totalEvents);
   $("planProgress").style.width = `${Math.min((totalEvents / 2000000) * 100, 100)}%`;
-  $("metaEvents").textContent = `Events: ${fmt(Math.round(totalEvents * 0.42))}`;
-  $("tiktokEvents").textContent = `Events: ${fmt(Math.round(totalEvents * 0.31))}`;
-  $("ga4Events").textContent = `Events: ${fmt(Math.round(totalEvents * 0.27))}`;
+  $("metaEvents").textContent = `${fmt(metaActive)} active client${metaActive === 1 ? "" : "s"}`;
+  $("tiktokEvents").textContent = `${fmt(tiktokActive)} active client${tiktokActive === 1 ? "" : "s"}`;
+  $("ga4Events").textContent = `${fmt(ga4Active)} active client${ga4Active === 1 ? "" : "s"}`;
 }
 
 function compactNumber(value) {
@@ -414,7 +418,7 @@ function renderIntegrationRows() {
       <td><div class="status-badge ${statusClass(healthStatus)}">${statusLabel(healthStatus, client.is_active)}</div></td>
       <td><button class="action-btn" onclick="openClientModal(${client.id})" title="Manage client">...</button></td>
     </tr>`;
-  }).join("") || `<tr><td colspan="8" class="empty">No active client integrations found.</td></tr>`;
+  }).join("") || `<tr><td colspan="8" class="empty">No clients yet. Use Add Client to get started.</td></tr>`;
 }
 
 function renderClientRows() {
@@ -435,7 +439,7 @@ function renderClientRows() {
         </div>
       </td>
     </tr>`;
-  }).join("") || `<tr><td colspan="6" class="empty">No clients found.</td></tr>`;
+  }).join("") || `<tr><td colspan="6" class="empty">No clients match this search. Clear the search or add a new client.</td></tr>`;
 }
 
 function bindingStatusClass(status) {
@@ -543,7 +547,7 @@ function renderSiteBindings() {
         </div>
       </td>
     </tr>`;
-  }).join("") || `<tr><td colspan="7" class="empty">No site bindings found.</td></tr>`;
+  }).join("") || `<tr><td colspan="7" class="empty">No connected sites match these filters.</td></tr>`;
 }
 
 function renderHealthRows() {
@@ -553,7 +557,7 @@ function renderHealthRows() {
     <td>${fmt(item.today_events)}</td>
     <td>${pct(item.success_rate)}</td>
     <td>${esc(toDeviceDateTime(item.last_event_at))}</td>
-  </tr>`).join("") || `<tr><td colspan="5" class="empty">No health data found.</td></tr>`;
+  </tr>`).join("") || `<tr><td colspan="5" class="empty">Health data will appear when clients start sending events.</td></tr>`;
 }
 
 function renderClientIntelligence() {
@@ -569,7 +573,7 @@ function renderClientIntelligence() {
         <td><div class="status-badge ${followup.priority === "high" ? "status-critical" : followup.priority === "medium" ? "status-warning" : "status-healthy"}">${esc(followup.priority)}</div></td>
         <td>${esc(followup.reason)}</td>
         <td>${esc(followup.action)}</td>
-        <td><button class="btn btn-outline btn-sm" onclick="openClientModal(${Number(c.id)})">Open 360</button></td>
+        <td><button class="btn btn-outline btn-sm" onclick="openClientModal(${Number(c.id)})">Open</button></td>
       </tr>`;
     }).join("") || `<tr><td colspan="5" class="empty">No trial follow-ups right now.</td></tr>`;
   }
@@ -586,9 +590,9 @@ function renderClientIntelligence() {
         <td>${doneCount(funnel)} / ${funnel.length}</td>
         <td>${followup ? esc(followup.reason) : "No action"}</td>
         <td>${fmt(row.support_note_count || 0)}</td>
-        <td><button class="btn btn-outline btn-sm" onclick="openClientModal(${Number(c.id)})">Open 360</button></td>
+        <td><button class="btn btn-outline btn-sm" onclick="openClientModal(${Number(c.id)})">Open</button></td>
       </tr>`;
-    }).join("") || `<tr><td colspan="6" class="empty">No client intelligence data found.</td></tr>`;
+    }).join("") || `<tr><td colspan="6" class="empty">Client details will appear after intelligence data loads.</td></tr>`;
   }
 }
 
@@ -641,7 +645,7 @@ function renderMatrixRows() {
       <td>${integrationBadge(Boolean(client.ga4_measurement_id || client.enable_ga4), "", "#F9AB00", "G")}</td>
       <td><div class="status-badge ${statusClass(healthStatus)}">${statusLabel(healthStatus, client.is_active)}</div></td>
     </tr>`;
-  }).join("") || `<tr><td colspan="5" class="empty">No integration data found.</td></tr>`;
+  }).join("") || `<tr><td colspan="5" class="empty">No integration data yet. Add a client to start tracking setup.</td></tr>`;
 }
 
 function derivedActivities() {
@@ -741,7 +745,7 @@ function renderCourierQueue() {
           </div>
         </td>
       </tr>
-    `).join("") || `<tr><td colspan="8" class="empty">No courier booking jobs found.</td></tr>`;
+    `).join("") || `<tr><td colspan="8" class="empty">No courier jobs in queue. All clear.</td></tr>`;
   }
 }
 
@@ -843,7 +847,13 @@ function closeCourierJobDrawer() {
 }
 
 async function retryCourierBookingJob(jobId) {
-  if (!confirm(`Retry courier booking job #${jobId}?`)) return;
+  const confirmed = await askAdminDecision({
+    title: "Retry Courier Job",
+    message: `Retry courier booking job #${jobId}?`,
+    detail: "The job will be moved back to the queue and the worker will try to book it again.",
+    confirmLabel: "Retry Job"
+  });
+  if (!confirmed) return;
   try {
     await api(`/admin/api/courier-booking-queue/${jobId}/retry`, { method: "POST" });
     showToast(`Courier booking job #${jobId} requeued.`);
@@ -926,13 +936,22 @@ function prepareSiteBindingTransfer(bindingId) {
 async function releaseSiteBinding(bindingId) {
   const binding = (state.siteBindings || []).find(item => Number(item.id) === Number(bindingId));
   if (!binding) return;
-  const reason = prompt(`Release ${binding.root_domain || binding.site_host}? Enter support reason:`);
-  if (!reason || !reason.trim()) return;
-  if (!confirm(`Release active binding for ${binding.root_domain || binding.site_host}? Tracking will require reconnect.`)) return;
+  const siteName = binding.root_domain || binding.site_host;
+  const reason = await askAdminDecision({
+    title: "Release Connected Site",
+    message: `Release active binding for ${siteName}?`,
+    detail: "Tracking will require reconnect after this site is released.",
+    confirmLabel: "Release Site",
+    confirmClass: "btn-danger",
+    inputLabel: "Support Reason",
+    inputPlaceholder: `Why are you releasing ${siteName}?`,
+    inputRequired: true
+  });
+  if (!reason) return;
   try {
     await api(`/admin/api/site-bindings/${bindingId}/release`, {
       method: "POST",
-      body: JSON.stringify({ reason: reason.trim() })
+      body: JSON.stringify({ reason })
     });
     showToast("Site binding released.");
     await refreshSiteBindings();
@@ -954,7 +973,13 @@ async function transferSiteBinding() {
     if (msg) msg.textContent = "Site host, target client, and support reason are required.";
     return;
   }
-  if (!confirm(`Transfer ${siteHost} to client #${targetClientId}?`)) return;
+  const confirmed = await askAdminDecision({
+    title: "Transfer Connected Site",
+    message: `Transfer ${siteHost} to client #${targetClientId}?`,
+    detail: "The selected client will own this connected site after the transfer.",
+    confirmLabel: "Transfer Site"
+  });
+  if (!confirmed) return;
   if (msg) {
     msg.style.color = "var(--success)";
     msg.textContent = "Transferring binding...";
@@ -1047,10 +1072,10 @@ function toggleAdminPassword() {
   const eye = $("adminPassEye");
   if (input.type === "password") {
     input.type = "text";
-    eye.textContent = "🙈";
+    eye.textContent = "Hide";
   } else {
     input.type = "password";
-    eye.textContent = "👁️";
+    eye.textContent = "Show";
   }
 }
 
@@ -1101,7 +1126,67 @@ function showToast(msg) {
   t.textContent = msg;
   t.style.opacity = '1';
   clearTimeout(t._tid);
-  t._tid = setTimeout(() => { t.style.opacity = '0'; }, 1800);
+  t._tid = setTimeout(() => { t.style.opacity = '0'; }, 4000);
+}
+
+function askAdminDecision(options = {}) {
+  const overlay = $("adminDecisionOverlay");
+  if (!overlay) return Promise.resolve(false);
+  const {
+    title = "Confirm Action",
+    message = "Please confirm this action.",
+    detail = "",
+    confirmLabel = "Confirm",
+    cancelLabel = "Cancel",
+    confirmClass = "btn-primary",
+    inputLabel = "",
+    inputPlaceholder = "",
+    inputValue = "",
+    inputRequired = false
+  } = options;
+
+  $("adminDecisionTitle").textContent = title;
+  $("adminDecisionMessage").textContent = message;
+  $("adminDecisionDetail").textContent = detail;
+  $("adminDecisionDetail").style.display = detail ? "block" : "none";
+  $("adminDecisionConfirm").textContent = confirmLabel;
+  $("adminDecisionConfirm").className = `btn ${confirmClass}`;
+  $("adminDecisionCancel").textContent = cancelLabel;
+  $("adminDecisionError").textContent = "";
+
+  const inputWrap = $("adminDecisionInputWrap");
+  const input = $("adminDecisionInput");
+  inputWrap.style.display = inputLabel ? "block" : "none";
+  input.dataset.required = inputRequired ? "1" : "0";
+  $("adminDecisionInputLabel").textContent = inputLabel || "Reason";
+  input.placeholder = inputPlaceholder;
+  input.value = inputValue;
+
+  overlay.style.display = "flex";
+  setTimeout(() => (inputLabel ? input : $("adminDecisionConfirm"))?.focus(), 20);
+
+  return new Promise(resolve => {
+    adminDecisionResolve = resolve;
+  });
+}
+
+function closeAdminDecision(result) {
+  const overlay = $("adminDecisionOverlay");
+  if (overlay) overlay.style.display = "none";
+  const resolve = adminDecisionResolve;
+  adminDecisionResolve = null;
+  if (resolve) resolve(result);
+}
+
+function confirmAdminDecision() {
+  const input = $("adminDecisionInput");
+  const hasInput = $("adminDecisionInputWrap")?.style.display !== "none";
+  if (hasInput && input?.dataset.required === "1" && !input.value.trim()) {
+    $("adminDecisionError").textContent = "Please add a support reason.";
+    input.focus();
+    return;
+  }
+  closeAdminDecision(hasInput ? input.value.trim() : true);
 }
 
 function copyText(id) {
@@ -1117,7 +1202,7 @@ function revealSecret(id) {
     el.innerText = modalSecrets.get(id) || '';
     el.dataset.hidden = '0';
   } else {
-    el.innerText = '••••••••••••••••••••••••••••••••';
+    el.innerText = '********************************';
     el.dataset.hidden = '1';
   }
 }
@@ -1218,18 +1303,18 @@ async function openClientModal(id) {
     
     // Populate Keys
     modalSecrets.set("keyApi", c.api_key || "");
-    $("keyApi").innerText = "••••••••••••••••••••••••••••••••";
+    $("keyApi").innerText = "********************************";
     $("keyApi").dataset.hidden = "1";
     
     modalSecrets.set("keyPortal", c.portal_key || "");
-    $("keyPortal").innerText = "••••••••••••••••••••••••••••••••";
+    $("keyPortal").innerText = "********************************";
     $("keyPortal").dataset.hidden = "1";
     
     modalSecrets.set("keyToken", c.access_token || "");
-    $("keyToken").innerText = "••••••••••••••••••••••••••••••••";
+    $("keyToken").innerText = "********************************";
     $("keyToken").dataset.hidden = "1";
     
-    // Populate Instructions
+    // Populate setup details
     const code = `curl -X POST https://api.buykori.app/api/v1/events \\
   -H "X-API-Key: ${c.api_key}" \\
   -H "Content-Type: application/json" \\
@@ -1295,7 +1380,15 @@ async function saveClientEdit() {
 }
 
 async function rotateKey(keyType) {
-  if (!currentClientId || !confirm(`Are you sure you want to rotate the ${keyType}? Old integrations will break immediately.`)) return;
+  if (!currentClientId) return;
+  const confirmed = await askAdminDecision({
+    title: "Rotate Key",
+    message: `Rotate the ${keyType}?`,
+    detail: "Old integrations using this key will stop working immediately.",
+    confirmLabel: "Rotate Key",
+    confirmClass: "btn-danger"
+  });
+  if (!confirmed) return;
   try {
     const res = await api(`/admin/api/clients/${currentClientId}/keys/rotate`, {
       method: "POST",
@@ -1304,19 +1397,26 @@ async function rotateKey(keyType) {
     
     let elId = keyType === 'api_key' ? 'keyApi' : 'keyPortal';
     modalSecrets.set(elId, res.new_value);
-    $(elId).innerText = "••••••••••••••••••••••••••••••••";
+    $(elId).innerText = "********************************";
     $(elId).dataset.hidden = "1";
     showToast(keyType + " rotated!");
     loadAll();
   } catch (e) {
-    alert("Failed to rotate key");
+    showToast("Failed to rotate key.");
   }
 }
 
 async function deleteClient() {
   if (!currentClientId) return;
   const name = $("editName").value;
-  if (!confirm(`WARNING: Are you absolutely sure you want to delete "${name}"? This action cannot be undone.`)) return;
+  const confirmed = await askAdminDecision({
+    title: "Delete Client",
+    message: `Delete "${name}"?`,
+    detail: "This action cannot be undone. Events, logs, and authentication keys for this client will be removed.",
+    confirmLabel: "Delete Client",
+    confirmClass: "btn-danger"
+  });
+  if (!confirmed) return;
   
   try {
     await api(`/admin/api/clients/${currentClientId}`, { method: "DELETE" });
@@ -1324,7 +1424,7 @@ async function deleteClient() {
     showToast("Client deleted");
     loadAll();
   } catch (e) {
-    alert("Failed to delete client");
+    showToast("Failed to delete client.");
   }
 }
 

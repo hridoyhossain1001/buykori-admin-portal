@@ -96,7 +96,7 @@ svg { flex-shrink: 0; }
 /* Login Box Redesign */
 .login {
   width: min(450px, calc(100% - 32px));
-  margin: 12vh auto;
+  margin: clamp(24px, 8vh, 72px) auto;
   padding: 32px;
   background: var(--card-bg);
   border: 1px solid var(--card-border);
@@ -1040,6 +1040,14 @@ tr:last-child td { border-bottom: none; }
 .modal-close { background: none; border: none; color: var(--text-muted); font-size: 24px; cursor: pointer; transition: color 0.2s; }
 .modal-close:hover { color: var(--text-main); }
 .modal-body { padding: 24px; overflow-y: auto; flex: 1; }
+.decision-overlay { z-index: 120; }
+.decision-modal { max-width: 460px; }
+.decision-body { display: flex; flex-direction: column; gap: 16px; }
+.decision-message { margin: 0; color: var(--text-main); font-size: 15px; font-weight: 750; line-height: 1.5; }
+.decision-detail { margin: 0; color: var(--text-muted); font-size: 13px; line-height: 1.5; }
+.decision-input-wrap { margin: 0; }
+.decision-error { min-height: 16px; margin-top: 6px; color: var(--danger); font-size: 12px; font-weight: 700; }
+.decision-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 4px; }
 
 .tabs { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 24px; border-bottom: 2px solid var(--card-border); }
 .tab-btn { padding: 10px 18px; background: none; border: none; border-bottom: 2px solid transparent; color: var(--text-muted); font-size: 13px; font-weight: 700; cursor: pointer; margin-bottom: -2px; transition: all 0.2s; }
