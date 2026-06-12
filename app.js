@@ -20,6 +20,9 @@ const state = {
   serverHealth: null,
   supportNotes: [],
   courierQueue: null,
+  incompleteOps: null,
+  notificationJobs: null,
+  whatsappInstances: [],
   siteBindings: [],
   courierQueueAutoRefresh: true,
   courierQueueLastRefresh: null,
@@ -204,14 +207,17 @@ function logout() {
 }
 
 async function loadAll() {
-  const [summary, clients, health, courierQueue, intelligence, serverHealth, siteBindings] = await Promise.all([
+  const [summary, clients, health, courierQueue, intelligence, serverHealth, siteBindings, incompleteOps, notificationJobs, whatsappInstances] = await Promise.all([
     api("/admin/api/summary"),
     api("/admin/api/clients"),
     api("/admin/clients/health"),
     api("/admin/api/courier-booking-queue?limit=20"),
     api("/admin/api/client-intelligence"),
     api("/admin/api/server-health"),
-    api("/admin/api/site-bindings?status=all").catch(() => ({ bindings: [] }))
+    api("/admin/api/site-bindings?status=all").catch(() => ({ bindings: [] })),
+    api("/admin/api/incomplete-checkouts?limit=100").catch(() => ({ counts: {}, items: [], top_clients: [], total: 0 })),
+    api("/admin/notification-jobs?limit=100").catch(() => ({ total: 0, items: [] })),
+    api("/admin/whatsapp-instances").catch(() => [])
   ]);
   state.summary = summary;
   state.clients = clients.clients || [];
@@ -219,6 +225,9 @@ async function loadAll() {
   state.intelligence = intelligence;
   state.serverHealth = serverHealth;
   state.courierQueue = courierQueue;
+  state.incompleteOps = incompleteOps;
+  state.notificationJobs = notificationJobs;
+  state.whatsappInstances = Array.isArray(whatsappInstances) ? whatsappInstances : [];
   state.siteBindings = siteBindings.bindings || [];
   state.courierQueueLastRefresh = new Date();
   renderAll();
@@ -749,6 +758,81 @@ function renderCourierQueue() {
   }
 }
 
+function renderRecoveryOps() {
+  const data = state.incompleteOps || { counts: {}, items: [], top_clients: [], total: 0 };
+  const counts = data.counts || {};
+  if ($("recoveryTotal")) $("recoveryTotal").textContent = fmt(data.total || 0);
+  if ($("recoveryIncomplete")) $("recoveryIncomplete").textContent = fmt(counts.incomplete || 0);
+  if ($("recoveryContacted")) $("recoveryContacted").textContent = fmt(counts.contacted || 0);
+  if ($("recoveryRecovered")) $("recoveryRecovered").textContent = fmt(counts.recovered || 0);
+  if ($("recoveryRows")) {
+    $("recoveryRows").innerHTML = (data.items || []).map(item => {
+      const locked = ["recovered", "expired"].includes(String(item.status || "").toLowerCase());
+      return `
+        <tr>
+          <td><div class="client-name">#${esc(item.id)}</div><div class="client-sub">${esc(toDeviceDateTime(item.last_activity_at))}</div></td>
+          <td><div class="client-name">${esc(item.client_name)}</div><div class="client-sub">client ${esc(item.client_id)}</div></td>
+          <td><div class="client-name">${esc(item.customer_name || "-")}</div><div class="client-sub">${esc(item.phone_masked || "")}</div></td>
+          <td><div class="client-name">${esc(item.product_summary || "-")}</div><div class="client-sub">${fmt(item.product_count)} item${Number(item.product_count || 0) === 1 ? "" : "s"}</div></td>
+          <td>${esc(item.currency || "BDT")} ${fmt(item.amount)}</td>
+          <td><div class="status-badge ${statusClass(item.status === "recovered" ? "healthy" : item.status === "incomplete" ? "warning" : item.status === "ignored" ? "inactive" : "warning")}">${esc(item.status)}</div></td>
+          <td><div class="client-sub">${esc(item.order_id || "-")}</div></td>
+          <td>
+            <div class="queue-actions">
+              ${item.page_url ? `<a class="btn btn-outline btn-sm" href="${esc(item.page_url)}" target="_blank" rel="noreferrer">Open</a>` : ""}
+              ${!locked ? `<button class="btn btn-outline btn-sm" onclick="updateRecoveryStatus(${Number(item.id)}, 'contacted')">Contacted</button><button class="btn btn-outline btn-sm" onclick="updateRecoveryStatus(${Number(item.id)}, 'ignored')">Ignore</button>` : ""}
+            </div>
+          </td>
+        </tr>
+      `;
+    }).join("") || `<tr><td colspan="8" class="empty">No recovery leads found.</td></tr>`;
+  }
+  if ($("recoveryTopClients")) {
+    $("recoveryTopClients").innerHTML = (data.top_clients || []).map(row => `
+      <div class="queue-alert queue-alert-warning">
+        <strong>${esc(row.client_name)}</strong>
+        <span>${fmt(row.count)} lead${Number(row.count || 0) === 1 ? "" : "s"}</span>
+      </div>
+    `).join("") || `<div class="queue-alert queue-alert-healthy"><strong>Quiet</strong><span>No recovery concentration.</span></div>`;
+  }
+}
+
+function renderNotificationOps() {
+  const jobs = state.notificationJobs || { total: 0, items: [] };
+  const items = jobs.items || [];
+  const failed = items.filter(item => item.status === "failed").length;
+  const pending = items.filter(item => item.status === "pending").length;
+  const sent = items.filter(item => item.status === "sent").length;
+  if ($("notificationTotal")) $("notificationTotal").textContent = fmt(jobs.total || items.length);
+  if ($("notificationPending")) $("notificationPending").textContent = fmt(pending);
+  if ($("notificationFailed")) $("notificationFailed").textContent = fmt(failed);
+  if ($("whatsappActive")) $("whatsappActive").textContent = fmt((state.whatsappInstances || []).filter(inst => inst.status === "active").length);
+  if ($("notificationRows")) {
+    $("notificationRows").innerHTML = items.map(job => `
+      <tr>
+        <td><div class="client-name">#${esc(job.id)}</div><div class="client-sub">${esc(toDeviceDateTime(job.created_at))}</div></td>
+        <td><div class="client-name">Client ${esc(job.client_id)}</div><div class="client-sub">WA ${esc(job.whatsapp_instance_id || "-")}</div></td>
+        <td>${esc(job.event_type)}</td>
+        <td><div class="status-badge ${statusClass(job.status === "sent" ? "healthy" : job.status === "failed" ? "critical" : "warning")}">${esc(job.status)}</div></td>
+        <td>${fmt(job.attempt_count)} / ${fmt(job.max_attempts)}</td>
+        <td><div class="client-sub" style="max-width:300px;white-space:normal">${esc(job.error_message || job.message_preview || "-")}</div></td>
+        <td>${esc(toDeviceDateTime(job.next_attempt_at || job.sent_at))}</td>
+      </tr>
+    `).join("") || `<tr><td colspan="7" class="empty">No notification jobs found.</td></tr>`;
+  }
+  if ($("whatsappInstanceRows")) {
+    $("whatsappInstanceRows").innerHTML = (state.whatsappInstances || []).map(inst => `
+      <tr>
+        <td><div class="client-name">${esc(inst.instance_name)}</div><div class="client-sub">#${esc(inst.id)} ${esc(inst.provider)}</div></td>
+        <td>${esc(inst.phone_number || "-")}</td>
+        <td><div class="status-badge ${statusClass(inst.status === "active" ? "healthy" : "inactive")}">${esc(inst.status)}</div></td>
+        <td>${fmt(inst.client_count)}</td>
+        <td>${esc(toDeviceDateTime(inst.last_sent_at || inst.last_health_check_at))}</td>
+      </tr>
+    `).join("") || `<tr><td colspan="5" class="empty">No WhatsApp instances configured.</td></tr>`;
+  }
+}
+
 async function refreshCourierQueue(options = {}) {
   if (state.courierQueueRefreshing) return;
   state.courierQueueRefreshing = true;
@@ -905,8 +989,65 @@ function renderAll() {
   renderActivity();
   renderAlerts();
   renderCourierQueue();
+  renderRecoveryOps();
+  renderNotificationOps();
   renderClientIntelligence();
   renderOpsMonitor();
+}
+
+async function refreshRecoveryOps(options = {}) {
+  const silent = Boolean(options.silent);
+  try {
+    const status = $("recoveryStatusFilter")?.value || "";
+    const clientId = $("recoveryClientFilter")?.value || "";
+    const params = new URLSearchParams({ limit: "100" });
+    if (status) params.set("status", status);
+    if (clientId) params.set("client_id", clientId);
+    state.incompleteOps = await api(`/admin/api/incomplete-checkouts?${params.toString()}`);
+    renderRecoveryOps();
+    if (!silent) showToast("Recovery data refreshed.");
+  } catch (error) {
+    if (!silent) showToast(`Recovery refresh failed: ${readableApiError(error)}`);
+  }
+}
+
+async function refreshNotificationOps(options = {}) {
+  const silent = Boolean(options.silent);
+  try {
+    const status = $("notificationStatusFilter")?.value || "";
+    const params = new URLSearchParams({ limit: "100" });
+    if (status) params.set("status", status);
+    const [jobs, instances] = await Promise.all([
+      api(`/admin/notification-jobs?${params.toString()}`),
+      api("/admin/whatsapp-instances")
+    ]);
+    state.notificationJobs = jobs;
+    state.whatsappInstances = Array.isArray(instances) ? instances : [];
+    renderNotificationOps();
+    if (!silent) showToast("Notification data refreshed.");
+  } catch (error) {
+    if (!silent) showToast(`Notification refresh failed: ${readableApiError(error)}`);
+  }
+}
+
+async function updateRecoveryStatus(checkoutId, status) {
+  const confirmed = await askAdminDecision({
+    title: "Update Recovery Lead",
+    message: `Mark recovery lead #${checkoutId} as ${status}?`,
+    detail: "This updates the client-visible recovery status.",
+    confirmLabel: "Update Status"
+  });
+  if (!confirmed) return;
+  try {
+    await api(`/admin/api/incomplete-checkouts/${checkoutId}`, {
+      method: "PATCH",
+      body: JSON.stringify({ status })
+    });
+    showToast(`Recovery lead #${checkoutId} marked ${status}.`);
+    await refreshRecoveryOps({ silent: true });
+  } catch (error) {
+    showToast(`Recovery update failed: ${readableApiError(error)}`);
+  }
 }
 
 async function refreshSiteBindings(options = {}) {
@@ -1040,6 +1181,8 @@ function setTab(tab) {
   if (window.innerWidth <= 820 && $("sidebar").classList.contains("open")) toggleSidebar();
   if (tab === "courierQueue") refreshCourierQueue({ silent: true });
   if (tab === "siteBindings") refreshSiteBindings({ silent: true });
+  if (tab === "recoveryOps") refreshRecoveryOps({ silent: true });
+  if (tab === "notificationOps") refreshNotificationOps({ silent: true });
 }
 
 function downloadReport() {
@@ -1429,19 +1572,21 @@ async function deleteClient() {
 }
 
 function populateClientFilter() {
-  const filterEl = $("eventsClientFilter");
-  if (!filterEl) return;
-  const selected = filterEl.value;
-  filterEl.innerHTML = '<option value="">All Clients</option>';
-  state.clients.forEach(client => {
-    const opt = document.createElement("option");
-    opt.value = client.id;
-    opt.textContent = client.name;
-    filterEl.appendChild(opt);
+  ["eventsClientFilter", "recoveryClientFilter"].forEach(id => {
+    const filterEl = $(id);
+    if (!filterEl) return;
+    const selected = filterEl.value;
+    filterEl.innerHTML = '<option value="">All Clients</option>';
+    state.clients.forEach(client => {
+      const opt = document.createElement("option");
+      opt.value = client.id;
+      opt.textContent = client.name;
+      filterEl.appendChild(opt);
+    });
+    if (selected && state.clients.some(c => String(c.id) === selected)) {
+      filterEl.value = selected;
+    }
   });
-  if (selected && state.clients.some(c => String(c.id) === selected)) {
-    filterEl.value = selected;
-  }
 }
 
 async function loadEvents() {

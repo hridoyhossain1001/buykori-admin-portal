@@ -74,6 +74,14 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M4 7h11v8H4zM15 10h3l2 3v2h-5zM7 19a2 2 0 100-4 2 2 0 000 4zM17 19a2 2 0 100-4 2 2 0 000 4z"/></svg>
           Courier Queue
         </button>
+        <button class="nav-item" data-tab="recoveryOps">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v6h6M20 20v-6h-6M5.5 15a7 7 0 0011.8 2.2L20 14M4 10l2.7-3.2A7 7 0 0118.5 9"/></svg>
+          Recovery Ops
+        </button>
+        <button class="nav-item" data-tab="notificationOps">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M18 8a6 6 0 00-12 0c0 7-3 7-3 7h18s-3 0-3-7M13.7 21a2 2 0 01-3.4 0"/></svg>
+          Notifications
+        </button>
         <button class="nav-item" data-tab="clientIntel">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3 3h18v4H3zM5 11h14M5 16h9M17 16h2M5 21h6"/></svg>
           Client Details
@@ -366,6 +374,77 @@
                 </div>
               </div>
             </div>
+          </div>
+        </section>
+
+        <section id="recoveryOps" class="section">
+          <div class="page-header">
+            <div>
+              <h1 class="page-title">Incomplete Recovery Operations</h1>
+              <p class="page-sub">Monitor incomplete checkout leads, linked orders, and client recovery workloads.</p>
+            </div>
+            <div class="header-actions">
+              <select id="recoveryClientFilter" onchange="refreshRecoveryOps({ silent: true })"><option value="">All Clients</option></select>
+              <select id="recoveryStatusFilter" onchange="refreshRecoveryOps({ silent: true })">
+                <option value="">All Statuses</option>
+                <option value="active">Active</option>
+                <option value="incomplete">Incomplete</option>
+                <option value="contacted">Contacted</option>
+                <option value="recovered">Recovered</option>
+                <option value="ignored">Ignored</option>
+                <option value="expired">Expired</option>
+              </select>
+              <button class="btn btn-outline" onclick="refreshRecoveryOps()">Refresh</button>
+            </div>
+          </div>
+          <div class="metrics-grid">
+            <div class="metric-card"><div class="metric-header"><div class="m-icon bg-blue">T</div><span class="m-title">Total Leads</span></div><div class="metric-value" id="recoveryTotal">0</div><div class="trend">current filter</div></div>
+            <div class="metric-card"><div class="metric-header"><div class="m-icon bg-red">I</div><span class="m-title">Incomplete</span></div><div class="metric-value" id="recoveryIncomplete">0</div><div class="trend">needs follow-up</div></div>
+            <div class="metric-card"><div class="metric-header"><div class="m-icon bg-purple">C</div><span class="m-title">Contacted</span></div><div class="metric-value" id="recoveryContacted">0</div><div class="trend">conversation started</div></div>
+            <div class="metric-card"><div class="metric-header"><div class="m-icon bg-indigo">R</div><span class="m-title">Recovered</span></div><div class="metric-value" id="recoveryRecovered">0</div><div class="trend">converted to order</div></div>
+          </div>
+          <div class="grid-layout">
+            <div class="card">
+              <div class="card-header"><h2 class="card-title">Recent Recovery Leads</h2></div>
+              <div class="table-wrap"><table><thead><tr><th>Lead</th><th>Client</th><th>Customer</th><th>Products</th><th>Amount</th><th>Status</th><th>Order</th><th>Actions</th></tr></thead><tbody id="recoveryRows"></tbody></table></div>
+            </div>
+            <div class="card">
+              <div class="card-header"><h2 class="card-title">Top Client Workloads</h2></div>
+              <div id="recoveryTopClients" class="queue-alerts"></div>
+            </div>
+          </div>
+        </section>
+
+        <section id="notificationOps" class="section">
+          <div class="page-header">
+            <div>
+              <h1 class="page-title">Notification Operations</h1>
+              <p class="page-sub">Monitor WhatsApp delivery jobs and instance availability.</p>
+            </div>
+            <div class="header-actions">
+              <select id="notificationStatusFilter" onchange="refreshNotificationOps({ silent: true })">
+                <option value="">All Statuses</option>
+                <option value="pending">Pending</option>
+                <option value="processing">Processing</option>
+                <option value="sent">Sent</option>
+                <option value="failed">Failed</option>
+              </select>
+              <button class="btn btn-outline" onclick="refreshNotificationOps()">Refresh</button>
+            </div>
+          </div>
+          <div class="metrics-grid">
+            <div class="metric-card"><div class="metric-header"><div class="m-icon bg-blue">T</div><span class="m-title">Total Jobs</span></div><div class="metric-value" id="notificationTotal">0</div><div class="trend">current filter</div></div>
+            <div class="metric-card"><div class="metric-header"><div class="m-icon bg-purple">P</div><span class="m-title">Pending</span></div><div class="metric-value" id="notificationPending">0</div><div class="trend">waiting for worker</div></div>
+            <div class="metric-card"><div class="metric-header"><div class="m-icon bg-red">F</div><span class="m-title">Failed</span></div><div class="metric-value" id="notificationFailed">0</div><div class="trend">needs investigation</div></div>
+            <div class="metric-card"><div class="metric-header"><div class="m-icon bg-indigo">W</div><span class="m-title">Active Instances</span></div><div class="metric-value" id="whatsappActive">0</div><div class="trend">available senders</div></div>
+          </div>
+          <div class="card" style="margin-bottom:20px">
+            <div class="card-header"><h2 class="card-title">Recent Notification Jobs</h2></div>
+            <div class="table-wrap"><table><thead><tr><th>Job</th><th>Client</th><th>Event</th><th>Status</th><th>Attempts</th><th>Message / Error</th><th>Delivery Time</th></tr></thead><tbody id="notificationRows"></tbody></table></div>
+          </div>
+          <div class="card">
+            <div class="card-header"><h2 class="card-title">WhatsApp Instances</h2></div>
+            <div class="table-wrap"><table><thead><tr><th>Instance</th><th>Phone</th><th>Status</th><th>Clients</th><th>Last Activity</th></tr></thead><tbody id="whatsappInstanceRows"></tbody></table></div>
           </div>
         </section>
 
