@@ -152,9 +152,9 @@ function syncBillingForPlanSelection() {
 
 async function loginAdmin() {
   const username = $("adminUsername").value.trim();
-  const password = $("adminPassword").value.trim();
+  const password = $("adminPassword").value;
   
-  if (!username || !password) {
+  if (!username || !password.trim()) {
     $("loginError").style.color = "var(--danger)";
     $("loginError").textContent = "Please fill in all fields.";
     return;
@@ -1335,12 +1335,22 @@ function confirmAdminDecision() {
 function copyText(id) {
   const el = document.getElementById(id);
   const val = modalSecrets.get(id) || el.innerText || el.value || '';
+  if (!val || val.includes('*') || val.startsWith('Rotate to view')) {
+    showToast('Rotate this key to generate a new revealable value.');
+    return;
+  }
   navigator.clipboard.writeText(val.trim()).then(() => showToast('Copied to Clipboard!'));
 }
 
 function revealSecret(id) {
   const el = document.getElementById(id);
   if (!el) return;
+  if (!modalSecrets.has(id)) {
+    el.innerText = 'Rotate to view a new value';
+    el.dataset.hidden = '1';
+    showToast('Existing secrets are not loaded into the browser. Rotate to reveal a new value once.');
+    return;
+  }
   if (el.dataset.hidden === '1') {
     el.innerText = modalSecrets.get(id) || '';
     el.dataset.hidden = '0';
@@ -1444,22 +1454,19 @@ async function openClientModal(id) {
     $("editDeferred").checked = !!c.deferred_purchase;
     $("editMsg").textContent = "";
     
-    // Populate Keys
-    modalSecrets.set("keyApi", c.api_key || "");
-    $("keyApi").innerText = "********************************";
+    // Populate Keys. Existing secrets are masked server-side and are not stored in browser memory.
+    $("keyApi").innerText = c.api_key || "********************************";
     $("keyApi").dataset.hidden = "1";
     
-    modalSecrets.set("keyPortal", c.portal_key || "");
-    $("keyPortal").innerText = "********************************";
+    $("keyPortal").innerText = c.portal_key || "********************************";
     $("keyPortal").dataset.hidden = "1";
     
-    modalSecrets.set("keyToken", c.access_token || "");
-    $("keyToken").innerText = "********************************";
+    $("keyToken").innerText = c.access_token || "********************************";
     $("keyToken").dataset.hidden = "1";
     
     // Populate setup details
     const code = `curl -X POST https://api.buykori.app/api/v1/events \\
-  -H "X-API-Key: ${c.api_key}" \\
+  -H "X-API-Key: <rotate-or-copy-current-api-key>" \\
   -H "Content-Type: application/json" \\
   -d '{
     "event_name": "Purchase",
@@ -1656,6 +1663,8 @@ function renderEvents() {
     const isExpanded = eventsState.expandedEventId === event.id;
     const statusClass = event.status === "Success" ? "status-healthy" : "status-critical";
     const displayTime = toDeviceDateTime(event.timestamp);
+    const sampleLabel = event.isReconstructedSample ? " (reconstructed sample)" : "";
+    const sampleNotice = event.sampleNotice || "These JSON blocks are reconstructed from stored EventLog fields.";
     
     const mainRow = `
       <tr onclick="toggleEventDetail('${event.id}')" style="cursor:pointer;" class="event-row">
@@ -1672,17 +1681,18 @@ function renderEvents() {
     const detailRow = `
       <tr id="detail-${event.id}" style="display: ${isExpanded ? "table-row" : "none"};">
         <td colspan="7" style="padding:20px; background:rgba(0,0,0,0.06); border-bottom:1px solid var(--card-border);">
+          ${event.isReconstructedSample ? `<div style="margin-bottom:12px; color:var(--warning); font-size:12px; font-weight:700;">${esc(sampleNotice)}</div>` : ""}
           <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:16px;">
             <div>
-              <div style="font-weight:800; font-size:11px; text-transform:uppercase; color:var(--text-muted); margin-bottom:8px; letter-spacing:0.05em;">Payload</div>
+              <div style="font-weight:800; font-size:11px; text-transform:uppercase; color:var(--text-muted); margin-bottom:8px; letter-spacing:0.05em;">Payload${sampleLabel}</div>
               <pre class="instr-box" style="margin:0; font-family:JetBrains Mono, monospace; font-size:11.5px; max-height:250px; overflow-y:auto; white-space:pre-wrap; word-break:break-all;">${esc(JSON.stringify(event.payload, null, 2))}</pre>
             </div>
             <div>
-              <div style="font-weight:800; font-size:11px; text-transform:uppercase; color:var(--text-muted); margin-bottom:8px; letter-spacing:0.05em;">HTTP Headers</div>
+              <div style="font-weight:800; font-size:11px; text-transform:uppercase; color:var(--text-muted); margin-bottom:8px; letter-spacing:0.05em;">HTTP Headers${sampleLabel}</div>
               <pre class="instr-box" style="margin:0; font-family:JetBrains Mono, monospace; font-size:11.5px; max-height:250px; overflow-y:auto; white-space:pre-wrap; word-break:break-all;">${esc(JSON.stringify(event.headers, null, 2))}</pre>
             </div>
             <div>
-              <div style="font-weight:800; font-size:11px; text-transform:uppercase; color:var(--text-muted); margin-bottom:8px; letter-spacing:0.05em;">Upstream Response</div>
+              <div style="font-weight:800; font-size:11px; text-transform:uppercase; color:var(--text-muted); margin-bottom:8px; letter-spacing:0.05em;">Upstream Response${sampleLabel}</div>
               <pre class="instr-box" style="margin:0; font-family:JetBrains Mono, monospace; font-size:11.5px; max-height:180px; overflow-y:auto; white-space:pre-wrap; word-break:break-all;">${esc(JSON.stringify(event.responseBody, null, 2))}</pre>
               <div style="margin-top:12px; display:flex; gap:16px; font-size:11px; color:var(--text-muted);">
                 <div><strong>Latency:</strong> <span style="color:var(--primary); font-weight:700;">${event.latencyMs != null ? event.latencyMs + 'ms' : 'N/A'}</span></div>
