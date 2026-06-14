@@ -111,6 +111,20 @@ function readableApiError(error, fallback = "Request failed.") {
   return detail;
 }
 
+function isAuthError(error) {
+  return error?.status === 401 || error?.status === 403;
+}
+
+async function apiOrFallback(path, fallback, label) {
+  try {
+    return await api(path);
+  } catch (error) {
+    if (isAuthError(error)) throw error;
+    console.warn(`Admin data source failed: ${label || path}`, error);
+    return fallback;
+  }
+}
+
 function selectedPlanDefaults() {
   const billingStatus = $("editBillingStatus")?.value || "free";
   const planTier = $("editPlanTier")?.value || "free";
@@ -208,16 +222,16 @@ function logout() {
 
 async function loadAll() {
   const [summary, clients, health, courierQueue, intelligence, serverHealth, siteBindings, incompleteOps, notificationJobs, whatsappInstances] = await Promise.all([
-    api("/admin/api/summary"),
-    api("/admin/api/clients"),
-    api("/admin/clients/health"),
-    api("/admin/api/courier-booking-queue?limit=20"),
-    api("/admin/api/client-intelligence"),
-    api("/admin/api/server-health"),
-    api("/admin/api/site-bindings?status=all").catch(() => ({ bindings: [] })),
-    api("/admin/api/incomplete-checkouts?limit=100").catch(() => ({ counts: {}, items: [], top_clients: [], total: 0 })),
-    api("/admin/notification-jobs?limit=100").catch(() => ({ total: 0, items: [] })),
-    api("/admin/whatsapp-instances").catch(() => [])
+    apiOrFallback("/admin/api/summary", state.summary || {}, "summary"),
+    apiOrFallback("/admin/api/clients", { clients: state.clients || [] }, "clients"),
+    apiOrFallback("/admin/clients/health", { clients: state.health || [] }, "client health"),
+    apiOrFallback("/admin/api/courier-booking-queue?limit=20", state.courierQueue || {}, "courier queue"),
+    apiOrFallback("/admin/api/client-intelligence", state.intelligence || { clients: [] }, "client intelligence"),
+    apiOrFallback("/admin/api/server-health", state.serverHealth || {}, "server health"),
+    apiOrFallback("/admin/api/site-bindings?status=all", { bindings: [] }, "site bindings"),
+    apiOrFallback("/admin/api/incomplete-checkouts?limit=100", { counts: {}, items: [], top_clients: [], total: 0 }, "incomplete checkouts"),
+    apiOrFallback("/admin/notification-jobs?limit=100", { total: 0, items: [] }, "notification jobs"),
+    apiOrFallback("/admin/whatsapp-instances", [], "whatsapp instances")
   ]);
   state.summary = summary;
   state.clients = clients.clients || [];
