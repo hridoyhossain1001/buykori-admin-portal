@@ -443,8 +443,20 @@
             <div class="table-wrap"><table><thead><tr><th>Job</th><th>Client</th><th>Event</th><th>Status</th><th>Attempts</th><th>Message / Error</th><th>Delivery Time</th></tr></thead><tbody id="notificationRows"></tbody></table></div>
           </div>
           <div class="card">
-            <div class="card-header"><h2 class="card-title">WhatsApp Instances</h2></div>
-            <div class="table-wrap"><table><thead><tr><th>Instance</th><th>Phone</th><th>Status</th><th>Clients</th><th>Last Activity</th></tr></thead><tbody id="whatsappInstanceRows"></tbody></table></div>
+            <div class="card-header"><h2 class="card-title">WhatsApp Senders</h2></div>
+            <div class="form-card" style="margin:0 0 16px;padding:16px;background:rgba(255,255,255,0.02)">
+              <div class="form-grid">
+                <div class="field"><label>Instance Name</label><input id="waInstanceName" placeholder="e.g. buykori-wa-1"></div>
+                <div class="field"><label>Sender Phone</label><input id="waInstancePhone" placeholder="e.g. 88018..."></div>
+                <div class="field"><label>Provider</label><input id="waInstanceProvider" value="evolution"></div>
+                <div class="field"><label>Base URL</label><input id="waInstanceBaseUrl" placeholder="Optional provider URL"></div>
+              </div>
+              <div style="margin-top:12px;display:flex;gap:12px;align-items:center">
+                <button class="btn btn-primary" onclick="createWhatsAppInstance()">Add Sender</button>
+                <span id="waInstanceMsg" class="notice" style="margin:0"></span>
+              </div>
+            </div>
+            <div class="table-wrap"><table><thead><tr><th>Instance</th><th>Phone</th><th>Status</th><th>Clients</th><th>Last Activity</th><th>Actions</th></tr></thead><tbody id="whatsappInstanceRows"></tbody></table></div>
           </div>
         </section>
 
@@ -821,6 +833,19 @@
             <div class="field" style="display:flex;align-items:center;gap:12px;">
               <input type="checkbox" id="editDeferred" style="width:16px;height:16px;cursor:pointer">
               <label style="margin:0;cursor:pointer">Deferred Purchase</label>
+            </div>
+          </div>
+
+          <h3 style="margin:24px 0 12px;font-size:12px;color:var(--text-main);text-transform:uppercase;font-weight:800;letter-spacing:0.05em">Owner WhatsApp Alerts</h3>
+          <div class="form-grid">
+            <div class="field" style="display:flex;align-items:center;gap:12px;">
+              <input type="checkbox" id="editOwnerNotifyWhatsApp" style="width:16px;height:16px;cursor:pointer">
+              <label style="margin:0;cursor:pointer">Send owner order alerts</label>
+            </div>
+            <div class="field"><label>Owner WhatsApp Number</label><input id="editOwnerWhatsAppNumber" placeholder="e.g. 88018..."></div>
+            <div class="field" style="grid-column: span 2;">
+              <label>Sender Instance</label>
+              <select id="editWhatsAppInstance"></select>
             </div>
           </div>
           <div style="margin-top:24px;display:flex;gap:12px;align-items:center">

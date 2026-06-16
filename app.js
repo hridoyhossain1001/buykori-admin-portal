@@ -842,8 +842,112 @@ function renderNotificationOps() {
         <td><div class="status-badge ${statusClass(inst.status === "active" ? "healthy" : "inactive")}">${esc(inst.status)}</div></td>
         <td>${fmt(inst.client_count)}</td>
         <td>${esc(toDeviceDateTime(inst.last_sent_at || inst.last_health_check_at))}</td>
+        <td>
+          <button class="copy-icon" onclick="editWhatsAppInstance(${Number(inst.id)})">Edit</button>
+          <button class="copy-icon" onclick="updateWhatsAppInstanceStatus(${Number(inst.id)}, 'active')">Activate</button>
+          <button class="copy-icon" onclick="updateWhatsAppInstanceStatus(${Number(inst.id)}, 'paused')">Pause</button>
+          <button class="copy-icon" onclick="updateWhatsAppInstanceStatus(${Number(inst.id)}, 'banned')">Banned</button>
+        </td>
       </tr>
-    `).join("") || `<tr><td colspan="5" class="empty">No WhatsApp instances configured.</td></tr>`;
+    `).join("") || `<tr><td colspan="6" class="empty">No WhatsApp senders configured.</td></tr>`;
+  }
+}
+
+function renderWhatsAppInstanceSelect(selectedId) {
+  const select = $("editWhatsAppInstance");
+  if (!select) return;
+  const selected = selectedId ? String(selectedId) : "";
+  const options = (state.whatsappInstances || []).map(inst => {
+    const label = `${inst.instance_name} (${inst.status}${inst.phone_number ? `, ${inst.phone_number}` : ""})`;
+    return `<option value="${esc(inst.id)}" ${String(inst.id) === selected ? "selected" : ""}>${esc(label)}</option>`;
+  }).join("");
+  select.innerHTML = `<option value="">Auto-select active sender</option>${options}`;
+}
+
+async function createWhatsAppInstance() {
+  const msg = $("waInstanceMsg");
+  const payload = {
+    instance_name: $("waInstanceName")?.value.trim() || "",
+    phone_number: $("waInstancePhone")?.value.trim() || null,
+    provider: $("waInstanceProvider")?.value.trim() || "evolution",
+    base_url: $("waInstanceBaseUrl")?.value.trim() || null,
+    status: "active"
+  };
+  if (!payload.instance_name) {
+    if (msg) {
+      msg.textContent = "Instance name is required.";
+      msg.style.color = "var(--danger)";
+    }
+    return;
+  }
+  try {
+    if (msg) {
+      msg.textContent = "Adding sender...";
+      msg.style.color = "var(--success)";
+    }
+    await api("/admin/whatsapp-instances", {
+      method: "POST",
+      body: JSON.stringify(payload)
+    });
+    ["waInstanceName", "waInstancePhone", "waInstanceBaseUrl"].forEach(id => {
+      if ($(id)) $(id).value = "";
+    });
+    if ($("waInstanceProvider")) $("waInstanceProvider").value = "evolution";
+    await refreshNotificationOps({ silent: true });
+    showToast("WhatsApp sender added.");
+    if (msg) msg.textContent = "Sender added.";
+  } catch (error) {
+    if (msg) {
+      msg.textContent = readableApiError(error, "Failed to add sender.");
+      msg.style.color = "var(--danger)";
+    }
+  }
+}
+
+async function editWhatsAppInstance(instanceId) {
+  const inst = (state.whatsappInstances || []).find(item => String(item.id) === String(instanceId));
+  if (!inst) return;
+  const instance_name = window.prompt("Instance name", inst.instance_name || "");
+  if (instance_name === null) return;
+  const phone_number = window.prompt("Sender phone number", inst.phone_number || "");
+  if (phone_number === null) return;
+  const base_url = window.prompt("Provider base URL (optional)", inst.base_url || "");
+  if (base_url === null) return;
+  try {
+    await api(`/admin/whatsapp-instances/${instanceId}`, {
+      method: "PATCH",
+      body: JSON.stringify({
+        instance_name,
+        phone_number,
+        base_url
+      })
+    });
+    await refreshNotificationOps({ silent: true });
+    showToast("WhatsApp sender updated.");
+  } catch (error) {
+    showToast(`Sender update failed: ${readableApiError(error)}`);
+  }
+}
+
+async function updateWhatsAppInstanceStatus(instanceId, status) {
+  const confirmed = await askAdminDecision({
+    title: "Update WhatsApp Sender",
+    message: `Mark sender #${instanceId} as ${status}?`,
+    detail: status === "active"
+      ? "This sender can be used for new WhatsApp notifications."
+      : "Workers will skip this sender and use another active sender when possible.",
+    confirmLabel: "Update Status"
+  });
+  if (!confirmed) return;
+  try {
+    await api(`/admin/whatsapp-instances/${instanceId}`, {
+      method: "PATCH",
+      body: JSON.stringify({ status })
+    });
+    await refreshNotificationOps({ silent: true });
+    showToast(`WhatsApp sender marked ${status}.`);
+  } catch (error) {
+    showToast(`Status update failed: ${readableApiError(error)}`);
   }
 }
 
@@ -1466,6 +1570,9 @@ async function openClientModal(id) {
     $("editTiktok").checked = !!c.enable_tiktok;
     $("editGa4").checked = !!c.enable_ga4;
     $("editDeferred").checked = !!c.deferred_purchase;
+    $("editOwnerNotifyWhatsApp").checked = !!c.owner_notify_whatsapp;
+    $("editOwnerWhatsAppNumber").value = c.owner_whatsapp_number || "";
+    renderWhatsAppInstanceSelect(c.whatsapp_instance_id);
     $("editMsg").textContent = "";
     
     // Populate Keys. Existing secrets are masked server-side and are not stored in browser memory.
@@ -1527,7 +1634,10 @@ async function saveClientEdit() {
     billing_status: $("editBillingStatus").value,
     webhook_url: $("editWebhookUrl").value.trim() || null,
     test_event_code: $("editFbTestCode").value.trim() || null,
-    tiktok_test_event_code: $("editTiktokTestCode").value.trim() || null
+    tiktok_test_event_code: $("editTiktokTestCode").value.trim() || null,
+    owner_notify_whatsapp: $("editOwnerNotifyWhatsApp").checked,
+    owner_whatsapp_number: $("editOwnerWhatsAppNumber").value.trim() || null,
+    whatsapp_instance_id: optionalInteger($("editWhatsAppInstance").value)
   };
   
   try {
