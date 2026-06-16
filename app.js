@@ -42,6 +42,8 @@ const eventsState = {
 const fmt = n => Number(n || 0).toLocaleString();
 const pct = n => `${Number(n || 0).toFixed(1).replace(".0", "")}%`;
 let adminDecisionResolve = null;
+let latestPairingInstanceId = null;
+let latestPairingCode = "";
 const optionalInteger = value => {
   const cleaned = String(value ?? "").trim();
   if (!cleaned) return null;
@@ -844,9 +846,12 @@ function renderNotificationOps() {
         <td>${esc(toDeviceDateTime(inst.last_sent_at || inst.last_health_check_at))}</td>
         <td>
           <button class="copy-icon" onclick="editWhatsAppInstance(${Number(inst.id)})">Edit</button>
+          <button class="copy-icon" onclick="connectWhatsAppInstance(${Number(inst.id)})">Pair Code</button>
+          <button class="copy-icon" onclick="checkWhatsAppInstanceState(${Number(inst.id)})">Check</button>
           <button class="copy-icon" onclick="updateWhatsAppInstanceStatus(${Number(inst.id)}, 'active')">Activate</button>
           <button class="copy-icon" onclick="updateWhatsAppInstanceStatus(${Number(inst.id)}, 'paused')">Pause</button>
           <button class="copy-icon" onclick="updateWhatsAppInstanceStatus(${Number(inst.id)}, 'banned')">Banned</button>
+          <button class="copy-icon" onclick="logoutWhatsAppInstance(${Number(inst.id)})">Logout</button>
         </td>
       </tr>
     `).join("") || `<tr><td colspan="6" class="empty">No WhatsApp senders configured.</td></tr>`;
@@ -862,6 +867,31 @@ function renderWhatsAppInstanceSelect(selectedId) {
     return `<option value="${esc(inst.id)}" ${String(inst.id) === selected ? "selected" : ""}>${esc(label)}</option>`;
   }).join("");
   select.innerHTML = `<option value="">Auto-select active sender</option>${options}`;
+}
+
+function renderPairingResult(data) {
+  latestPairingInstanceId = data?.instance?.id || null;
+  latestPairingCode = data?.pairing?.pairingCode || "";
+  const panel = $("waPairingPanel");
+  if (!panel) return;
+  panel.style.display = "block";
+  $("waPairingCode").textContent = latestPairingCode || "QR code required";
+  $("waPairingHelp").textContent = latestPairingCode
+    ? "Open WhatsApp on the sender phone, go to Linked devices, choose Link with phone number instead, then enter this code."
+    : "Pairing code was not returned. Copy the raw QR code value below and scan/connect it from Evolution if needed.";
+  const raw = data?.pairing?.code || "";
+  if ($("waQrRaw")) {
+    $("waQrRaw").style.display = raw ? "block" : "none";
+    $("waQrRaw").textContent = raw ? `Raw QR/code value:\n${raw}` : "";
+  }
+}
+
+function copyPairingCode() {
+  if (!latestPairingCode) {
+    showToast("No pairing code available yet.");
+    return;
+  }
+  navigator.clipboard.writeText(latestPairingCode).then(() => showToast("Pairing code copied."));
 }
 
 async function createWhatsAppInstance() {
@@ -880,25 +910,69 @@ async function createWhatsAppInstance() {
     }
     return;
   }
+  if (!payload.phone_number) {
+    if (msg) {
+      msg.textContent = "Sender phone is required for pairing.";
+      msg.style.color = "var(--danger)";
+    }
+    return;
+  }
   try {
     if (msg) {
-      msg.textContent = "Adding sender...";
+      msg.textContent = "Creating sender and requesting pairing code...";
+      msg.style.color = "var(--success)";
+    }
+    const result = await api("/admin/whatsapp-instances/provision", {
+      method: "POST",
+      body: JSON.stringify(payload)
+    });
+    renderPairingResult(result);
+    ["waInstanceName", "waInstancePhone", "waInstanceBaseUrl"].forEach(id => {
+      if ($(id)) $(id).value = "";
+    });
+    if ($("waInstanceProvider")) $("waInstanceProvider").value = "evolution";
+    await refreshNotificationOps({ silent: true });
+    showToast("WhatsApp sender created. Enter the pairing code on the phone.");
+    if (msg) msg.textContent = "Pairing code ready.";
+  } catch (error) {
+    if (msg) {
+      msg.textContent = readableApiError(error, "Failed to connect sender.");
+      msg.style.color = "var(--danger)";
+    }
+  }
+}
+
+async function registerExistingWhatsAppInstance() {
+  const msg = $("waInstanceMsg");
+  const payload = {
+    instance_name: $("waInstanceName")?.value.trim() || "",
+    phone_number: $("waInstancePhone")?.value.trim() || null,
+    provider: $("waInstanceProvider")?.value.trim() || "evolution",
+    base_url: $("waInstanceBaseUrl")?.value.trim() || null,
+    status: "active"
+  };
+  if (!payload.instance_name) {
+    if (msg) {
+      msg.textContent = "Instance name is required.";
+      msg.style.color = "var(--danger)";
+    }
+    return;
+  }
+  try {
+    if (msg) {
+      msg.textContent = "Registering existing connected sender...";
       msg.style.color = "var(--success)";
     }
     await api("/admin/whatsapp-instances", {
       method: "POST",
       body: JSON.stringify(payload)
     });
-    ["waInstanceName", "waInstancePhone", "waInstanceBaseUrl"].forEach(id => {
-      if ($(id)) $(id).value = "";
-    });
-    if ($("waInstanceProvider")) $("waInstanceProvider").value = "evolution";
     await refreshNotificationOps({ silent: true });
-    showToast("WhatsApp sender added.");
-    if (msg) msg.textContent = "Sender added.";
+    showToast("Existing WhatsApp sender registered.");
+    if (msg) msg.textContent = "Existing sender registered.";
   } catch (error) {
     if (msg) {
-      msg.textContent = readableApiError(error, "Failed to add sender.");
+      msg.textContent = readableApiError(error, "Failed to register sender.");
       msg.style.color = "var(--danger)";
     }
   }
@@ -948,6 +1022,54 @@ async function updateWhatsAppInstanceStatus(instanceId, status) {
     showToast(`WhatsApp sender marked ${status}.`);
   } catch (error) {
     showToast(`Status update failed: ${readableApiError(error)}`);
+  }
+}
+
+async function connectWhatsAppInstance(instanceId) {
+  try {
+    const result = await api(`/admin/whatsapp-instances/${instanceId}/connect`, { method: "POST" });
+    renderPairingResult(result);
+    await refreshNotificationOps({ silent: true });
+    showToast("Pairing code refreshed.");
+  } catch (error) {
+    showToast(`Pairing failed: ${readableApiError(error)}`);
+  }
+}
+
+async function checkWhatsAppInstanceState(instanceId) {
+  try {
+    const result = await api(`/admin/whatsapp-instances/${instanceId}/connection-state`);
+    state.whatsappInstances = (state.whatsappInstances || []).map(inst => String(inst.id) === String(instanceId) ? result.instance : inst);
+    renderNotificationOps();
+    showToast(`WhatsApp state: ${result.state || result.instance?.status || "unknown"}`);
+  } catch (error) {
+    showToast(`State check failed: ${readableApiError(error)}`);
+  }
+}
+
+async function checkLatestPairingState() {
+  if (!latestPairingInstanceId) {
+    showToast("No recent pairing sender selected.");
+    return;
+  }
+  await checkWhatsAppInstanceState(latestPairingInstanceId);
+}
+
+async function logoutWhatsAppInstance(instanceId) {
+  const confirmed = await askAdminDecision({
+    title: "Logout WhatsApp Sender",
+    message: `Logout sender #${instanceId} from WhatsApp?`,
+    detail: "The sender will stop sending until it is paired again.",
+    confirmLabel: "Logout Sender",
+    confirmClass: "btn-danger"
+  });
+  if (!confirmed) return;
+  try {
+    await api(`/admin/whatsapp-instances/${instanceId}/logout`, { method: "POST" });
+    await refreshNotificationOps({ silent: true });
+    showToast("WhatsApp sender logged out.");
+  } catch (error) {
+    showToast(`Logout failed: ${readableApiError(error)}`);
   }
 }
 

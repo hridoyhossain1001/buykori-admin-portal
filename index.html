@@ -451,9 +451,20 @@
                 <div class="field"><label>Provider</label><input id="waInstanceProvider" value="evolution"></div>
                 <div class="field"><label>Base URL</label><input id="waInstanceBaseUrl" placeholder="Optional provider URL"></div>
               </div>
-              <div style="margin-top:12px;display:flex;gap:12px;align-items:center">
-                <button class="btn btn-primary" onclick="createWhatsAppInstance()">Add Sender</button>
+              <div style="margin-top:12px;display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+                <button class="btn btn-primary" onclick="createWhatsAppInstance()">Connect Sender</button>
+                <button class="btn btn-outline" onclick="registerExistingWhatsAppInstance()">Register Existing</button>
                 <span id="waInstanceMsg" class="notice" style="margin:0"></span>
+              </div>
+              <div id="waPairingPanel" style="display:none;margin-top:16px;padding:16px;border:1px solid var(--border);border-radius:14px;background:rgba(255,255,255,0.05)">
+                <div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--text-muted);margin-bottom:8px">Pairing Code</div>
+                <div id="waPairingCode" style="font-size:30px;font-weight:900;letter-spacing:.16em;color:var(--text-main);margin-bottom:8px">-</div>
+                <div id="waPairingHelp" class="client-sub" style="white-space:normal;margin-bottom:12px">Open WhatsApp on the sender phone, go to Linked devices, choose Link with phone number instead, then enter this code.</div>
+                <div style="display:flex;gap:8px;flex-wrap:wrap">
+                  <button class="copy-icon" onclick="copyPairingCode()">Copy Code</button>
+                  <button class="copy-icon" onclick="checkLatestPairingState()">Check Connection</button>
+                </div>
+                <pre id="waQrRaw" style="display:none;margin-top:12px;max-height:120px;overflow:auto;white-space:pre-wrap;font-size:10px;color:var(--text-muted)"></pre>
               </div>
             </div>
             <div class="table-wrap"><table><thead><tr><th>Instance</th><th>Phone</th><th>Status</th><th>Clients</th><th>Last Activity</th><th>Actions</th></tr></thead><tbody id="whatsappInstanceRows"></tbody></table></div>
