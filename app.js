@@ -1616,9 +1616,18 @@ function renderClientModalIntel(clientId) {
   const owner = intel.owner || {};
   const funnel = intel.onboarding_funnel || [];
   const setup = intel.setup_snapshot || {};
+  const routing = setup.event_routing || {};
+  const courier = setup.courier || {};
+  const whatsapp = setup.whatsapp || {};
   const statusBadge = (ok, labelOk = "Ready", labelBad = "Missing") => (
     `<span class="status-badge ${statusClass(ok ? "healthy" : "critical")}">${ok ? labelOk : labelBad}</span>`
   );
+  const routingCounts = routing.platform_counts || {};
+  const courierProviders = courier.providers || {};
+  const courierProviderLabel = courier.default_provider ? courier.default_provider.toUpperCase() : "No default provider";
+  const whatsappDetail = whatsapp.enabled
+    ? `${whatsapp.number_set ? "Owner number set" : "Owner number missing"}${whatsapp.instance_name ? ` via ${whatsapp.instance_name}` : ""}`
+    : "Owner alerts are off";
   const setupCard = (title, statusHtml, detail, meta = "") => `
     <div class="setup-card">
       <div class="setup-card-head"><strong>${esc(title)}</strong>${statusHtml}</div>
@@ -1665,6 +1674,24 @@ function renderClientModalIntel(clientId) {
         statusBadge(setup.plugin?.connected, "Connected", "Not connected"),
         setup.plugin?.site_host || setup.plugin?.root_domain || "No active site binding",
         setup.plugin?.last_seen_at ? `Last seen ${toDeviceDateTime(setup.plugin.last_seen_at)}` : ""
+      )}
+      ${setupCard(
+        "Event Routing",
+        statusBadge(routing.configured, "Configured", "Default"),
+        `${fmt(routing.rule_count || 0)} route(s): Meta ${fmt(routingCounts.meta || 0)}, TikTok ${fmt(routingCounts.tiktok || 0)}, GA4 ${fmt(routingCounts.ga4 || 0)}`,
+        routing.configured ? "Portal-managed rules" : "Using platform defaults"
+      )}
+      ${setupCard(
+        "Courier",
+        statusBadge(courier.configured, "Configured", "Missing"),
+        `${courierProviderLabel}${courier.auto_send ? " with auto-send" : ""}`,
+        `Providers: SF ${courierProviders.steadfast ? "yes" : "no"}, Pathao ${courierProviders.pathao ? "yes" : "no"}, RedX ${courierProviders.redx ? "yes" : "no"}`
+      )}
+      ${setupCard(
+        "WhatsApp Alerts",
+        statusBadge(whatsapp.enabled && whatsapp.number_set && whatsapp.instance_id, "Ready", whatsapp.enabled ? "Needs setup" : "Off"),
+        whatsappDetail,
+        whatsapp.instance_status ? `Sender status: ${whatsapp.instance_status}` : "No sender assigned"
       )}
     </div>
     <div class="funnel-list">${funnel.map(item => `<div class="funnel-item ${item.done ? "done" : ""}"><span>${item.done ? "Done" : "Todo"}</span>${esc(item.label)}</div>`).join("")}</div>
