@@ -1615,6 +1615,17 @@ function renderClientModalIntel(clientId) {
   const score = intel.health_score || {};
   const owner = intel.owner || {};
   const funnel = intel.onboarding_funnel || [];
+  const setup = intel.setup_snapshot || {};
+  const statusBadge = (ok, labelOk = "Ready", labelBad = "Missing") => (
+    `<span class="status-badge ${statusClass(ok ? "healthy" : "critical")}">${ok ? labelOk : labelBad}</span>`
+  );
+  const setupCard = (title, statusHtml, detail, meta = "") => `
+    <div class="setup-card">
+      <div class="setup-card-head"><strong>${esc(title)}</strong>${statusHtml}</div>
+      <p>${esc(detail || "-")}</p>
+      ${meta ? `<span>${esc(meta)}</span>` : ""}
+    </div>
+  `;
   $("client360Summary").innerHTML = `
     <div class="drawer-grid">
       <div><span>Owner</span><strong>${esc(owner.full_name || "-")}</strong></div>
@@ -1623,6 +1634,38 @@ function renderClientModalIntel(clientId) {
       <div><span>Onboarding</span><strong>${doneCount(funnel)} / ${funnel.length}</strong></div>
       <div><span>Trial Follow-up</span><strong>${esc(intel.trial_followup?.reason || "No action")}</strong></div>
       <div><span>Support Notes</span><strong>${fmt(intel.support_note_count || 0)}</strong></div>
+    </div>
+    <div class="setup-snapshot">
+      ${setupCard(
+        "Meta CAPI",
+        statusBadge(setup.meta?.configured, "Configured", setup.meta?.enabled ? "Needs token" : "Off"),
+        setup.meta?.pixel_id ? `Pixel ${setup.meta.pixel_id}` : "No pixel ID",
+        setup.meta?.test_event_code_set ? "Test code is set" : "No test code"
+      )}
+      ${setupCard(
+        "TikTok Events API",
+        statusBadge(setup.tiktok?.configured, "Configured", setup.tiktok?.enabled ? "Needs token" : "Off"),
+        setup.tiktok?.pixel_id ? `Pixel ${setup.tiktok.pixel_id}` : "No TikTok pixel",
+        setup.tiktok?.test_event_code_set ? "Test code is set" : "No test code"
+      )}
+      ${setupCard(
+        "GA4",
+        statusBadge(setup.ga4?.configured, "Configured", setup.ga4?.enabled ? "Needs secret" : "Off"),
+        setup.ga4?.measurement_id ? `Measurement ${setup.ga4.measurement_id}` : "No measurement ID"
+      )}
+      ${setupCard(
+        "COD Protection",
+        statusBadge(setup.cod_protection?.enabled, "On", "Off"),
+        setup.cod_protection?.enabled
+          ? `Auto-confirm: ${setup.cod_protection.auto_confirm_days || 0} day(s), status ${setup.cod_protection.auto_confirm_status || "completed"}`
+          : "Portal master setting is off"
+      )}
+      ${setupCard(
+        "WordPress Plugin",
+        statusBadge(setup.plugin?.connected, "Connected", "Not connected"),
+        setup.plugin?.site_host || setup.plugin?.root_domain || "No active site binding",
+        setup.plugin?.last_seen_at ? `Last seen ${toDeviceDateTime(setup.plugin.last_seen_at)}` : ""
+      )}
     </div>
     <div class="funnel-list">${funnel.map(item => `<div class="funnel-item ${item.done ? "done" : ""}"><span>${item.done ? "Done" : "Todo"}</span>${esc(item.label)}</div>`).join("")}</div>
   `;
