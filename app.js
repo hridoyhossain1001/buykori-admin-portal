@@ -1100,7 +1100,7 @@ function startCourierQueueAutoRefresh() {
     return;
   }
   state.courierQueueTimer = window.setInterval(() => {
-    if (key()) refreshCourierQueue({ silent: true });
+    refreshCourierQueue({ silent: true });
   }, COURIER_QUEUE_REFRESH_MS);
   renderCourierQueueRefreshMeta();
 }
