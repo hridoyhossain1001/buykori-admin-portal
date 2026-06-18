@@ -1850,7 +1850,9 @@ async function rotateKey(keyType) {
   const confirmed = await askAdminDecision({
     title: "Rotate Key",
     message: `Rotate the ${keyType}?`,
-    detail: "Old integrations using this key will stop working immediately.",
+    detail: keyType === "api_key"
+      ? "The previous API key remains valid for 15 minutes so integrations can be updated safely."
+      : "Existing sessions or integrations using this key will stop working immediately.",
     confirmLabel: "Rotate Key",
     confirmClass: "btn-danger"
   });
