@@ -1490,10 +1490,18 @@ document.addEventListener("keydown", event => {
     $("searchInput")?.focus();
   }
 });
-loadAll().then(showApp).catch(() => {
+function showLogin() {
   $("login").style.display = "flex";
   $("app").style.display = "none";
-});
+}
+
+const existingAdminCsrf = csrfFromCookie();
+if (existingAdminCsrf) {
+  adminCsrfToken = existingAdminCsrf;
+  loadAll().then(showApp).catch(showLogin);
+} else {
+  showLogin();
+}
 
 // Modal Functions
 let currentClientId = null;
