@@ -28,7 +28,10 @@ const state = {
   courierQueueLastRefresh: null,
   courierQueueTimer: null,
   courierQueueRefreshing: false,
-  activeCourierJobId: null
+  activeCourierJobId: null,
+  dashboardWindow: "24h",
+  dashboardWindowRequestId: 0,
+  dashboardWindowAbortController: null
 };
 const modalSecrets = new Map();
 const eventsState = {
@@ -122,8 +125,14 @@ async function apiOrFallback(path, fallback, label) {
     return await api(path);
   } catch (error) {
     if (isAuthError(error)) throw error;
-    console.warn(`Admin data source failed: ${label || path}`, error);
-    return fallback;
+    await new Promise(resolve => setTimeout(resolve, 400));
+    try {
+      return await api(path);
+    } catch (retryError) {
+      if (isAuthError(retryError)) throw retryError;
+      console.warn(`Admin data source failed after retry: ${label || path}`, retryError);
+      return fallback;
+    }
   }
 }
 
@@ -224,7 +233,7 @@ function logout() {
 
 async function loadAll() {
   const [summary, clients, health, courierQueue, intelligence, serverHealth, siteBindings, incompleteOps, notificationJobs, whatsappInstances] = await Promise.all([
-    apiOrFallback("/admin/api/summary", state.summary || {}, "summary"),
+    apiOrFallback(`/admin/api/summary?window=${encodeURIComponent(state.dashboardWindow)}`, state.summary || {}, "summary"),
     apiOrFallback("/admin/api/clients", { clients: state.clients || [] }, "clients"),
     apiOrFallback("/admin/clients/health", { clients: state.health || [] }, "client health"),
     apiOrFallback("/admin/api/courier-booking-queue?limit=20", state.courierQueue || {}, "courier queue"),
@@ -261,6 +270,62 @@ function healthFor(client) {
 
 function intelligenceFor(clientId) {
   return (state.intelligence?.clients || []).find(row => String(row.client?.id) === String(clientId)) || null;
+}
+
+function overviewHealthFor(client) {
+  const intel = intelligenceFor(client.id);
+  const legacy = healthFor(client);
+  if (!client.is_active) {
+    return { status: "inactive", score: undefined, reasons: ["Client inactive"], periodEvents: 0, lastEventAt: legacy.last_event_at || client.last_event_at || null };
+  }
+  return {
+    status: intel?.health_score?.status || legacy.health_status || "healthy",
+    score: intel?.health_score?.score,
+    reasons: intel?.health_score?.reasons || [],
+    periodEvents: Number(state.summary?.client_events?.[String(client.id)] || 0),
+    lastEventAt: legacy.last_event_at || client.last_event_at || null
+  };
+}
+
+function dashboardWindowLabel(window = state.dashboardWindow) {
+  return window === "7d" ? "Last 7 Days" : window === "30d" ? "Last 30 Days" : "Last 24 Hours";
+}
+
+function dashboardWindowShortLabel(window = state.dashboardWindow) {
+  return window === "7d" ? "7d" : window === "30d" ? "30d" : "24h";
+}
+
+function sparklinePoints(values) {
+  const items = (values || []).map(Number);
+  if (!items.length) return "0,18 100,18";
+  const max = Math.max(...items, 1);
+  const widthStep = items.length === 1 ? 100 : 100 / (items.length - 1);
+  return items.map((value, index) => `${(index * widthStep).toFixed(2)},${(18 - (Math.max(value, 0) / max) * 16).toFixed(2)}`).join(" ");
+}
+
+function renderDashboardTrends() {
+  const trend = state.summary?.trend || [];
+  const series = {
+    attemptsSparkline: trend.map(item => item.attempts || 0),
+    successSparkline: trend.map(item => item.successful || 0),
+    failedSparkline: trend.map(item => item.failed || 0)
+  };
+  Object.entries(series).forEach(([id, values]) => {
+    const line = $(id);
+    if (line) line.setAttribute("points", sparklinePoints(values));
+  });
+}
+function integrationState(client, platform) {
+  const setup = intelligenceFor(client.id)?.setup_snapshot?.[platform];
+  const enabledFallback = platform === "meta"
+    ? Boolean(client.enable_facebook)
+    : platform === "tiktok"
+      ? Boolean(client.enable_tiktok)
+      : Boolean(client.enable_ga4);
+  if (!setup) return enabledFallback ? { state: "attention", label: "Needs setup" } : { state: "off", label: "Off" };
+  if (!setup.enabled) return { state: "off", label: "Off" };
+  if (setup.configured) return { state: "ready", label: "Ready" };
+  return { state: "attention", label: "Needs setup" };
 }
 
 function statusClass(status) {
@@ -368,9 +433,10 @@ function domainLink(client) {
   return `<a href="${esc(href)}" target="_blank" rel="noopener" class="domain-link">${esc(domain)} <span style="font-size:11px;opacity:0.8">open</span></a>`;
 }
 
-function integrationBadge(active, label, color, icon) {
-  const dot = active ? "dot-active" : "dot-inactive";
-  return `<div class="integration-status">${icon ? `<span style="color:${color};font-weight:900;margin-right:2px">${icon}</span>` : ""}<div class="dot ${dot}"></div>${active ? "Active" : "Off"}${label ? ` <span style="color:var(--text-muted)">${label}</span>` : ""}</div>`;
+function integrationBadge(integration, color, icon) {
+  const stateName = integration?.state || "off";
+  const dot = stateName === "ready" ? "dot-active" : stateName === "attention" ? "dot-warning" : "dot-inactive";
+  return `<div class="integration-status">${icon ? `<span style="color:${color};font-weight:900;margin-right:2px">${icon}</span>` : ""}<div class="dot ${dot}"></div>${esc(integration?.label || "Off")}</div>`;
 }
 
 function filteredClients() {
@@ -387,22 +453,28 @@ function renderSummary() {
   const summary = state.summary || {};
   const queue = courierQueueCounts();
   const totalEvents = Number(summary.total_events || 0);
-  const failed = Number(summary.failed_events || 0);
-  const totalCalls = Math.max(totalEvents + failed, 1);
-  const matchRate = ((totalEvents / totalCalls) * 100);
-  const errorRate = ((failed / totalCalls) * 100);
+  const failed = Math.min(Number(summary.failed_events || 0), totalEvents);
+  const successful = Math.max(totalEvents - failed, 0);
+  const hasEvents = totalEvents > 0;
+  const deliveryRate = hasEvents ? (successful / totalEvents) * 100 : null;
+  const errorRate = hasEvents ? (failed / totalEvents) * 100 : null;
   const activeClients = Number(summary.active_clients || 0);
-  const metaActive = state.clients.filter((client) => Boolean(client.enable_facebook ?? true)).length;
-  const tiktokActive = state.clients.filter((client) => Boolean(client.tiktok_pixel_id || client.enable_tiktok)).length;
-  const ga4Active = state.clients.filter((client) => Boolean(client.ga4_measurement_id || client.enable_ga4)).length;
+  const eventOutbox = state.serverHealth?.event_outbox || {};
+  const queuedOutbox = Number(eventOutbox.queued || 0) + Number(eventOutbox.processing || 0);
+  const metaReady = state.clients.filter(client => integrationState(client, "meta").state === "ready").length;
+  const tiktokReady = state.clients.filter(client => integrationState(client, "tiktok").state === "ready").length;
+  const ga4Ready = state.clients.filter(client => integrationState(client, "ga4").state === "ready").length;
 
   $("totalEvents").textContent = fmt(totalEvents);
   $("failedEvents").textContent = fmt(failed);
   $("activeClients").textContent = `${fmt(activeClients)} / ${fmt(summary.total_clients || 0)}`;
-  $("matchRate").textContent = pct(matchRate);
-  $("errorRate").textContent = pct(errorRate);
-  $("queuedOutbox").textContent = fmt(failed);
-  $("eventsTrend").textContent = totalEvents ? "Live event total" : "No events yet";
+  $("matchRate").textContent = hasEvents ? pct(deliveryRate) : "No data";
+  $("errorRate").textContent = hasEvents ? pct(errorRate) : "No data";
+  $("queuedOutbox").textContent = fmt(queuedOutbox);
+  $("eventsTrend").textContent = totalEvents ? `${dashboardWindowLabel()}: all recorded delivery attempts` : `${dashboardWindowLabel()}: no events`;
+  if ($("dashboardWindow")) $("dashboardWindow").value = state.dashboardWindow;
+  if ($("periodEventsHeader")) $("periodEventsHeader").textContent = `Events ${dashboardWindowShortLabel()}`;
+  renderDashboardTrends();
   renderCourierQueueBanner(queue);
   if ($("courierQueueDashboardStatus")) {
     $("courierQueueDashboardStatus").className = `status-badge ${courierQueueStatusClass(queue.alert_status)}`;
@@ -411,13 +483,13 @@ function renderSummary() {
     $("courierQueueDashboardDead").textContent = fmt(queue.dead || 0);
     $("courierQueueDashboardOldest").textContent = formatDuration(Math.max(queue.oldest_queued_age_seconds || 0, queue.oldest_processing_age_seconds || 0));
   }
-  $("planUsed").textContent = compactNumber(totalEvents);
-  $("planProgress").style.width = `${Math.min((totalEvents / 2000000) * 100, 100)}%`;
-  $("metaEvents").textContent = `${fmt(metaActive)} active client${metaActive === 1 ? "" : "s"}`;
-  $("tiktokEvents").textContent = `${fmt(tiktokActive)} active client${tiktokActive === 1 ? "" : "s"}`;
-  $("ga4Events").textContent = `${fmt(ga4Active)} active client${ga4Active === 1 ? "" : "s"}`;
+  const lifetimeEvents = Number(summary.lifetime_total_events ?? totalEvents);
+  $("planUsed").textContent = compactNumber(lifetimeEvents);
+  $("planProgress").style.width = `${Math.min((lifetimeEvents / 2000000) * 100, 100)}%`;
+  $("metaEvents").textContent = `${fmt(metaReady)} ready client${metaReady === 1 ? "" : "s"}`;
+  $("tiktokEvents").textContent = `${fmt(tiktokReady)} ready client${tiktokReady === 1 ? "" : "s"}`;
+  $("ga4Events").textContent = `${fmt(ga4Ready)} ready client${ga4Ready === 1 ? "" : "s"}`;
 }
-
 function compactNumber(value) {
   const n = Number(value || 0);
   if (n >= 1000000) return `${(n / 1000000).toFixed(1).replace(".0", "")}M`;
@@ -429,23 +501,19 @@ function renderIntegrationRows() {
   const clients = filteredClients();
   $("tableMeta").textContent = `Showing ${clients.length} of ${state.clients.length} clients`;
   $("integrationRows").innerHTML = clients.map(client => {
-    const health = healthFor(client);
-    const healthStatus = health.health_status || (client.is_active ? "healthy" : "inactive");
-    const today = health.today_events ?? 0;
-    const ga4Active = Boolean(client.ga4_measurement_id || client.enable_ga4);
+    const health = overviewHealthFor(client);
     return `<tr>
       <td><div class="client-name">${esc(client.name)}</div><div class="client-sub">${esc(client.pixel_id || `ID ${client.id}`)}</div></td>
       <td>${domainLink(client)}</td>
-      <td>${integrationBadge(Boolean(client.enable_facebook ?? true), "", "#1877F2", "f")}</td>
-      <td>${integrationBadge(Boolean(client.tiktok_pixel_id || client.enable_tiktok), "", "#3B82F6", "T")}</td>
-      <td>${integrationBadge(ga4Active, ga4Active ? "" : "Warning", "#F9AB00", "G")}</td>
-      <td><span class="text-success" style="font-weight:700">${fmt(today)}</span> <span style="font-size:10px;color:var(--text-subtle)">today</span></td>
-      <td><div class="status-badge ${statusClass(healthStatus)}">${statusLabel(healthStatus, client.is_active)}</div></td>
+      <td>${integrationBadge(integrationState(client, "meta"), "#1877F2", "f")}</td>
+      <td>${integrationBadge(integrationState(client, "tiktok"), "#3B82F6", "T")}</td>
+      <td>${integrationBadge(integrationState(client, "ga4"), "#F9AB00", "G")}</td>
+      <td><span class="text-success" style="font-weight:700">${fmt(health.periodEvents)}</span> <span style="font-size:10px;color:var(--text-subtle)">${esc(dashboardWindowShortLabel())}</span></td>
+      <td><div class="status-badge ${statusClass(health.status)}" title="${esc(health.reasons.join(", "))}">${health.score !== undefined ? `${fmt(health.score)}%` : statusLabel(health.status, client.is_active)}</div></td>
       <td><button class="action-btn" onclick="openClientModal(${client.id})" title="Manage client">...</button></td>
     </tr>`;
   }).join("") || `<tr><td colspan="8" class="empty">No clients yet. Use Add Client to get started.</td></tr>`;
 }
-
 function renderClientRows() {
   $("clientRows").innerHTML = filteredClients().map(client => {
     const health = healthFor(client);
@@ -661,32 +729,30 @@ function renderOpsMonitor() {
 
 function renderMatrixRows() {
   $("integrationMatrixRows").innerHTML = filteredClients().map(client => {
-    const health = healthFor(client);
-    const healthStatus = health.health_status || (client.is_active ? "healthy" : "inactive");
+    const health = overviewHealthFor(client);
     return `<tr>
       <td><div class="client-name">${esc(client.name)}</div></td>
-      <td>${integrationBadge(Boolean(client.enable_facebook ?? true), "", "#1877F2", "f")}</td>
-      <td>${integrationBadge(Boolean(client.tiktok_pixel_id || client.enable_tiktok), "", "#3B82F6", "T")}</td>
-      <td>${integrationBadge(Boolean(client.ga4_measurement_id || client.enable_ga4), "", "#F9AB00", "G")}</td>
-      <td><div class="status-badge ${statusClass(healthStatus)}">${statusLabel(healthStatus, client.is_active)}</div></td>
+      <td>${integrationBadge(integrationState(client, "meta"), "#1877F2", "f")}</td>
+      <td>${integrationBadge(integrationState(client, "tiktok"), "#3B82F6", "T")}</td>
+      <td>${integrationBadge(integrationState(client, "ga4"), "#F9AB00", "G")}</td>
+      <td><div class="status-badge ${statusClass(health.status)}">${health.score !== undefined ? `${fmt(health.score)}%` : statusLabel(health.status, client.is_active)}</div></td>
     </tr>`;
   }).join("") || `<tr><td colspan="5" class="empty">No integration data yet. Add a client to start tracking setup.</td></tr>`;
 }
-
 function derivedActivities() {
-  const totalToday = state.health.reduce((sum, item) => sum + Number(item.today_events || 0), 0);
-  const warnings = state.health.filter(item => ["warning", "critical"].includes(String(item.health_status).toLowerCase()));
+  const periodEvents = Number(state.summary?.total_events || 0);
+  const overviewRows = state.clients.map(client => ({ client, health: overviewHealthFor(client) }));
+  const warnings = overviewRows.filter(row => ["warning", "critical"].includes(String(row.health.status).toLowerCase()));
   const latest = state.health.find(item => item.last_event_at);
   const rows = [
-    { type: "success", title: "Events processed", desc: `${fmt(totalToday)} events processed in the current health window`, time: "now" },
+    { type: "success", title: "Events processed", desc: `${fmt(periodEvents)} attempts in ${dashboardWindowLabel().toLowerCase()}`, time: "now" },
     { type: "info", title: "Clients synced", desc: `${fmt(state.clients.length)} clients loaded from production backend`, time: "now" },
-    warnings[0] ? { type: "warning", title: "Health warning detected", desc: `${warnings[0].client_name} is ${warnings[0].health_status}`, time: "now" } : null,
+    warnings[0] ? { type: "warning", title: "Health warning detected", desc: `${warnings[0].client.name} is ${warnings[0].health.status}`, time: "now" } : null,
     latest ? { type: "success", title: "Latest event received", desc: `${latest.client_name} reported activity`, time: trimTime(latest.last_event_at) } : null,
     { type: "info", title: "User admin logged in", desc: "sysop@buykori.app", time: "session" }
   ].filter(Boolean);
   return rows;
 }
-
 function renderActivity() {
   const rows = derivedActivities();
   const html = rows.map((row, index) => `<div class="stream-item" style="${index === rows.length - 1 ? "border-bottom:none" : ""}">
@@ -699,9 +765,10 @@ function renderActivity() {
 }
 
 function derivedAlerts() {
-  const critical = state.health.filter(item => String(item.health_status).toLowerCase() === "critical");
-  const warning = state.health.filter(item => String(item.health_status).toLowerCase() === "warning");
-  const inactive = state.health.filter(item => String(item.health_status).toLowerCase() === "inactive");
+  const rows = state.clients.map(client => ({ client, health: overviewHealthFor(client) }));
+  const critical = rows.filter(row => String(row.health.status).toLowerCase() === "critical");
+  const warning = rows.filter(row => String(row.health.status).toLowerCase() === "warning");
+  const inactive = state.clients.filter(client => !client.is_active);
   const noDomain = state.clients.filter(client => !(client.display_domain || client.domain));
   return [
     critical.length ? { rank: "High", cls: "alert-high", title: "Critical client health", desc: `Affects ${critical.length} client${critical.length > 1 ? "s" : ""}`, value: `${critical.length}` } : null,
@@ -710,7 +777,6 @@ function derivedAlerts() {
     noDomain.length ? { rank: "Low", cls: "alert-low", title: "Domain validation warning", desc: `Affects ${noDomain.length} domain${noDomain.length > 1 ? "s" : ""}`, value: `${noDomain.length}` } : null
   ].filter(Boolean);
 }
-
 function renderAlerts() {
   const queue = courierQueueCounts();
   const queueAlerts = (queue.alerts || []).map(alert => ({
@@ -1415,6 +1481,34 @@ async function createClient() {
   }
 }
 
+async function setDashboardWindow(window) {
+  const allowed = new Set(["24h", "7d", "30d"]);
+  const nextWindow = allowed.has(window) ? window : "24h";
+  const requestId = ++state.dashboardWindowRequestId;
+  state.dashboardWindow = nextWindow;
+  state.dashboardWindowAbortController?.abort();
+  const controller = new AbortController();
+  state.dashboardWindowAbortController = controller;
+  if ($("dashboardWindow")) $("dashboardWindow").disabled = true;
+  if ($("eventsTrend")) $("eventsTrend").textContent = `Loading ${dashboardWindowLabel(nextWindow).toLowerCase()}...`;
+  try {
+    const summary = await api(`/admin/api/summary?window=${encodeURIComponent(nextWindow)}`, { signal: controller.signal });
+    if (requestId !== state.dashboardWindowRequestId) return;
+    state.summary = summary;
+    renderSummary();
+    renderIntegrationRows();
+    renderActivity();
+  } catch (error) {
+    if (error?.name === "AbortError" || requestId !== state.dashboardWindowRequestId) return;
+    showToast(readableApiError(error, "Could not load the selected timeframe."), "error");
+    renderSummary();
+  } finally {
+    if (requestId === state.dashboardWindowRequestId) {
+      state.dashboardWindowAbortController = null;
+      if ($("dashboardWindow")) $("dashboardWindow").disabled = false;
+    }
+  }
+}
 function setTab(tab) {
   document.querySelectorAll(".nav-item[data-tab]").forEach(button => button.classList.toggle("active", button.dataset.tab === tab));
   document.querySelectorAll(".section").forEach(section => section.classList.toggle("active", section.id === tab));
@@ -1427,23 +1521,34 @@ function setTab(tab) {
 
 function downloadReport() {
   const summary = state.summary || {};
+  const attempts = Number(summary.total_events || 0);
+  const failed = Math.min(Number(summary.failed_events || 0), attempts);
+  const successful = Math.max(attempts - failed, 0);
   const rows = [
+    ["Buykori Admin Report", dashboardWindowLabel()],
+    ["Period start", summary.window_started_at || ""],
+    ["Period end", summary.window_ended_at || ""],
+    [],
     ["Metric", "Value"],
     ["Total clients", summary.total_clients || 0],
     ["Active clients", summary.active_clients || 0],
-    ["Total events", summary.total_events || 0],
-    ["Failed events", summary.failed_events || 0]
+    ["Event attempts", attempts],
+    ["Successful deliveries", successful],
+    ["Failed deliveries", failed],
+    ["Delivery success", attempts ? `${((successful / attempts) * 100).toFixed(2)}%` : "No data"],
+    [],
+    ["Client", `Events ${dashboardWindowShortLabel()}`],
+    ...state.clients.map(client => [client.name, Number(summary.client_events?.[String(client.id)] || 0)])
   ];
-  const csv = rows.map(row => row.map(cell => `"${String(cell).replaceAll('"', '""')}"`).join(",")).join("\n");
-  const blob = new Blob([csv], { type: "text/csv" });
+  const csv = rows.map(row => row.map(cell => `"${String(cell ?? "").replaceAll('"', '""')}"`).join(",")).join("\n");
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;
-  link.download = "buykori-admin-report.csv";
+  link.download = `buykori-admin-${state.dashboardWindow}-report.csv`;
   link.click();
   URL.revokeObjectURL(url);
 }
-
 function toggleSidebar() {
   $("sidebar").classList.toggle("open");
   $("sidebarOverlay").classList.toggle("open");
@@ -1615,9 +1720,13 @@ function switchModalTab(tab) {
 
 function renderClientModalIntel(clientId) {
   const intel = intelligenceFor(clientId);
-  if (!$("client360Summary")) return;
+  const detailedEl = $("client360Summary");
+  const quickEl = $("client360QuickSummary");
+  if (!detailedEl && !quickEl) return;
   if (!intel) {
-    $("client360Summary").innerHTML = `<div class="empty">Client intelligence not loaded yet.</div>`;
+    const emptyHtml = `<div class="empty">Client intelligence not loaded yet.</div>`;
+    if (detailedEl) detailedEl.innerHTML = emptyHtml;
+    if (quickEl) quickEl.innerHTML = emptyHtml;
     return;
   }
   const score = intel.health_score || {};
@@ -1627,6 +1736,13 @@ function renderClientModalIntel(clientId) {
   const routing = setup.event_routing || {};
   const courier = setup.courier || {};
   const whatsapp = setup.whatsapp || {};
+  const hasIdentifier = value => !["", "0", "none", "null"].includes(String(value || "").trim().toLowerCase());
+  const metaIdReady = hasIdentifier(setup.meta?.pixel_id);
+  const tiktokIdReady = hasIdentifier(setup.tiktok?.pixel_id);
+  const ga4IdReady = hasIdentifier(setup.ga4?.measurement_id);
+  const metaMissing = setup.meta?.enabled ? (metaIdReady ? "Needs token" : "Needs Pixel ID") : "Off";
+  const tiktokMissing = setup.tiktok?.enabled ? (tiktokIdReady ? "Needs token" : "Needs Pixel ID") : "Off";
+  const ga4Missing = setup.ga4?.enabled ? (ga4IdReady ? "Needs secret" : "Needs Measurement ID") : "Off";
   const statusBadge = (ok, labelOk = "Ready", labelBad = "Missing") => (
     `<span class="status-badge ${statusClass(ok ? "healthy" : "critical")}">${ok ? labelOk : labelBad}</span>`
   );
@@ -1643,7 +1759,8 @@ function renderClientModalIntel(clientId) {
       ${meta ? `<span>${esc(meta)}</span>` : ""}
     </div>
   `;
-  $("client360Summary").innerHTML = `
+  const summaryHtml = `
+    <div class="client360-title"><strong>Setup Readiness</strong><span>Portal-managed client status</span></div>
     <div class="drawer-grid">
       <div><span>Owner</span><strong>${esc(owner.full_name || "-")}</strong></div>
       <div><span>Phone</span><strong>${esc(owner.phone_number || "-")}</strong></div>
@@ -1655,20 +1772,20 @@ function renderClientModalIntel(clientId) {
     <div class="setup-snapshot">
       ${setupCard(
         "Meta CAPI",
-        statusBadge(setup.meta?.configured, "Configured", setup.meta?.enabled ? "Needs token" : "Off"),
-        setup.meta?.pixel_id ? `Pixel ${setup.meta.pixel_id}` : "No pixel ID",
+        statusBadge(setup.meta?.configured, "Configured", metaMissing),
+        metaIdReady ? `Pixel ${setup.meta.pixel_id}` : "No pixel ID",
         setup.meta?.test_event_code_set ? "Test code is set" : "No test code"
       )}
       ${setupCard(
         "TikTok Events API",
-        statusBadge(setup.tiktok?.configured, "Configured", setup.tiktok?.enabled ? "Needs token" : "Off"),
-        setup.tiktok?.pixel_id ? `Pixel ${setup.tiktok.pixel_id}` : "No TikTok pixel",
+        statusBadge(setup.tiktok?.configured, "Configured", tiktokMissing),
+        tiktokIdReady ? `Pixel ${setup.tiktok.pixel_id}` : "No TikTok pixel",
         setup.tiktok?.test_event_code_set ? "Test code is set" : "No test code"
       )}
       ${setupCard(
         "GA4",
-        statusBadge(setup.ga4?.configured, "Configured", setup.ga4?.enabled ? "Needs secret" : "Off"),
-        setup.ga4?.measurement_id ? `Measurement ${setup.ga4.measurement_id}` : "No measurement ID"
+        statusBadge(setup.ga4?.configured, "Configured", ga4Missing),
+        ga4IdReady ? `Measurement ${setup.ga4.measurement_id}` : "No measurement ID"
       )}
       ${setupCard(
         "COD Protection",
@@ -1704,8 +1821,26 @@ function renderClientModalIntel(clientId) {
     </div>
     <div class="funnel-list">${funnel.map(item => `<div class="funnel-item ${item.done ? "done" : ""}"><span>${item.done ? "Done" : "Todo"}</span>${esc(item.label)}</div>`).join("")}</div>
   `;
+  const quickItems = [
+    ["Meta", setup.meta?.configured, metaMissing],
+    ["TikTok", setup.tiktok?.configured, tiktokMissing],
+    ["GA4", setup.ga4?.configured, ga4Missing],
+    ["Plugin", setup.plugin?.connected, "Not connected"],
+    ["Courier", courier.configured, "Missing"],
+    ["WhatsApp", whatsapp.enabled && whatsapp.number_set && whatsapp.instance_id, whatsapp.enabled ? "Needs setup" : "Off"]
+  ];
+  const quickHtml = `
+    <div class="client360-quick-head">
+      <div><strong>Setup Readiness</strong><span>${fmt(score.score)}% health, ${doneCount(funnel)} / ${funnel.length} onboarding</span></div>
+      <button type="button" class="btn btn-outline btn-sm" onclick="switchModalTab('intel')">View details</button>
+    </div>
+    <div class="client360-quick-items">
+      ${quickItems.map(([label, ok, bad]) => `<div class="client360-quick-item ${ok ? "ready" : "attention"}"><span>${esc(label)}</span><strong>${ok ? "Ready" : esc(bad)}</strong></div>`).join("")}
+    </div>
+  `;
+  if (detailedEl) detailedEl.innerHTML = summaryHtml;
+  if (quickEl) quickEl.innerHTML = quickHtml;
 }
-
 function renderSupportNotes() {
   if (!$("supportNotesList")) return;
   $("supportNotesList").innerHTML = state.supportNotes.map(note => `

@@ -165,10 +165,14 @@
               <p class="page-sub">Monitor clients, event delivery, and server health from one place.</p>
             </div>
             <div class="header-actions">
-              <button class="btn btn-outline">
+              <label class="dashboard-window-control">
                 <svg style="width:16px;height:16px" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3M16 7V3M5 11h14M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-                Last 24 Hours
-              </button>
+                <select id="dashboardWindow" onchange="setDashboardWindow(this.value)" aria-label="Dashboard timeframe">
+                  <option value="24h">Last 24 Hours</option>
+                  <option value="7d">Last 7 Days</option>
+                  <option value="30d">Last 30 Days</option>
+                </select>
+              </label>
               <button class="btn btn-primary" onclick="downloadReport()">
                 <svg style="width:16px;height:16px" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1M12 4v12M8 8l4-4 4 4"/></svg>
                 Export Report
@@ -182,20 +186,20 @@
             <div class="metric-card">
               <div class="metric-header">
                 <div class="m-icon bg-blue"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7h8v8M21 7l-8 8-4-4-6 6"/></svg></div>
-                <span class="m-title">Total Events Processed</span>
+                <span class="m-title">Total Event Attempts</span>
               </div>
               <div class="metric-value" id="totalEvents">-</div>
               <div class="trend"><span id="eventsTrend">Waiting for data</span></div>
-              <div style="margin-top:16px;height:24px;"><svg viewBox="0 0 100 20" preserveAspectRatio="none" style="width:100%;height:100%"><polyline fill="none" stroke="#3B82F6" stroke-width="2" points="0,15 10,12 20,18 30,5 40,10 50,2 60,8 70,5 80,14 90,8 100,10"/></svg></div>
+              <div style="margin-top:16px;height:24px;"><svg viewBox="0 0 100 20" preserveAspectRatio="none" style="width:100%;height:100%"><polyline id="attemptsSparkline" fill="none" stroke="#3B82F6" stroke-width="2" points="0,18 100,18"/></svg></div>
             </div>
             <div class="metric-card">
               <div class="metric-header">
                 <div class="m-icon bg-purple"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M2.46 12C3.73 7.94 7.52 5 12 5s8.27 2.94 9.54 7c-1.27 4.06-5.06 7-9.54 7s-8.27-2.94-9.54-7z"/></svg></div>
-                <span class="m-title">Match Rate</span>
+                <span class="m-title">Delivery Success</span>
               </div>
               <div class="metric-value" id="matchRate">-</div>
-              <div class="trend"><span>Based on current events</span></div>
-              <div style="margin-top:16px;height:24px;"><svg viewBox="0 0 100 20" preserveAspectRatio="none" style="width:100%;height:100%"><polyline fill="none" stroke="#A78BFA" stroke-width="2" points="0,18 15,12 30,16 45,8 60,10 75,5 90,8 100,2"/></svg></div>
+              <div class="trend"><span>Successful deliveries / attempts</span></div>
+              <div style="margin-top:16px;height:24px;"><svg viewBox="0 0 100 20" preserveAspectRatio="none" style="width:100%;height:100%"><polyline id="successSparkline" fill="none" stroke="#A78BFA" stroke-width="2" points="0,18 100,18"/></svg></div>
             </div>
             <div class="metric-card">
               <div class="metric-header">
@@ -204,7 +208,7 @@
               </div>
               <div class="metric-value" id="errorRate">-</div>
               <div class="trend"><span id="failedEvents">0</span> failed events</div>
-              <div style="margin-top:16px;height:24px;"><svg viewBox="0 0 100 20" preserveAspectRatio="none" style="width:100%;height:100%"><polyline fill="none" stroke="#F87171" stroke-width="2" points="0,18 20,18 40,16 60,18 70,5 80,16 90,8 100,18"/></svg></div>
+              <div style="margin-top:16px;height:24px;"><svg viewBox="0 0 100 20" preserveAspectRatio="none" style="width:100%;height:100%"><polyline id="failedSparkline" fill="none" stroke="#F87171" stroke-width="2" points="0,18 100,18"/></svg></div>
             </div>
             <div class="metric-card">
               <div class="metric-header">
@@ -213,7 +217,7 @@
               </div>
               <div class="metric-value" id="queuedOutbox">-</div>
               <div class="trend"><span id="activeClients">-</span> active clients</div>
-              <div style="margin-top:16px;height:24px;"><svg viewBox="0 0 100 20" preserveAspectRatio="none" style="width:100%;height:100%"><polyline fill="none" stroke="#818CF8" stroke-width="2" points="0,12 15,14 30,8 45,10 60,4 75,8 90,5 100,6"/></svg></div>
+              <div class="trend"><span>Current event worker queue</span></div>
             </div>
           </div>
 
@@ -229,7 +233,7 @@
                 <div class="table-wrap">
                   <table>
                     <thead>
-                      <tr><th>Client</th><th>Domain</th><th>Meta CAPI</th><th>TikTok API</th><th>GA4</th><th>Events 24h</th><th>Health</th><th>Actions</th></tr>
+                      <tr><th>Client</th><th>Domain</th><th>Meta CAPI</th><th>TikTok API</th><th>GA4</th><th id="periodEventsHeader">Events 24h</th><th>Health</th><th>Actions</th></tr>
                     </thead>
                     <tbody id="integrationRows"></tbody>
                   </table>
@@ -775,11 +779,12 @@
         <button class="modal-close" onclick="closeClientModal()">&times;</button>
       </div>
       <div class="modal-body">
+        <div id="client360QuickSummary" class="client360-quick"></div>
         <div class="tabs">
           <button class="tab-btn active" onclick="switchModalTab('edit')">Client</button>
           <button class="tab-btn" onclick="switchModalTab('keys')">Keys</button>
-          <button class="tab-btn" onclick="switchModalTab('instructions')">Setup</button>
-          <button class="tab-btn" onclick="switchModalTab('intel')">Notes</button>
+          <button class="tab-btn" onclick="switchModalTab('instructions')">API Setup</button>
+          <button class="tab-btn" onclick="switchModalTab('intel')">360 & Notes</button>
           <button class="tab-btn" onclick="switchModalTab('danger')">Danger Zone</button>
         </div>
         
