@@ -1812,7 +1812,9 @@ function renderClientModalIntel(clientId) {
         "WordPress Plugin",
         statusBadge(setup.plugin?.connected, "Connected", "Not connected"),
         setup.plugin?.site_host || setup.plugin?.root_domain || "No active site binding",
-        setup.plugin?.last_seen_at ? `Last seen ${toDeviceDateTime(setup.plugin.last_seen_at)}` : ""
+        setup.plugin?.last_seen_at
+          ? `Installed version not reported · Last seen ${toDeviceDateTime(setup.plugin.last_seen_at)}`
+          : "Installed version not reported"
       )}
       ${setupCard(
         "Event Routing",
