@@ -231,9 +231,11 @@ function logout() {
   }).finally(() => location.reload());
 }
 
-async function loadAll() {
+async function loadAll(options = {}) {
+  const refreshDashboard = Boolean(options.refreshDashboard);
+  const summaryUrl = `/admin/api/summary?window=${encodeURIComponent(state.dashboardWindow)}${refreshDashboard ? "&refresh=1" : ""}`;
   const [summary, clients, health, courierQueue, intelligence, serverHealth, siteBindings, incompleteOps, notificationJobs, whatsappInstances] = await Promise.all([
-    apiOrFallback(`/admin/api/summary?window=${encodeURIComponent(state.dashboardWindow)}`, state.summary || {}, "summary"),
+    apiOrFallback(summaryUrl, state.summary || {}, "summary"),
     apiOrFallback("/admin/api/clients", { clients: state.clients || [] }, "clients"),
     apiOrFallback("/admin/clients/health", { clients: state.health || [] }, "client health"),
     apiOrFallback("/admin/api/courier-booking-queue?limit=20", state.courierQueue || {}, "courier queue"),
@@ -472,6 +474,18 @@ function renderSummary() {
   $("errorRate").textContent = hasEvents ? pct(errorRate) : "No data";
   $("queuedOutbox").textContent = fmt(queuedOutbox);
   $("eventsTrend").textContent = totalEvents ? `${dashboardWindowLabel()}: all recorded delivery attempts` : `${dashboardWindowLabel()}: no events`;
+  if ($("dashboardFreshness")) {
+    const generatedAt = summary.cache_generated_at ? new Date(summary.cache_generated_at) : null;
+    const source = summary.cache_source === "fresh"
+      ? "Live"
+      : summary.cache_source === "local-fallback"
+        ? "Fallback cache"
+        : "Cached";
+    $("dashboardFreshness").textContent = generatedAt && !Number.isNaN(generatedAt.getTime())
+      ? `${source} · updated ${generatedAt.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })}`
+      : source;
+    $("dashboardFreshness").className = `dashboard-freshness ${summary.cache_source === "fresh" ? "is-live" : ""}`;
+  }
   if ($("dashboardWindow")) $("dashboardWindow").value = state.dashboardWindow;
   if ($("periodEventsHeader")) $("periodEventsHeader").textContent = `Events ${dashboardWindowShortLabel()}`;
   renderDashboardTrends();
