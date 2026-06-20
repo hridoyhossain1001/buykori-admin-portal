@@ -1820,10 +1820,16 @@ function renderClientModalIntel(clientId) {
       )}
       ${setupCard(
         "WordPress Plugin",
-        statusBadge(setup.plugin?.connected, "Connected", "Not connected"),
-        setup.plugin?.site_host || setup.plugin?.root_domain || "No active site binding",
-        setup.plugin?.last_seen_at
-          ? `Installed version not reported · Last seen ${toDeviceDateTime(setup.plugin.last_seen_at)}`
+        statusBadge(
+          setup.plugin?.connected && !setup.plugin?.update_available,
+          setup.plugin?.installed_version ? "Up to date" : "Connected",
+          setup.plugin?.connected ? "Update available" : "Not connected"
+        ),
+        setup.plugin?.installed_version
+          ? `Installed v${setup.plugin.installed_version} · Latest v${setup.plugin.latest_version || "-"}`
+          : setup.plugin?.site_host || setup.plugin?.root_domain || "No active site binding",
+        setup.plugin?.reported_at
+          ? `WordPress ${setup.plugin.wordpress_version || "unknown"} · Reported ${toDeviceDateTime(setup.plugin.reported_at)}`
           : "Installed version not reported"
       )}
       ${setupCard(
@@ -1851,7 +1857,7 @@ function renderClientModalIntel(clientId) {
     ["Meta", setup.meta?.configured, metaMissing],
     ["TikTok", setup.tiktok?.configured, tiktokMissing],
     ["GA4", setup.ga4?.configured, ga4Missing],
-    ["Plugin", setup.plugin?.connected, "Not connected"],
+    ["Plugin", setup.plugin?.connected && !setup.plugin?.update_available, setup.plugin?.connected ? "Update available" : "Not connected"],
     ["Courier", courier.configured, "Missing"],
     ["WhatsApp", whatsapp.enabled && whatsapp.number_set && whatsapp.instance_id, whatsapp.enabled ? "Needs setup" : "Off"]
   ];
