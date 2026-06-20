@@ -1610,17 +1610,27 @@ document.addEventListener("keydown", event => {
   }
 });
 function showLogin() {
+  adminCsrfToken = "";
   $("login").style.display = "flex";
   $("app").style.display = "none";
 }
 
-const existingAdminCsrf = csrfFromCookie();
-if (existingAdminCsrf) {
-  adminCsrfToken = existingAdminCsrf;
-  loadAll().then(showApp).catch(showLogin);
-} else {
-  showLogin();
+async function restoreAdminSession() {
+  const response = await fetch(API_BASE + "/admin/api/session", {
+    method: "GET",
+    credentials: "include",
+    headers: { "Accept": "application/json" }
+  });
+  if (!response.ok) return false;
+
+  const data = await response.json();
+  adminCsrfToken = data.csrf_token || csrfFromCookie();
+  return Boolean(adminCsrfToken);
 }
+
+restoreAdminSession()
+  .then(restored => restored ? loadAll().then(showApp) : showLogin())
+  .catch(showLogin);
 
 // Modal Functions
 let currentClientId = null;
