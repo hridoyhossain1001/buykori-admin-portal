@@ -1772,7 +1772,14 @@ function renderClientModalIntel(clientId) {
   );
   const routingCounts = routing.platform_counts || {};
   const courierProviders = courier.providers || {};
-  const courierProviderLabel = courier.default_provider ? courier.default_provider.toUpperCase() : "No default provider";
+  const courierProviderLabel = courier.provider_label || (courier.default_provider ? courier.default_provider.toUpperCase() : "No default provider");
+  const courierMissing = Array.isArray(courier.missing_credentials) ? courier.missing_credentials : [];
+  const courierStatusLabel = courier.status_label || (courier.default_provider ? "Missing credentials" : "Missing");
+  const courierDetail = courier.detail || `${courierProviderLabel}${courier.auto_send ? " with auto-send" : ""}`;
+  const courierActionHint = courier.action_hint || (courier.auto_send && courierMissing.length ? "Auto-booking will be skipped until credentials are added." : "");
+  const courierMeta = courierMissing.length
+    ? `Missing: ${courierMissing.join(", ")}${courierActionHint ? ` · ${courierActionHint}` : ""}`
+    : `Providers: SF ${courierProviders.steadfast ? "yes" : "no"}, Pathao ${courierProviders.pathao ? "yes" : "no"}, RedX ${courierProviders.redx ? "yes" : "no"}`;
   const whatsappDetail = whatsapp.enabled
     ? `${whatsapp.number_set ? "Owner number set" : "Owner number missing"}${whatsapp.instance_name ? ` via ${whatsapp.instance_name}` : ""}`
     : "Owner alerts are off";
@@ -1840,9 +1847,9 @@ function renderClientModalIntel(clientId) {
       )}
       ${setupCard(
         "Courier",
-        statusBadge(courier.configured, "Configured", "Missing"),
-        `${courierProviderLabel}${courier.auto_send ? " with auto-send" : ""}`,
-        `Providers: SF ${courierProviders.steadfast ? "yes" : "no"}, Pathao ${courierProviders.pathao ? "yes" : "no"}, RedX ${courierProviders.redx ? "yes" : "no"}`
+        statusBadge(courier.configured, "Configured", courierStatusLabel),
+        courierDetail,
+        courierMeta
       )}
       ${setupCard(
         "WhatsApp Alerts",
@@ -1858,7 +1865,7 @@ function renderClientModalIntel(clientId) {
     ["TikTok", setup.tiktok?.configured, tiktokMissing],
     ["GA4", setup.ga4?.configured, ga4Missing],
     ["Plugin", setup.plugin?.connected && !setup.plugin?.update_available, setup.plugin?.connected ? "Update available" : "Not connected"],
-    ["Courier", courier.configured, "Missing"],
+    ["Courier", courier.configured, courierStatusLabel],
     ["WhatsApp", whatsapp.enabled && whatsapp.number_set && whatsapp.instance_id, whatsapp.enabled ? "Needs setup" : "Off"]
   ];
   const quickHtml = `
