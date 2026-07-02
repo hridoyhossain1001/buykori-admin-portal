@@ -788,8 +788,12 @@ function derivedAlerts() {
   const noDomain = state.clients.filter(client => !(client.display_domain || client.domain));
   const courierStatusMonitor = state.serverHealth?.worker_monitor?.courier_status_monitor || {};
   const unknownCourierStatuses = Number(courierStatusMonitor.unknown_status_total || 0);
+  const latestUnknownCourierStatus = (courierStatusMonitor.recent || [])[0];
+  const unknownCourierDescription = latestUnknownCourierStatus
+    ? `${String(latestUnknownCourierStatus.provider || "courier").toUpperCase()} order ${latestUnknownCourierStatus.order_reference || "-"}: ${latestUnknownCourierStatus.raw_status || "unknown"}`
+    : "Review provider status mapping in Server Status";
   return [
-    unknownCourierStatuses ? { rank: "Medium", cls: "alert-medium", title: "Unknown courier statuses", desc: "Review provider status mapping in Server Status", value: `${unknownCourierStatuses}` } : null,
+    unknownCourierStatuses ? { rank: "Medium", cls: "alert-medium", title: "Unknown courier statuses", desc: unknownCourierDescription, value: `${unknownCourierStatuses}` } : null,
     critical.length ? { rank: "High", cls: "alert-high", title: "Critical client health", desc: `Affects ${critical.length} client${critical.length > 1 ? "s" : ""}`, value: `${critical.length}` } : null,
     warning.length ? { rank: "Medium", cls: "alert-medium", title: "Warning status detected", desc: `Affects ${warning.length} client${warning.length > 1 ? "s" : ""}`, value: `${warning.length}` } : null,
     inactive.length ? { rank: "Medium", cls: "alert-medium", title: "Inactive clients", desc: `Affects ${inactive.length} client${inactive.length > 1 ? "s" : ""}`, value: `${inactive.length}` } : null,
