@@ -1778,16 +1778,17 @@ function renderClientModalIntel(clientId) {
   const courierDetail = courier.detail || `${courierProviderLabel}${courier.auto_send ? " with auto-send" : ""}`;
   const courierActionHint = courier.action_hint || (courier.auto_send && courierMissing.length ? "Auto-booking will be skipped until credentials are added." : "");
   const courierMeta = courierMissing.length
-    ? `Missing: ${courierMissing.join(", ")}${courierActionHint ? ` · ${courierActionHint}` : ""}`
+    ? `Missing: ${courierMissing.join(", ")}${courierActionHint ? ` - ${courierActionHint}` : ""}`
     : `Providers: SF ${courierProviders.steadfast ? "yes" : "no"}, Pathao ${courierProviders.pathao ? "yes" : "no"}, RedX ${courierProviders.redx ? "yes" : "no"}`;
   const whatsappDetail = whatsapp.enabled
     ? `${whatsapp.number_set ? "Owner number set" : "Owner number missing"}${whatsapp.instance_name ? ` via ${whatsapp.instance_name}` : ""}`
     : "Owner alerts are off";
-  const setupCard = (title, statusHtml, detail, meta = "") => `
+  const setupCard = (title, statusHtml, detail, meta = "", action = "") => `
     <div class="setup-card">
       <div class="setup-card-head"><strong>${esc(title)}</strong>${statusHtml}</div>
       <p>${esc(detail || "-")}</p>
       ${meta ? `<span>${esc(meta)}</span>` : ""}
+      ${action ? `<em>${esc(action)}</em>` : ""}
     </div>
   `;
   const summaryHtml = `
@@ -1805,25 +1806,31 @@ function renderClientModalIntel(clientId) {
         "Meta CAPI",
         statusBadge(setup.meta?.configured, "Configured", metaMissing),
         metaIdReady ? `Pixel ${setup.meta.pixel_id}` : "No pixel ID",
-        setup.meta?.test_event_code_set ? "Test code is set" : "No test code"
+        setup.meta?.test_event_code_set ? "Test code is set" : "No test code",
+        setup.meta?.configured ? "Ready for Meta delivery." : "Fix in Client Portal > Settings > Conversions API."
       )}
       ${setupCard(
         "TikTok Events API",
         statusBadge(setup.tiktok?.configured, "Configured", tiktokMissing),
         tiktokIdReady ? `Pixel ${setup.tiktok.pixel_id}` : "No TikTok pixel",
-        setup.tiktok?.test_event_code_set ? "Test code is set" : "No test code"
+        setup.tiktok?.test_event_code_set ? "Test code is set" : "No test code",
+        setup.tiktok?.configured ? "Ready for TikTok delivery." : "Fix in Client Portal > Settings > Conversions API."
       )}
       ${setupCard(
         "GA4",
         statusBadge(setup.ga4?.configured, "Configured", ga4Missing),
-        ga4IdReady ? `Measurement ${setup.ga4.measurement_id}` : "No measurement ID"
+        ga4IdReady ? `Measurement ${setup.ga4.measurement_id}` : "No measurement ID",
+        "",
+        setup.ga4?.configured ? "Ready for GA4 delivery." : "Fix in Client Portal > Settings > Conversions API."
       )}
       ${setupCard(
         "COD Protection",
         statusBadge(setup.cod_protection?.enabled, "On", "Off"),
         setup.cod_protection?.enabled
           ? `Auto-confirm: ${setup.cod_protection.auto_confirm_days || 0} day(s), status ${setup.cod_protection.auto_confirm_status || "completed"}`
-          : "Portal master setting is off"
+          : "Portal master setting is off",
+        "",
+        "Open Client Portal > COD Protection to change purchase timing."
       )}
       ${setupCard(
         "WordPress Plugin",
@@ -1833,29 +1840,33 @@ function renderClientModalIntel(clientId) {
           setup.plugin?.connected ? "Update available" : "Not connected"
         ),
         setup.plugin?.installed_version
-          ? `Installed v${setup.plugin.installed_version} · Latest v${setup.plugin.latest_version || "-"}`
+          ? `Installed v${setup.plugin.installed_version} - Latest v${setup.plugin.latest_version || "-"}`
           : setup.plugin?.site_host || setup.plugin?.root_domain || "No active site binding",
         setup.plugin?.reported_at
-          ? `WordPress ${setup.plugin.wordpress_version || "unknown"} · Reported ${toDeviceDateTime(setup.plugin.reported_at)}`
-          : "Installed version not reported"
+          ? `WordPress ${setup.plugin.wordpress_version || "unknown"} - Reported ${toDeviceDateTime(setup.plugin.reported_at)}`
+          : "Installed version not reported",
+        setup.plugin?.connected ? "Reported by the WordPress plugin handshake." : "Ask client to connect the plugin."
       )}
       ${setupCard(
         "Event Routing",
         statusBadge(routing.configured, "Configured", "Default"),
         `${fmt(routing.rule_count || 0)} route(s): Meta ${fmt(routingCounts.meta || 0)}, TikTok ${fmt(routingCounts.tiktok || 0)}, GA4 ${fmt(routingCounts.ga4 || 0)}`,
-        routing.configured ? "Portal-managed rules" : "Using platform defaults"
+        routing.configured ? "Portal-managed rules" : "Using platform defaults",
+        "Fix in Client Portal > Settings > Conversions API > Event routing."
       )}
       ${setupCard(
         "Courier",
         statusBadge(courier.configured, "Configured", courierStatusLabel),
         courierDetail,
-        courierMeta
+        courierMeta,
+        courier.configured ? "Courier booking can run." : "Fix in Client Portal > Settings > Courier Logistics."
       )}
       ${setupCard(
         "WhatsApp Alerts",
         statusBadge(whatsapp.enabled && whatsapp.number_set && whatsapp.instance_id, "Ready", whatsapp.enabled ? "Needs setup" : "Off"),
         whatsappDetail,
-        whatsapp.instance_status ? `Sender status: ${whatsapp.instance_status}` : "No sender assigned"
+        whatsapp.instance_status ? `Sender status: ${whatsapp.instance_status}` : "No sender assigned",
+        whatsapp.enabled ? "Fix in Client Portal > Settings > Alerts & Notifications." : "Client has WhatsApp alerts disabled."
       )}
     </div>
     <div class="funnel-list">${funnel.map(item => `<div class="funnel-item ${item.done ? "done" : ""}"><span>${item.done ? "Done" : "Todo"}</span>${esc(item.label)}</div>`).join("")}</div>
