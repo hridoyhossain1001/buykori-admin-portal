@@ -728,6 +728,7 @@ function renderOpsMonitor() {
     const eventOutbox = worker.event_outbox || {};
     const failedEvents = worker.failed_events || {};
     const courier = worker.courier_booking_queue || {};
+    const courierStatuses = worker.courier_status_monitor || {};
     $("workerMonitorRows").innerHTML = [
       ["Event outbox queued", eventOutbox.queued || 0],
       ["Event outbox processing", eventOutbox.processing || 0],
@@ -737,6 +738,7 @@ function renderOpsMonitor() {
       ["Courier queued", courier.queued || 0],
       ["Courier processing", courier.processing || 0],
       ["Courier dead", courier.dead || 0],
+      ["Unknown courier statuses (24h)", courierStatuses.unknown_status_total || 0],
     ].map(row => `<tr><td>${esc(row[0])}</td><td>${fmt(row[1])}</td></tr>`).join("");
   }
 }
@@ -784,7 +786,10 @@ function derivedAlerts() {
   const warning = rows.filter(row => String(row.health.status).toLowerCase() === "warning");
   const inactive = state.clients.filter(client => !client.is_active);
   const noDomain = state.clients.filter(client => !(client.display_domain || client.domain));
+  const courierStatusMonitor = state.serverHealth?.worker_monitor?.courier_status_monitor || {};
+  const unknownCourierStatuses = Number(courierStatusMonitor.unknown_status_total || 0);
   return [
+    unknownCourierStatuses ? { rank: "Medium", cls: "alert-medium", title: "Unknown courier statuses", desc: "Review provider status mapping in Server Status", value: `${unknownCourierStatuses}` } : null,
     critical.length ? { rank: "High", cls: "alert-high", title: "Critical client health", desc: `Affects ${critical.length} client${critical.length > 1 ? "s" : ""}`, value: `${critical.length}` } : null,
     warning.length ? { rank: "Medium", cls: "alert-medium", title: "Warning status detected", desc: `Affects ${warning.length} client${warning.length > 1 ? "s" : ""}`, value: `${warning.length}` } : null,
     inactive.length ? { rank: "Medium", cls: "alert-medium", title: "Inactive clients", desc: `Affects ${inactive.length} client${inactive.length > 1 ? "s" : ""}`, value: `${inactive.length}` } : null,
