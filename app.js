@@ -793,7 +793,7 @@ function derivedAlerts() {
     ? `${String(latestUnknownCourierStatus.provider || "courier").toUpperCase()} order ${latestUnknownCourierStatus.order_reference || "-"}: ${latestUnknownCourierStatus.raw_status || "unknown"}`
     : "Review provider status mapping in Server Status";
   return [
-    unknownCourierStatuses ? { rank: "Medium", cls: "alert-medium", title: "Unknown courier statuses", desc: unknownCourierDescription, value: `${unknownCourierStatuses}` } : null,
+    unknownCourierStatuses ? { rank: "Medium", cls: "alert-medium", title: "Unknown courier statuses", desc: unknownCourierDescription, value: `${unknownCourierStatuses}`, action: "acknowledge-courier-statuses" } : null,
     critical.length ? { rank: "High", cls: "alert-high", title: "Critical client health", desc: `Affects ${critical.length} client${critical.length > 1 ? "s" : ""}`, value: `${critical.length}` } : null,
     warning.length ? { rank: "Medium", cls: "alert-medium", title: "Warning status detected", desc: `Affects ${warning.length} client${warning.length > 1 ? "s" : ""}`, value: `${warning.length}` } : null,
     inactive.length ? { rank: "Medium", cls: "alert-medium", title: "Inactive clients", desc: `Affects ${inactive.length} client${inactive.length > 1 ? "s" : ""}`, value: `${inactive.length}` } : null,
@@ -816,7 +816,18 @@ function renderAlerts() {
     <div class="stream-content"><div class="stream-title">${esc(row.title)}</div><div class="stream-desc">${esc(row.desc)}</div></div>
     <div class="alert-rank ${row.cls}">${esc(row.rank)}</div>
     <div style="font-size:12px;color:var(--text-muted);font-weight:700">${esc(row.value)}</div>
+    ${row.action === "acknowledge-courier-statuses" ? `<button class="btn btn-outline btn-sm" onclick="acknowledgeUnknownCourierStatuses()">Acknowledge</button>` : ""}
   </div>`).join("") || `<div class="stream-item" style="align-items:center;border-bottom:none"><div class="stream-dot success"></div><div class="stream-content"><div class="stream-title">System Status</div><div class="stream-desc">All systems operational</div></div></div>`;
+}
+
+async function acknowledgeUnknownCourierStatuses() {
+  if (!window.confirm("Acknowledge the current unknown courier status alerts?")) return;
+  try {
+    await api("/admin/api/courier-status-monitor/acknowledge", { method: "POST" });
+    await loadAll();
+  } catch (error) {
+    window.alert(readableApiError(error, "Could not acknowledge courier status alerts."));
+  }
 }
 
 function renderCourierQueue() {
