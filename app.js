@@ -729,6 +729,9 @@ function renderOpsMonitor() {
     const failedEvents = worker.failed_events || {};
     const courier = worker.courier_booking_queue || {};
     const courierStatuses = worker.courier_status_monitor || {};
+    const webhookMonitor = worker.courier_webhook_monitor || {};
+    const webhookTotals = webhookMonitor.totals || {};
+    const webhookProviders = webhookMonitor.providers || {};
     $("workerMonitorRows").innerHTML = [
       ["Event outbox queued", eventOutbox.queued || 0],
       ["Event outbox processing", eventOutbox.processing || 0],
@@ -739,6 +742,14 @@ function renderOpsMonitor() {
       ["Courier processing", courier.processing || 0],
       ["Courier dead", courier.dead || 0],
       ["Unknown courier statuses (24h)", courierStatuses.unknown_status_total || 0],
+      ["Courier webhooks received (24h)", webhookTotals.received || 0],
+      ["Courier webhooks applied (24h)", webhookTotals.applied || 0],
+      ["Courier webhooks replayed (24h)", webhookTotals.replayed || 0],
+      ["Courier webhook auth failures (24h)", webhookTotals.auth_failed || 0],
+      ["Courier webhook rate limited (24h)", webhookTotals.rate_limited || 0],
+      ["SteadFast webhooks received", webhookProviders.steadfast?.received || 0],
+      ["Pathao webhooks received", webhookProviders.pathao?.received || 0],
+      ["RedX webhooks received", webhookProviders.redx?.received || 0],
     ].map(row => `<tr><td>${esc(row[0])}</td><td>${fmt(row[1])}</td></tr>`).join("");
   }
 }
@@ -792,7 +803,12 @@ function derivedAlerts() {
   const unknownCourierDescription = latestUnknownCourierStatus
     ? `${String(latestUnknownCourierStatus.provider || "courier").toUpperCase()} order ${latestUnknownCourierStatus.order_reference || "-"}: ${latestUnknownCourierStatus.raw_status || "unknown"}`
     : "Review provider status mapping in Server Status";
+  const webhookTotals = state.serverHealth?.worker_monitor?.courier_webhook_monitor?.totals || {};
+  const webhookAuthFailures = Number(webhookTotals.auth_failed || 0);
+  const webhookRateLimited = Number(webhookTotals.rate_limited || 0);
   return [
+    webhookAuthFailures ? { rank: "Medium", cls: "alert-medium", title: "Courier webhook authentication failures", desc: "Review provider webhook secrets and recent callback traffic", value: `${webhookAuthFailures}` } : null,
+    webhookRateLimited ? { rank: "Medium", cls: "alert-medium", title: "Courier webhook rate limit triggered", desc: "Review provider burst traffic in Server Status", value: `${webhookRateLimited}` } : null,
     unknownCourierStatuses ? { rank: "Medium", cls: "alert-medium", title: "Unknown courier statuses", desc: unknownCourierDescription, value: `${unknownCourierStatuses}`, action: "acknowledge-courier-statuses" } : null,
     critical.length ? { rank: "High", cls: "alert-high", title: "Critical client health", desc: `Affects ${critical.length} client${critical.length > 1 ? "s" : ""}`, value: `${critical.length}` } : null,
     warning.length ? { rank: "Medium", cls: "alert-medium", title: "Warning status detected", desc: `Affects ${warning.length} client${warning.length > 1 ? "s" : ""}`, value: `${warning.length}` } : null,
