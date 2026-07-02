@@ -732,6 +732,7 @@ function renderOpsMonitor() {
     const webhookMonitor = worker.courier_webhook_monitor || {};
     const webhookTotals = webhookMonitor.totals || {};
     const webhookProviders = webhookMonitor.providers || {};
+    const smokeMonitor = worker.courier_smoke_monitor || {};
     $("workerMonitorRows").innerHTML = [
       ["Event outbox queued", eventOutbox.queued || 0],
       ["Event outbox processing", eventOutbox.processing || 0],
@@ -750,6 +751,8 @@ function renderOpsMonitor() {
       ["SteadFast webhooks received", webhookProviders.steadfast?.received || 0],
       ["Pathao webhooks received", webhookProviders.pathao?.received || 0],
       ["RedX webhooks received", webhookProviders.redx?.received || 0],
+      ["Courier smoke monitor", smokeMonitor.status || "never_run"],
+      ["Courier smoke age", smokeMonitor.age_seconds == null ? "-" : formatDuration(smokeMonitor.age_seconds)],
     ].map(row => `<tr><td>${esc(row[0])}</td><td>${fmt(row[1])}</td></tr>`).join("");
   }
 }
@@ -806,7 +809,10 @@ function derivedAlerts() {
   const webhookTotals = state.serverHealth?.worker_monitor?.courier_webhook_monitor?.totals || {};
   const webhookAuthFailures = Number(webhookTotals.auth_failed || 0);
   const webhookRateLimited = Number(webhookTotals.rate_limited || 0);
+  const smokeMonitor = state.serverHealth?.worker_monitor?.courier_smoke_monitor || {};
+  const smokeUnhealthy = ["failed", "stale", "never_run"].includes(String(smokeMonitor.status || "never_run"));
   return [
+    smokeUnhealthy ? { rank: "High", cls: "alert-high", title: "Courier production smoke monitor unhealthy", desc: smokeMonitor.status === "failed" ? "The latest automated courier health check failed" : "The automated courier health check is stale or has not run", value: String(smokeMonitor.status || "never_run") } : null,
     webhookAuthFailures ? { rank: "Medium", cls: "alert-medium", title: "Courier webhook authentication failures", desc: "Review provider webhook secrets and recent callback traffic", value: `${webhookAuthFailures}` } : null,
     webhookRateLimited ? { rank: "Medium", cls: "alert-medium", title: "Courier webhook rate limit triggered", desc: "Review provider burst traffic in Server Status", value: `${webhookRateLimited}` } : null,
     unknownCourierStatuses ? { rank: "Medium", cls: "alert-medium", title: "Unknown courier statuses", desc: unknownCourierDescription, value: `${unknownCourierStatuses}`, action: "acknowledge-courier-statuses" } : null,
