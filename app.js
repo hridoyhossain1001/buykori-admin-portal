@@ -1249,6 +1249,7 @@ async function deleteWhatsAppInstance(instanceId) {
     await refreshNotificationOps({ silent: true });
     showToast("WhatsApp sender removed.");
   } catch (error) {
+    await refreshNotificationOps({ silent: true });
     showToast(`Remove failed: ${readableApiError(error)}`);
   }
 }
