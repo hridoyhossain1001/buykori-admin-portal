@@ -753,7 +753,7 @@ function renderOpsMonitor() {
       ["RedX webhooks received", webhookProviders.redx?.received || 0],
       ["Courier smoke monitor", smokeMonitor.status || "never_run"],
       ["Courier smoke age", smokeMonitor.age_seconds == null ? "-" : formatDuration(smokeMonitor.age_seconds)],
-    ].map(row => `<tr><td>${esc(row[0])}</td><td>${fmt(row[1])}</td></tr>`).join("");
+    ].map(row => `<tr><td>${esc(row[0])}</td><td>${typeof row[1] === "number" ? fmt(row[1]) : esc(row[1])}</td></tr>`).join("");
   }
 }
 
