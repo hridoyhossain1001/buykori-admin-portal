@@ -974,6 +974,7 @@ function renderNotificationOps() {
           <button class="copy-icon" onclick="updateWhatsAppInstanceStatus(${Number(inst.id)}, 'paused')">Pause</button>
           <button class="copy-icon" onclick="updateWhatsAppInstanceStatus(${Number(inst.id)}, 'banned')">Banned</button>
           <button class="copy-icon" onclick="logoutWhatsAppInstance(${Number(inst.id)})" ${inst.status === "active" ? "" : "disabled title=\"Sender is already disconnected\""}>Logout</button>
+          <button class="copy-icon danger-link" onclick="deleteWhatsAppInstance(${Number(inst.id)})" ${Number(inst.client_count || 0) === 0 ? "" : `disabled title=\"Assigned to ${Number(inst.client_count)} client(s)\"`}>Remove</button>
         </td>
       </tr>
     `).join("") || `<tr><td colspan="6" class="empty">No WhatsApp senders configured.</td></tr>`;
@@ -1220,6 +1221,35 @@ async function logoutWhatsAppInstance(instanceId) {
     showToast("WhatsApp sender logged out.");
   } catch (error) {
     showToast(`Logout failed: ${readableApiError(error)}`);
+  }
+}
+
+async function deleteWhatsAppInstance(instanceId) {
+  const instance = (state.whatsappInstances || []).find(item => Number(item.id) === Number(instanceId));
+  if (!instance) return;
+  if (Number(instance.client_count || 0) > 0) {
+    showToast(`Reassign ${instance.client_count} client(s) before removing this sender.`);
+    return;
+  }
+  const confirmed = await askAdminDecision({
+    title: "Remove WhatsApp Sender",
+    message: `Permanently remove ${instance.instance_name}?`,
+    detail: "This deletes the Evolution instance and its portal record. This action cannot be undone.",
+    confirmLabel: "Remove Sender",
+    confirmClass: "btn-danger"
+  });
+  if (!confirmed) return;
+  try {
+    await api(`/admin/whatsapp-instances/${instanceId}`, { method: "DELETE" });
+    if (Number(latestPairingInstanceId) === Number(instanceId)) {
+      latestPairingInstanceId = null;
+      latestPairingCode = "";
+      if ($("waPairingPanel")) $("waPairingPanel").style.display = "none";
+    }
+    await refreshNotificationOps({ silent: true });
+    showToast("WhatsApp sender removed.");
+  } catch (error) {
+    showToast(`Remove failed: ${readableApiError(error)}`);
   }
 }
 

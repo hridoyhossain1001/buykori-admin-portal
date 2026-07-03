@@ -1176,6 +1176,8 @@ tr:last-child td { border-bottom: none; }
 .copy-icon { background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 14px; padding: 4px; transition: color 0.2s; }
 .copy-icon:hover { color: var(--primary); }
 .copy-icon:disabled { opacity: 0.42; cursor: not-allowed; }
+.danger-link { color: var(--danger); }
+.danger-link:hover { color: #ef4444; }
 
 .wa-pairing-layout { display: flex; align-items: flex-start; gap: 24px; margin-bottom: 14px; }
 .wa-pairing-label { margin-bottom: 8px; color: var(--text-muted); font-size: 11px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; }
