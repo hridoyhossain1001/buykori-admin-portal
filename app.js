@@ -952,13 +952,14 @@ function renderNotificationOps() {
     transition?.event === "sender_disconnected"
       && new Date(transition.at).getTime() >= failoverWindowStart
   ));
+  const jobsAtRisk = Number(jobs.actionable_count || 0);
   if ($("whatsappHealthAlert")) {
     const alert = $("whatsappHealthAlert");
     if (!activeSenders.length || assignedInactiveSenders.length || recentFailovers.length) {
       alert.style.display = "block";
       alert.className = `queue-health-banner ${!activeSenders.length || assignedInactiveSenders.length ? "queue-alert-critical" : "queue-alert-warning"}`;
       alert.textContent = !activeSenders.length
-        ? "No active WhatsApp sender is available. Pair or activate a sender before notifications can be delivered."
+        ? `No active WhatsApp sender is available. ${jobsAtRisk ? `${jobsAtRisk} notification job(s) are waiting or retryable. ` : ""}Pair or activate a sender before notifications can be delivered.`
         : assignedInactiveSenders.length
           ? `${assignedInactiveSenders.length} disconnected sender(s) still have assigned clients. Reassign those clients to an active sender.`
           : `${recentFailovers.length} recent notification job(s) used automatic sender failover. Review their delivery history below.`;
@@ -977,6 +978,7 @@ function renderNotificationOps() {
         <td>${fmt(job.attempt_count)} / ${fmt(job.max_attempts)}</td>
         <td>
           <div class="client-sub" style="max-width:300px;white-space:normal">${esc(job.error_message || job.message_preview || "-")}</div>
+          <button class="copy-icon" onclick="openNotificationJobDrawer(${Number(job.id)})">Details</button>
           ${job.status === "failed" ? `<button class="copy-icon danger-link" onclick="retryNotificationJob(${Number(job.id)})">Retry now</button>` : ""}
         </td>
         <td>${esc(toDeviceDateTime(job.next_attempt_at || job.sent_at))}</td>
@@ -1013,6 +1015,46 @@ function renderNotificationOps() {
       </tr>
     `).join("") || `<tr><td colspan="7" class="empty">No WhatsApp senders configured.</td></tr>`;
   }
+}
+
+function notificationJobById(jobId) {
+  return (state.notificationJobs?.items || []).find(job => Number(job.id) === Number(jobId));
+}
+
+function openNotificationJobDrawer(jobId) {
+  const job = notificationJobById(jobId);
+  if (!job) return;
+  const overlay = $("notificationDrawerOverlay");
+  const title = $("notificationDrawerTitle");
+  const body = $("notificationDrawerBody");
+  if (title) title.textContent = `Notification Job #${job.id}`;
+  if (body) {
+    const transitions = (job.delivery_transitions || []).map(transition => `
+      <div class="drawer-status-row">
+        <div class="status-badge ${statusClass(transition.event === "sender_disconnected" ? "critical" : "healthy")}">${esc(String(transition.event || "event").replaceAll("_", " "))}</div>
+        <span>Sender #${esc(transition.sender_id || "-")} · ${esc(toDeviceDateTime(transition.at))}</span>
+      </div>
+    `).join("");
+    body.innerHTML = `
+      <div class="drawer-status-row"><div class="status-badge ${statusClass(job.status === "sent" ? "healthy" : job.status === "failed" ? "critical" : "warning")}">${esc(job.status)}</div><span>${esc(job.event_type)}</span></div>
+      <div class="drawer-grid">
+        <div><span>Client</span><strong>#${esc(job.client_id)}</strong></div>
+        <div><span>Current Sender</span><strong>#${esc(job.whatsapp_instance_id || "-")}</strong></div>
+        <div><span>Attempts</span><strong>${fmt(job.attempt_count)} / ${fmt(job.max_attempts)}</strong></div>
+        <div><span>Failovers</span><strong>${fmt(job.failover_count || 0)}</strong></div>
+        <div><span>Created</span><strong>${esc(toDeviceDateTime(job.created_at))}</strong></div>
+        <div><span>Sent / Next Attempt</span><strong>${esc(toDeviceDateTime(job.sent_at || job.next_attempt_at))}</strong></div>
+      </div>
+      <div class="drawer-block"><span>Delivery Timeline</span>${transitions || `<pre>No sender transition recorded.</pre>`}</div>
+      <div class="drawer-block"><span>Message / Error</span><pre>${esc(job.error_message || job.message_preview || "No message preview recorded.")}</pre></div>
+    `;
+  }
+  if (overlay) overlay.style.display = "flex";
+}
+
+function closeNotificationJobDrawer() {
+  const overlay = $("notificationDrawerOverlay");
+  if (overlay) overlay.style.display = "none";
 }
 
 function renderWhatsAppInstanceSelect(selectedId) {

@@ -1000,6 +1000,17 @@
     </aside>
   </div>
 
+  <div id="notificationDrawerOverlay" class="drawer-overlay" onclick="if(event.target===this) closeNotificationJobDrawer()">
+    <aside class="queue-drawer" role="dialog" aria-modal="true" aria-labelledby="notificationDrawerTitle">
+      <div class="drawer-header">
+        <div><div class="drawer-kicker">WhatsApp Delivery</div><h2 id="notificationDrawerTitle">Notification Job</h2></div>
+        <button class="modal-close" onclick="closeNotificationJobDrawer()" aria-label="Close">&times;</button>
+      </div>
+      <div id="notificationDrawerBody" class="drawer-body"></div>
+      <div class="drawer-footer"><button class="btn btn-outline" onclick="closeNotificationJobDrawer()">Close</button></div>
+    </aside>
+  </div>
+
   <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js" integrity="sha384-3zSEDfvllQohrq0PHL1fOXJuC/jSOO34H46t6UQfobFOmxE5BpjjaIJY5F2/bMnU" crossorigin="anonymous"></script>
   <script src="app.js"></script>
 </body>
