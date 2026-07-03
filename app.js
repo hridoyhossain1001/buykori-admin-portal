@@ -945,6 +945,21 @@ function renderNotificationOps() {
   if ($("notificationPending")) $("notificationPending").textContent = fmt(pending);
   if ($("notificationFailed")) $("notificationFailed").textContent = fmt(failed);
   if ($("whatsappActive")) $("whatsappActive").textContent = fmt((state.whatsappInstances || []).filter(inst => inst.status === "active").length);
+  const activeSenders = (state.whatsappInstances || []).filter(inst => inst.status === "active");
+  const assignedInactiveSenders = (state.whatsappInstances || []).filter(inst => inst.status !== "active" && Number(inst.client_count || 0) > 0);
+  if ($("whatsappHealthAlert")) {
+    const alert = $("whatsappHealthAlert");
+    if (!activeSenders.length || assignedInactiveSenders.length) {
+      alert.style.display = "block";
+      alert.className = "queue-health-banner queue-alert-critical";
+      alert.textContent = !activeSenders.length
+        ? "No active WhatsApp sender is available. Pair or activate a sender before notifications can be delivered."
+        : `${assignedInactiveSenders.length} disconnected sender(s) still have assigned clients. Reassign those clients to an active sender.`;
+    } else {
+      alert.style.display = "none";
+      alert.textContent = "";
+    }
+  }
   if ($("notificationRows")) {
     $("notificationRows").innerHTML = items.map(job => `
       <tr>
@@ -953,7 +968,10 @@ function renderNotificationOps() {
         <td>${esc(job.event_type)}</td>
         <td><div class="status-badge ${statusClass(job.status === "sent" ? "healthy" : job.status === "failed" ? "critical" : "warning")}">${esc(job.status)}</div></td>
         <td>${fmt(job.attempt_count)} / ${fmt(job.max_attempts)}</td>
-        <td><div class="client-sub" style="max-width:300px;white-space:normal">${esc(job.error_message || job.message_preview || "-")}</div></td>
+        <td>
+          <div class="client-sub" style="max-width:300px;white-space:normal">${esc(job.error_message || job.message_preview || "-")}</div>
+          ${job.status === "failed" ? `<button class="copy-icon danger-link" onclick="retryNotificationJob(${Number(job.id)})">Retry now</button>` : ""}
+        </td>
         <td>${esc(toDeviceDateTime(job.next_attempt_at || job.sent_at))}</td>
       </tr>
     `).join("") || `<tr><td colspan="7" class="empty">No notification jobs found.</td></tr>`;
@@ -1251,6 +1269,23 @@ async function deleteWhatsAppInstance(instanceId) {
   } catch (error) {
     await refreshNotificationOps({ silent: true });
     showToast(`Remove failed: ${readableApiError(error)}`);
+  }
+}
+
+async function retryNotificationJob(jobId) {
+  const confirmed = await askAdminDecision({
+    title: "Retry WhatsApp Notification",
+    message: `Retry notification job #${jobId} now?`,
+    detail: "The job will use the currently available active sender and restart its retry allowance.",
+    confirmLabel: "Retry Now"
+  });
+  if (!confirmed) return;
+  try {
+    await api(`/admin/notification-jobs/${jobId}/retry`, { method: "POST" });
+    await refreshNotificationOps({ silent: true });
+    showToast("Notification queued for retry.");
+  } catch (error) {
+    showToast(`Retry failed: ${readableApiError(error)}`);
   }
 }
 
