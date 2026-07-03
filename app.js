@@ -947,14 +947,21 @@ function renderNotificationOps() {
   if ($("whatsappActive")) $("whatsappActive").textContent = fmt((state.whatsappInstances || []).filter(inst => inst.status === "active").length);
   const activeSenders = (state.whatsappInstances || []).filter(inst => inst.status === "active");
   const assignedInactiveSenders = (state.whatsappInstances || []).filter(inst => inst.status !== "active" && Number(inst.client_count || 0) > 0);
+  const failoverWindowStart = Date.now() - (24 * 60 * 60 * 1000);
+  const recentFailovers = items.filter(job => (job.delivery_transitions || []).some(transition =>
+    transition?.event === "sender_disconnected"
+      && new Date(transition.at).getTime() >= failoverWindowStart
+  ));
   if ($("whatsappHealthAlert")) {
     const alert = $("whatsappHealthAlert");
-    if (!activeSenders.length || assignedInactiveSenders.length) {
+    if (!activeSenders.length || assignedInactiveSenders.length || recentFailovers.length) {
       alert.style.display = "block";
-      alert.className = "queue-health-banner queue-alert-critical";
+      alert.className = `queue-health-banner ${!activeSenders.length || assignedInactiveSenders.length ? "queue-alert-critical" : "queue-alert-warning"}`;
       alert.textContent = !activeSenders.length
         ? "No active WhatsApp sender is available. Pair or activate a sender before notifications can be delivered."
-        : `${assignedInactiveSenders.length} disconnected sender(s) still have assigned clients. Reassign those clients to an active sender.`;
+        : assignedInactiveSenders.length
+          ? `${assignedInactiveSenders.length} disconnected sender(s) still have assigned clients. Reassign those clients to an active sender.`
+          : `${recentFailovers.length} recent notification job(s) used automatic sender failover. Review their delivery history below.`;
     } else {
       alert.style.display = "none";
       alert.textContent = "";
@@ -964,7 +971,7 @@ function renderNotificationOps() {
     $("notificationRows").innerHTML = items.map(job => `
       <tr>
         <td><div class="client-name">#${esc(job.id)}</div><div class="client-sub">${esc(toDeviceDateTime(job.created_at))}</div></td>
-        <td><div class="client-name">Client ${esc(job.client_id)}</div><div class="client-sub">WA ${esc(job.whatsapp_instance_id || "-")}</div></td>
+        <td><div class="client-name">Client ${esc(job.client_id)}</div><div class="client-sub">WA ${esc(job.whatsapp_instance_id || "-")}</div>${Number(job.failover_count || 0) ? `<div class="client-sub" style="color:var(--warning)">${fmt(job.failover_count)} failover</div>` : ""}</td>
         <td>${esc(job.event_type)}</td>
         <td><div class="status-badge ${statusClass(job.status === "sent" ? "healthy" : job.status === "failed" ? "critical" : "warning")}">${esc(job.status)}</div></td>
         <td>${fmt(job.attempt_count)} / ${fmt(job.max_attempts)}</td>
