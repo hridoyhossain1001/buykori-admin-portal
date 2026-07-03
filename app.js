@@ -977,12 +977,21 @@ function renderNotificationOps() {
     `).join("") || `<tr><td colspan="7" class="empty">No notification jobs found.</td></tr>`;
   }
   if ($("whatsappInstanceRows")) {
+    const ageLabel = value => {
+      if (!value) return "Never checked";
+      const seconds = Math.max(0, Math.floor((Date.now() - new Date(value).getTime()) / 1000));
+      if (seconds < 120) return `${seconds}s ago`;
+      if (seconds < 7200) return `${Math.floor(seconds / 60)}m ago`;
+      if (seconds < 172800) return `${Math.floor(seconds / 3600)}h ago`;
+      return `${Math.floor(seconds / 86400)}d ago`;
+    };
     $("whatsappInstanceRows").innerHTML = (state.whatsappInstances || []).map(inst => `
       <tr>
         <td><div class="client-name">${esc(inst.instance_name)}</div><div class="client-sub">#${esc(inst.id)} ${esc(inst.provider)}</div></td>
         <td>${esc(inst.phone_number || "-")}</td>
-        <td><div class="status-badge ${statusClass(inst.status === "active" ? "healthy" : "inactive")}">${esc(inst.status)}</div></td>
+        <td><div class="status-badge ${statusClass(inst.status === "active" ? "healthy" : "inactive")}">${esc(inst.status)}</div><div class="client-sub">Health ${esc(ageLabel(inst.last_health_check_at))}</div>${inst.status !== "active" ? `<div class="client-sub">Disconnected ${esc(ageLabel(inst.updated_at))}</div>` : ""}</td>
         <td>${fmt(inst.client_count)}</td>
+        <td><div class="client-name">${fmt(inst.sent_24h)} sent / 24h</div><div class="client-sub">${fmt(inst.sent_7d)} sent, ${fmt(inst.failed_7d)} failed / 7d</div></td>
         <td>${esc(toDeviceDateTime(inst.last_sent_at || inst.last_health_check_at))}</td>
         <td>
           <button class="copy-icon" onclick="editWhatsAppInstance(${Number(inst.id)})">Edit</button>
@@ -995,7 +1004,7 @@ function renderNotificationOps() {
           <button class="copy-icon danger-link" onclick="deleteWhatsAppInstance(${Number(inst.id)})" ${Number(inst.client_count || 0) === 0 ? "" : `disabled title=\"Assigned to ${Number(inst.client_count)} client(s)\"`}>Remove</button>
         </td>
       </tr>
-    `).join("") || `<tr><td colspan="6" class="empty">No WhatsApp senders configured.</td></tr>`;
+    `).join("") || `<tr><td colspan="7" class="empty">No WhatsApp senders configured.</td></tr>`;
   }
 }
 
