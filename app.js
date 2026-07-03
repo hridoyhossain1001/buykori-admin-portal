@@ -973,7 +973,7 @@ function renderNotificationOps() {
           <button class="copy-icon" onclick="updateWhatsAppInstanceStatus(${Number(inst.id)}, 'active')">Activate</button>
           <button class="copy-icon" onclick="updateWhatsAppInstanceStatus(${Number(inst.id)}, 'paused')">Pause</button>
           <button class="copy-icon" onclick="updateWhatsAppInstanceStatus(${Number(inst.id)}, 'banned')">Banned</button>
-          <button class="copy-icon" onclick="logoutWhatsAppInstance(${Number(inst.id)})">Logout</button>
+          <button class="copy-icon" onclick="logoutWhatsAppInstance(${Number(inst.id)})" ${inst.status === "active" ? "" : "disabled title=\"Sender is already disconnected\""}>Logout</button>
         </td>
       </tr>
     `).join("") || `<tr><td colspan="6" class="empty">No WhatsApp senders configured.</td></tr>`;
@@ -1178,6 +1178,11 @@ async function checkLatestPairingState() {
 }
 
 async function logoutWhatsAppInstance(instanceId) {
+  const instance = (state.whatsappInstances || []).find(item => Number(item.id) === Number(instanceId));
+  if (instance && instance.status !== "active") {
+    showToast("WhatsApp sender is already disconnected.");
+    return;
+  }
   const confirmed = await askAdminDecision({
     title: "Logout WhatsApp Sender",
     message: `Logout sender #${instanceId} from WhatsApp?`,
