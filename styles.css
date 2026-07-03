@@ -1175,6 +1175,20 @@ tr:last-child td { border-bottom: none; }
 .api-key-cell span { flex: 1; word-break: break-all; }
 .copy-icon { background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 14px; padding: 4px; transition: color 0.2s; }
 .copy-icon:hover { color: var(--primary); }
+.copy-icon:disabled { opacity: 0.42; cursor: not-allowed; }
+
+.wa-pairing-layout { display: flex; align-items: flex-start; gap: 24px; margin-bottom: 14px; }
+.wa-pairing-label { margin-bottom: 8px; color: var(--text-muted); font-size: 11px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; }
+.wa-qr-section { width: 260px; flex: 0 0 260px; text-align: center; }
+.wa-qr-canvas { width: 256px; min-height: 256px; display: grid; place-items: center; margin-bottom: 8px; padding: 8px; border: 1px solid var(--card-border); border-radius: 12px; background: #fff; }
+.wa-qr-canvas img, .wa-qr-canvas canvas { display: block; width: 240px !important; height: 240px !important; }
+.wa-qr-canvas.is-unavailable { color: #7f1d1d; font-size: 12px; line-height: 1.5; }
+.wa-pairing-details { min-width: 0; flex: 1; }
+#waPairingCode { margin-bottom: 8px; color: var(--text-main); font-size: 30px; font-weight: 900; letter-spacing: .16em; overflow-wrap: anywhere; }
+#waPairingHelp { margin-bottom: 12px; white-space: normal; }
+.wa-pairing-expiry { margin-bottom: 12px; color: #b45309; font-size: 11px; line-height: 1.5; }
+#waQrRawDetails summary { cursor: pointer; }
+#waQrRaw { max-height: 120px; overflow: auto; margin-top: 8px; white-space: pre-wrap; overflow-wrap: anywhere; color: var(--text-muted); font-size: 10px; }
 
 .instr-box { background: rgba(0,0,0,0.1); border: 1px solid var(--card-border); border-radius: var(--radius-sm); padding: 16px; font-family: monospace; font-size: 12px; color: var(--primary); white-space: pre-wrap; word-break: break-all; margin: 0 0 16px 0; overflow-x: auto; }
 .dark .instr-box { background: rgba(0,0,0,0.4); color: #93c5fd; }
@@ -1204,6 +1218,9 @@ tr:last-child td { border-bottom: none; }
 }
 
 @media (max-width: 640px) {
+  .wa-pairing-layout { flex-direction: column; }
+  .wa-qr-section { width: 100%; flex-basis: auto; }
+  .wa-qr-canvas { margin-inline: auto; }
   .client360-quick-head { align-items: flex-start; }
   .client360-quick-items { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }

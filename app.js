@@ -1002,9 +1002,32 @@ function renderPairingResult(data) {
     ? "Open WhatsApp on the sender phone, go to Linked devices, choose Link with phone number instead, then enter this code."
     : "Pairing code was not returned. Copy the raw QR code value below and scan/connect it from Evolution if needed.";
   const raw = data?.pairing?.code || "";
+  const qrSection = $("waQrSection");
+  const qrCanvas = $("waQrCanvas");
+  if (qrCanvas) {
+    qrCanvas.replaceChildren();
+    qrCanvas.classList.remove("is-unavailable");
+  }
+  if (qrSection) qrSection.style.display = raw ? "block" : "none";
+  if (raw && qrCanvas) {
+    if (typeof QRCode === "function") {
+      new QRCode(qrCanvas, {
+        text: raw,
+        width: 240,
+        height: 240,
+        colorDark: "#111827",
+        colorLight: "#ffffff",
+        correctLevel: QRCode.CorrectLevel.M
+      });
+    } else {
+      qrCanvas.textContent = "QR renderer could not load. Use the pairing code instead.";
+      qrCanvas.classList.add("is-unavailable");
+    }
+  }
+  const rawDetails = $("waQrRawDetails");
+  if (rawDetails) rawDetails.style.display = raw ? "block" : "none";
   if ($("waQrRaw")) {
-    $("waQrRaw").style.display = raw ? "block" : "none";
-    $("waQrRaw").textContent = raw ? `Raw QR/code value:\n${raw}` : "";
+    $("waQrRaw").textContent = raw;
   }
 }
 

@@ -463,14 +463,27 @@
                 <span id="waInstanceMsg" class="notice" style="margin:0"></span>
               </div>
               <div id="waPairingPanel" style="display:none;margin-top:16px;padding:16px;border:1px solid var(--border);border-radius:14px;background:rgba(255,255,255,0.05)">
-                <div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--text-muted);margin-bottom:8px">Pairing Code</div>
-                <div id="waPairingCode" style="font-size:30px;font-weight:900;letter-spacing:.16em;color:var(--text-main);margin-bottom:8px">-</div>
-                <div id="waPairingHelp" class="client-sub" style="white-space:normal;margin-bottom:12px">Open WhatsApp on the sender phone, go to Linked devices, choose Link with phone number instead, then enter this code.</div>
+                <div class="wa-pairing-layout">
+                  <div id="waQrSection" class="wa-qr-section" style="display:none">
+                    <div class="wa-pairing-label">Scan with WhatsApp</div>
+                    <div id="waQrCanvas" class="wa-qr-canvas" aria-label="WhatsApp pairing QR code"></div>
+                    <div class="client-sub">WhatsApp &gt; Linked devices &gt; Link a device</div>
+                  </div>
+                  <div class="wa-pairing-details">
+                    <div class="wa-pairing-label">Pairing Code</div>
+                    <div id="waPairingCode">-</div>
+                    <div id="waPairingHelp" class="client-sub">Scan the QR code, or choose Link with phone number instead and enter this code.</div>
+                    <div class="wa-pairing-expiry">Pairing QR codes expire quickly. Request Pair Code again if scanning fails.</div>
+                  </div>
+                </div>
                 <div style="display:flex;gap:8px;flex-wrap:wrap">
                   <button class="copy-icon" onclick="copyPairingCode()">Copy Code</button>
                   <button class="copy-icon" onclick="checkLatestPairingState()">Check Connection</button>
                 </div>
-                <pre id="waQrRaw" style="display:none;margin-top:12px;max-height:120px;overflow:auto;white-space:pre-wrap;font-size:10px;color:var(--text-muted)"></pre>
+                <details id="waQrRawDetails" style="display:none;margin-top:12px">
+                  <summary class="client-sub">Technical QR value</summary>
+                  <pre id="waQrRaw"></pre>
+                </details>
               </div>
             </div>
             <div class="table-wrap"><table><thead><tr><th>Instance</th><th>Phone</th><th>Status</th><th>Clients</th><th>Last Activity</th><th>Actions</th></tr></thead><tbody id="whatsappInstanceRows"></tbody></table></div>
@@ -986,6 +999,7 @@
     </aside>
   </div>
 
+  <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js" integrity="sha384-3zSEDfvllQohrq0PHL1fOXJuC/jSOO34H46t6UQfobFOmxE5BpjjaIJY5F2/bMnU" crossorigin="anonymous"></script>
   <script src="app.js"></script>
 </body>
 </html>
