@@ -1969,8 +1969,8 @@ function renderClientModalIntel(clientId) {
   const courierProviderLabel = courier.provider_label || (courier.default_provider ? courier.default_provider.toUpperCase() : "No default provider");
   const courierMissing = Array.isArray(courier.missing_credentials) ? courier.missing_credentials : [];
   const courierStatusLabel = courier.status_label || (courier.default_provider ? "Missing credentials" : "Missing");
-  const courierDetail = courier.detail || `${courierProviderLabel}${courier.auto_send ? " with auto-send" : ""}`;
-  const courierActionHint = courier.action_hint || (courier.auto_send && courierMissing.length ? "Auto-booking will be skipped until credentials are added." : "");
+  const courierDetail = courier.detail || `${courierProviderLabel || "Courier"} manual booking only`;
+  const courierActionHint = courier.action_hint || "Clients book courier manually from Courier Shipping.";
   const courierMeta = courierMissing.length
     ? `Missing: ${courierMissing.join(", ")}${courierActionHint ? ` - ${courierActionHint}` : ""}`
     : `Providers: SF ${courierProviders.steadfast ? "yes" : "no"}, Pathao ${courierProviders.pathao ? "yes" : "no"}, RedX ${courierProviders.redx ? "yes" : "no"}`;
@@ -2053,7 +2053,7 @@ function renderClientModalIntel(clientId) {
         statusBadge(courier.configured, "Configured", courierStatusLabel),
         courierDetail,
         courierMeta,
-        courier.configured ? "Courier booking can run." : "Fix in Client Portal > Settings > Courier Logistics."
+        courier.configured ? "Manual courier booking is ready." : "Fix in Client Portal > Settings > Courier Logistics."
       )}
       ${setupCard(
         "WhatsApp Alerts",
