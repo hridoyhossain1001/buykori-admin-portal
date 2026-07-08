@@ -499,7 +499,6 @@ function renderSummary() {
   }
   const lifetimeEvents = Number(summary.lifetime_total_events ?? totalEvents);
   $("planUsed").textContent = compactNumber(lifetimeEvents);
-  $("planProgress").style.width = `${Math.min((lifetimeEvents / 2000000) * 100, 100)}%`;
   $("metaEvents").textContent = `${fmt(metaReady)} ready client${metaReady === 1 ? "" : "s"}`;
   $("tiktokEvents").textContent = `${fmt(tiktokReady)} ready client${tiktokReady === 1 ? "" : "s"}`;
   $("ga4Events").textContent = `${fmt(ga4Ready)} ready client${ga4Ready === 1 ? "" : "s"}`;
