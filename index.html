@@ -424,7 +424,7 @@
           <div class="page-header">
             <div>
               <h1 class="page-title">Notification Operations</h1>
-              <p class="page-sub">Monitor WhatsApp delivery jobs and instance availability.</p>
+              <p class="page-sub">Monitor WhatsApp delivery jobs, sender availability, and client support requests.</p>
             </div>
             <div class="header-actions">
               <select id="notificationStatusFilter" onchange="refreshNotificationOps({ silent: true })">
@@ -444,6 +444,10 @@
             <div class="metric-card"><div class="metric-header"><div class="m-icon bg-indigo">W</div><span class="m-title">Active Instances</span></div><div class="metric-value" id="whatsappActive">0</div><div class="trend">available senders</div></div>
           </div>
           <div id="whatsappHealthAlert" class="queue-health-banner" style="display:none;margin-bottom:20px"></div>
+          <div class="card" style="margin-bottom:20px">
+            <div class="card-header"><h2 class="card-title">Client Support Tickets</h2><span id="supportTicketCount" class="status-badge warning">0 open</span></div>
+            <div class="table-wrap"><table><thead><tr><th>Ticket</th><th>Client</th><th>Request</th><th>Status</th><th>Attachments</th><th>Actions</th></tr></thead><tbody id="supportTicketRows"></tbody></table></div>
+          </div>
           <div class="card" style="margin-bottom:20px">
             <div class="card-header"><h2 class="card-title">Recent Notification Jobs</h2></div>
             <div class="table-wrap"><table><thead><tr><th>Job</th><th>Client</th><th>Event</th><th>Status</th><th>Attempts</th><th>Message / Error</th><th>Delivery Time</th></tr></thead><tbody id="notificationRows"></tbody></table></div>

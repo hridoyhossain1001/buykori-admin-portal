@@ -23,6 +23,7 @@ const state = {
   incompleteOps: null,
   notificationJobs: null,
   whatsappInstances: [],
+  supportTickets: { tickets: [], openCount: 0 },
   siteBindings: [],
   courierQueueAutoRefresh: true,
   courierQueueLastRefresh: null,
@@ -967,6 +968,24 @@ function renderNotificationOps() {
       alert.textContent = "";
     }
   }
+  const support = state.supportTickets || { tickets: [], openCount: 0 };
+  if ($("supportTicketCount")) $("supportTicketCount").textContent = `${fmt(support.openCount)} open`;
+  if ($("supportTicketRows")) {
+    $("supportTicketRows").innerHTML = (support.tickets || []).map(ticket => `
+      <tr>
+        <td><div class="client-name">#${esc(ticket.id)} ${esc(ticket.priority === "high" ? "HIGH" : "")}</div><div class="client-sub">${esc(toDeviceDateTime(ticket.created_at))}</div></td>
+        <td><div class="client-name">${esc(ticket.client_name)}</div><div class="client-sub">${esc(ticket.user_email)}</div></td>
+        <td><div class="client-name">${esc(ticket.subject)}</div><div class="client-sub" style="max-width:360px;white-space:normal">${esc(ticket.message)}</div>${ticket.admin_note ? `<div class="client-sub" style="color:var(--success)">Note: ${esc(ticket.admin_note)}</div>` : ""}</td>
+        <td><div class="status-badge ${statusClass(ticket.status === "resolved" || ticket.status === "closed" ? "healthy" : ticket.status === "in_progress" ? "warning" : "critical")}">${esc(ticket.status)}</div></td>
+        <td>${(ticket.attachments || []).map(file => `<a class="copy-icon" target="_blank" rel="noopener" href="${API_BASE}/admin/support-tickets/${Number(ticket.id)}/attachments/${Number(file.index)}">${esc(file.filename)}</a>`).join(" ") || `<span class="client-sub">None</span>`}</td>
+        <td>
+          ${ticket.status === "open" ? `<button class="copy-icon" onclick="updateSupportTicket(${Number(ticket.id)}, 'in_progress')">Start</button>` : ""}
+          ${ticket.status !== "resolved" ? `<button class="copy-icon" onclick="updateSupportTicket(${Number(ticket.id)}, 'resolved')">Resolve</button>` : ""}
+          ${ticket.status === "resolved" ? `<button class="copy-icon" onclick="updateSupportTicket(${Number(ticket.id)}, 'open')">Reopen</button>` : ""}
+        </td>
+      </tr>
+    `).join("") || `<tr><td colspan="6" class="empty">No client support tickets.</td></tr>`;
+  }
   if ($("notificationRows")) {
     $("notificationRows").innerHTML = items.map(job => `
       <tr>
@@ -1530,16 +1549,32 @@ async function refreshNotificationOps(options = {}) {
     const status = $("notificationStatusFilter")?.value || "";
     const params = new URLSearchParams({ limit: "100" });
     if (status) params.set("status", status);
-    const [jobs, instances] = await Promise.all([
+    const [jobs, instances, supportTickets] = await Promise.all([
       api(`/admin/notification-jobs?${params.toString()}`),
-      api("/admin/whatsapp-instances")
+      api("/admin/whatsapp-instances"),
+      api("/admin/support-tickets")
     ]);
     state.notificationJobs = jobs;
     state.whatsappInstances = Array.isArray(instances) ? instances : [];
+    state.supportTickets = supportTickets || { tickets: [], openCount: 0 };
     renderNotificationOps();
     if (!silent) showToast("Notification data refreshed.");
   } catch (error) {
     if (!silent) showToast(`Notification refresh failed: ${readableApiError(error)}`);
+  }
+}
+
+async function updateSupportTicket(ticketId, status) {
+  const note = status === "resolved" ? (window.prompt("Resolution note (optional):", "") || "") : "";
+  try {
+    await api(`/admin/support-tickets/${ticketId}`, {
+      method: "PATCH",
+      body: JSON.stringify({ status, admin_note: note })
+    });
+    await refreshNotificationOps({ silent: true });
+    showToast(`Support ticket #${ticketId} updated.`);
+  } catch (error) {
+    showToast(`Support ticket update failed: ${readableApiError(error)}`);
   }
 }
 
