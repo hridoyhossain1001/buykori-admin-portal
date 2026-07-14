@@ -278,15 +278,18 @@ function intelligenceFor(clientId) {
 function overviewHealthFor(client) {
   const intel = intelligenceFor(client.id);
   const legacy = healthFor(client);
+  const lastEventAt = legacy.last_event_at || client.last_event_at || null;
   if (!client.is_active) {
-    return { status: "inactive", score: undefined, reasons: ["Client inactive"], periodEvents: 0, lastEventAt: legacy.last_event_at || client.last_event_at || null };
+    return { status: "inactive", score: undefined, reasons: ["Client inactive"], periodEvents: 0, lastEventAt };
   }
+  const rawStatus = String(intel?.health_score?.status || legacy.health_status || "healthy").toLowerCase();
+  const status = !lastEventAt && ["critical", "warning"].includes(rawStatus) ? "setup" : rawStatus;
   return {
-    status: intel?.health_score?.status || legacy.health_status || "healthy",
-    score: intel?.health_score?.score,
-    reasons: intel?.health_score?.reasons || [],
+    status,
+    score: status === "setup" ? undefined : intel?.health_score?.score,
+    reasons: status === "setup" ? ["Waiting for first successful event"] : (intel?.health_score?.reasons || []),
     periodEvents: Number(state.summary?.client_events?.[String(client.id)] || 0),
-    lastEventAt: legacy.last_event_at || client.last_event_at || null
+    lastEventAt
   };
 }
 
@@ -334,7 +337,7 @@ function integrationState(client, platform) {
 function statusClass(status) {
   const clean = String(status || "inactive").toLowerCase();
   if (clean === "healthy") return "status-healthy";
-  if (clean === "warning") return "status-warning";
+  if (clean === "warning" || clean === "setup") return "status-warning";
   if (clean === "critical") return "status-critical";
   return "status-inactive";
 }
@@ -342,6 +345,7 @@ function statusClass(status) {
 function statusLabel(status, isActive) {
   if (!isActive) return "Inactive";
   const clean = String(status || "healthy").toLowerCase();
+  if (clean === "setup") return "Setup incomplete";
   return clean.charAt(0).toUpperCase() + clean.slice(1);
 }
 
@@ -530,15 +534,14 @@ function renderIntegrationRows() {
 }
 function renderClientRows() {
   $("clientRows").innerHTML = filteredClients().map(client => {
-    const health = healthFor(client);
+    const health = overviewHealthFor(client);
     const intel = intelligenceFor(client.id);
-    const healthStatus = health.health_status || (client.is_active ? "healthy" : "inactive");
     return `<tr>
       <td><div class="client-name">${esc(client.name)}</div><div class="client-sub">ID ${esc(client.id)}${intel?.owner?.phone_number ? ` - ${esc(intel.owner.phone_number)}` : ""}</div></td>
       <td>${domainLink(client)}</td>
       <td>${fmt(client.event_total || 0)}</td>
       <td><div class="client-sub">API ${esc(String(client.api_key || "").slice(0, 8))}...</div><div class="client-sub">Portal ${client.portal_key ? `${esc(String(client.portal_key).slice(0, 8))}...` : "-"}</div></td>
-      <td><div class="status-badge ${statusClass(intel?.health_score?.status || healthStatus)}">${intel?.health_score ? `${fmt(intel.health_score.score)}%` : statusLabel(healthStatus, client.is_active)}</div></td>
+      <td><div class="status-badge ${statusClass(health.status)}" title="${esc(health.reasons.join(", "))}">${health.score !== undefined ? `${fmt(health.score)}%` : statusLabel(health.status, client.is_active)}</div></td>
       <td>
         <div style="display:flex;gap:8px">
           <button class="btn btn-outline btn-sm" onclick="openClientModal(${client.id})">Manage</button>
@@ -798,6 +801,7 @@ function derivedAlerts() {
   const rows = state.clients.map(client => ({ client, health: overviewHealthFor(client) }));
   const critical = rows.filter(row => String(row.health.status).toLowerCase() === "critical");
   const warning = rows.filter(row => String(row.health.status).toLowerCase() === "warning");
+  const setupIncomplete = rows.filter(row => String(row.health.status).toLowerCase() === "setup");
   const inactive = state.clients.filter(client => !client.is_active);
   const noDomain = state.clients.filter(client => !(client.display_domain || client.domain));
   const courierStatusMonitor = state.serverHealth?.worker_monitor?.courier_status_monitor || {};
@@ -818,6 +822,7 @@ function derivedAlerts() {
     unknownCourierStatuses ? { rank: "Medium", cls: "alert-medium", title: "Unknown courier statuses", desc: unknownCourierDescription, value: `${unknownCourierStatuses}`, action: "acknowledge-courier-statuses" } : null,
     critical.length ? { rank: "High", cls: "alert-high", title: "Critical client health", desc: `Affects ${critical.length} client${critical.length > 1 ? "s" : ""}`, value: `${critical.length}` } : null,
     warning.length ? { rank: "Medium", cls: "alert-medium", title: "Warning status detected", desc: `Affects ${warning.length} client${warning.length > 1 ? "s" : ""}`, value: `${warning.length}` } : null,
+    setupIncomplete.length ? { rank: "Low", cls: "alert-low", title: "Client setup incomplete", desc: `${setupIncomplete.length} active client${setupIncomplete.length > 1 ? "s are" : " is"} waiting for a first successful event`, value: `${setupIncomplete.length}` } : null,
     inactive.length ? { rank: "Medium", cls: "alert-medium", title: "Inactive clients", desc: `Affects ${inactive.length} client${inactive.length > 1 ? "s" : ""}`, value: `${inactive.length}` } : null,
     noDomain.length ? { rank: "Low", cls: "alert-low", title: "Domain validation warning", desc: `Affects ${noDomain.length} domain${noDomain.length > 1 ? "s" : ""}`, value: `${noDomain.length}` } : null
   ].filter(Boolean);
@@ -977,7 +982,7 @@ function renderNotificationOps() {
         <td><div class="client-name">${esc(ticket.client_name)}</div><div class="client-sub">${esc(ticket.user_email)}</div></td>
         <td><div class="client-name">${esc(ticket.subject)}</div><div class="client-sub" style="max-width:360px;white-space:normal">${esc(ticket.message)}</div>${ticket.admin_note ? `<div class="client-sub" style="color:var(--success)">Note: ${esc(ticket.admin_note)}</div>` : ""}</td>
         <td><div class="status-badge ${statusClass(ticket.status === "resolved" || ticket.status === "closed" ? "healthy" : ticket.status === "in_progress" ? "warning" : "critical")}">${esc(ticket.status)}</div></td>
-        <td>${(ticket.attachments || []).map(file => `<a class="copy-icon" target="_blank" rel="noopener" href="${API_BASE}/admin/support-tickets/${Number(ticket.id)}/attachments/${Number(file.index)}">${esc(file.filename)}</a>`).join(" ") || `<span class="client-sub">None</span>`}</td>
+        <td>${(ticket.attachments || []).map(file => `<a class="copy-icon" target="_blank" rel="noopener" href="${API_BASE}/admin/api/support-tickets/${Number(ticket.id)}/attachments/${Number(file.index)}">${esc(file.filename)}</a>`).join(" ") || `<span class="client-sub">None</span>`}</td>
         <td>
           ${ticket.status === "open" ? `<button class="copy-icon" onclick="updateSupportTicket(${Number(ticket.id)}, 'in_progress')">Start</button>` : ""}
           ${ticket.status !== "resolved" ? `<button class="copy-icon" onclick="updateSupportTicket(${Number(ticket.id)}, 'resolved')">Resolve</button>` : ""}
@@ -1545,29 +1550,38 @@ async function refreshRecoveryOps(options = {}) {
 
 async function refreshNotificationOps(options = {}) {
   const silent = Boolean(options.silent);
-  try {
-    const status = $("notificationStatusFilter")?.value || "";
-    const params = new URLSearchParams({ limit: "100" });
-    if (status) params.set("status", status);
-    const [jobs, instances, supportTickets] = await Promise.all([
-      api(`/admin/notification-jobs?${params.toString()}`),
-      api("/admin/whatsapp-instances"),
-      api("/admin/support-tickets")
-    ]);
-    state.notificationJobs = jobs;
-    state.whatsappInstances = Array.isArray(instances) ? instances : [];
-    state.supportTickets = supportTickets || { tickets: [], openCount: 0 };
-    renderNotificationOps();
-    if (!silent) showToast("Notification data refreshed.");
-  } catch (error) {
-    if (!silent) showToast(`Notification refresh failed: ${readableApiError(error)}`);
+  const status = $("notificationStatusFilter")?.value || "";
+  const params = new URLSearchParams({ limit: "100" });
+  if (status) params.set("status", status);
+  const results = await Promise.allSettled([
+    api(`/admin/notification-jobs?${params.toString()}`),
+    api("/admin/whatsapp-instances"),
+    api("/admin/api/support-tickets")
+  ]);
+  const [jobsResult, instancesResult, supportResult] = results;
+  if (jobsResult.status === "fulfilled") state.notificationJobs = jobsResult.value;
+  if (instancesResult.status === "fulfilled") {
+    state.whatsappInstances = Array.isArray(instancesResult.value) ? instancesResult.value : [];
+  }
+  if (supportResult.status === "fulfilled") {
+    state.supportTickets = supportResult.value || { tickets: [], openCount: 0 };
+  }
+  renderNotificationOps();
+
+  if (!silent) {
+    const failures = results.filter(result => result.status === "rejected");
+    if (!failures.length) {
+      showToast("Notification data refreshed.");
+    } else {
+      showToast(`Some notification data could not be refreshed: ${readableApiError(failures[0].reason)}`);
+    }
   }
 }
 
 async function updateSupportTicket(ticketId, status) {
   const note = status === "resolved" ? (window.prompt("Resolution note (optional):", "") || "") : "";
   try {
-    await api(`/admin/support-tickets/${ticketId}`, {
+    await api(`/admin/api/support-tickets/${ticketId}`, {
       method: "PATCH",
       body: JSON.stringify({ status, admin_note: note })
     });
