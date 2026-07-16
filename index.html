@@ -455,6 +455,7 @@
                 <div class="field"><label>Sender Phone</label><input id="waInstancePhone" placeholder="e.g. 88018..."></div>
                 <div class="field"><label>Provider</label><input id="waInstanceProvider" value="evolution"></div>
                 <div class="field"><label>Base URL</label><input id="waInstanceBaseUrl" placeholder="Optional provider URL"></div>
+                <div class="field"><label>Client Capacity</label><input id="waInstanceCapacity" type="number" min="1" max="1000" value="8"><span class="client-sub">Maximum clients assigned to this sender.</span></div>
               </div>
               <div style="margin-top:12px;display:flex;gap:12px;align-items:center;flex-wrap:wrap">
                 <button class="btn btn-primary" onclick="createWhatsAppInstance()">Connect Sender</button>
@@ -485,7 +486,7 @@
                 </details>
               </div>
             </div>
-            <div class="table-wrap"><table><thead><tr><th>Instance</th><th>Phone</th><th>Status / Health</th><th>Clients</th><th>Delivery Load</th><th>Last Activity</th><th>Actions</th></tr></thead><tbody id="whatsappInstanceRows"></tbody></table></div>
+            <div class="table-wrap"><table><thead><tr><th>Instance</th><th>Phone</th><th>Status / Health</th><th>Clients / Capacity</th><th>Delivery Load</th><th>Last Activity</th><th>Actions</th></tr></thead><tbody id="whatsappInstanceRows"></tbody></table></div>
             <div id="whatsappInstancePager" class="table-pager" aria-label="WhatsApp sender pages"></div>
           </div>
           <div class="card notification-list-card">
@@ -512,7 +513,7 @@
             <div class="card-header"><h2 class="card-title">Client Directory</h2></div>
             <div class="table-wrap">
               <table>
-                <thead><tr><th>Client</th><th>Domain</th><th>Events</th><th>Keys</th><th>Health</th><th>Actions</th></tr></thead>
+                <thead><tr><th>Client</th><th>Domain</th><th>Registered</th><th>Events</th><th>Keys</th><th>Health</th><th>Actions</th></tr></thead>
                 <tbody id="clientRows"></tbody>
               </table>
             </div>

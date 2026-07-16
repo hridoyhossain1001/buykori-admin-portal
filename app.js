@@ -548,6 +548,7 @@ function renderClientRows() {
     return `<tr>
       <td><div class="client-name">${esc(client.name)}</div><div class="client-sub">ID ${esc(client.id)}${intel?.owner?.phone_number ? ` - ${esc(intel.owner.phone_number)}` : ""}</div></td>
       <td>${domainLink(client)}</td>
+      <td><div class="client-name">${esc(toDeviceDateTime(client.created_at))}</div><div class="client-sub">Joined</div></td>
       <td>${fmt(client.event_total || 0)}</td>
       <td><div class="client-sub">API ${esc(String(client.api_key || "").slice(0, 8))}...</div><div class="client-sub">Portal ${client.portal_key ? `${esc(String(client.portal_key).slice(0, 8))}...` : "-"}</div></td>
       <td><div class="status-badge ${statusClass(health.status)}" title="${esc(health.reasons.join(", "))}">${health.score !== undefined ? `${fmt(health.score)}%` : statusLabel(health.status, client.is_active)}</div></td>
@@ -558,7 +559,7 @@ function renderClientRows() {
         </div>
       </td>
     </tr>`;
-  }).join("") || `<tr><td colspan="6" class="empty">No clients match this search. Clear the search or add a new client.</td></tr>`;
+  }).join("") || `<tr><td colspan="7" class="empty">No clients match this search. Clear the search or add a new client.</td></tr>`;
 }
 
 function bindingStatusClass(status) {
@@ -1041,7 +1042,7 @@ function renderNotificationOps() {
         <td><div class="client-name">${esc(inst.instance_name)}</div><div class="client-sub">#${esc(inst.id)} ${esc(inst.provider)}</div></td>
         <td>${esc(inst.phone_number || "-")}</td>
         <td><div class="status-badge ${statusClass(inst.status === "active" ? "healthy" : "inactive")}">${esc(inst.status)}</div><div class="client-sub">Health ${esc(ageLabel(inst.last_health_check_at))}</div>${inst.status !== "active" ? `<div class="client-sub">Disconnected ${esc(ageLabel(inst.updated_at))}</div>` : ""}</td>
-        <td>${fmt(inst.client_count)}</td>
+        <td><div class="client-name">${fmt(inst.client_count)} / ${fmt(inst.client_capacity || 8)}</div><div class="client-sub" style="color:${inst.is_full ? 'var(--danger)' : 'var(--success)'}">${inst.is_full ? "Full" : `${fmt(inst.available_slots)} slots available`}</div></td>
         <td><div class="client-name">${fmt(inst.sent_24h)} sent / 24h</div><div class="client-sub">${fmt(inst.sent_7d)} sent, ${fmt(inst.failed_7d)} failed / 7d</div></td>
         <td>${esc(toDeviceDateTime(inst.last_sent_at || inst.last_health_check_at))}</td>
         <td>
@@ -1215,6 +1216,7 @@ async function createWhatsAppInstance() {
     phone_number: $("waInstancePhone")?.value.trim() || null,
     provider: $("waInstanceProvider")?.value.trim() || "evolution",
     base_url: $("waInstanceBaseUrl")?.value.trim() || null,
+    client_capacity: Number($("waInstanceCapacity")?.value || 8),
     status: "active"
   };
   if (!payload.instance_name) {
@@ -1227,6 +1229,13 @@ async function createWhatsAppInstance() {
   if (!payload.phone_number) {
     if (msg) {
       msg.textContent = "Sender phone is required for pairing.";
+      msg.style.color = "var(--danger)";
+    }
+    return;
+  }
+  if (!Number.isInteger(payload.client_capacity) || payload.client_capacity < 1 || payload.client_capacity > 1000) {
+    if (msg) {
+      msg.textContent = "Client capacity must be between 1 and 1000.";
       msg.style.color = "var(--danger)";
     }
     return;
@@ -1245,6 +1254,7 @@ async function createWhatsAppInstance() {
       if ($(id)) $(id).value = "";
     });
     if ($("waInstanceProvider")) $("waInstanceProvider").value = "evolution";
+    if ($("waInstanceCapacity")) $("waInstanceCapacity").value = "8";
     await refreshNotificationOps({ silent: true });
     showToast("WhatsApp sender created. Enter the pairing code on the phone.");
     if (msg) msg.textContent = "Pairing code ready.";
@@ -1263,11 +1273,19 @@ async function registerExistingWhatsAppInstance() {
     phone_number: $("waInstancePhone")?.value.trim() || null,
     provider: $("waInstanceProvider")?.value.trim() || "evolution",
     base_url: $("waInstanceBaseUrl")?.value.trim() || null,
+    client_capacity: Number($("waInstanceCapacity")?.value || 8),
     status: "active"
   };
   if (!payload.instance_name) {
     if (msg) {
       msg.textContent = "Instance name is required.";
+      msg.style.color = "var(--danger)";
+    }
+    return;
+  }
+  if (!Number.isInteger(payload.client_capacity) || payload.client_capacity < 1 || payload.client_capacity > 1000) {
+    if (msg) {
+      msg.textContent = "Client capacity must be between 1 and 1000.";
       msg.style.color = "var(--danger)";
     }
     return;
@@ -1301,13 +1319,21 @@ async function editWhatsAppInstance(instanceId) {
   if (phone_number === null) return;
   const base_url = window.prompt("Provider base URL (optional)", inst.base_url || "");
   if (base_url === null) return;
+  const capacityInput = window.prompt("Maximum clients for this sender", String(inst.client_capacity || 8));
+  if (capacityInput === null) return;
+  const client_capacity = Number(capacityInput);
+  if (!Number.isInteger(client_capacity) || client_capacity < 1 || client_capacity > 1000) {
+    showToast("Client capacity must be a whole number between 1 and 1000.");
+    return;
+  }
   try {
     await api(`/admin/whatsapp-instances/${instanceId}`, {
       method: "PATCH",
       body: JSON.stringify({
         instance_name,
         phone_number,
-        base_url
+        base_url,
+        client_capacity
       })
     });
     await refreshNotificationOps({ silent: true });
