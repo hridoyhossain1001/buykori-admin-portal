@@ -444,17 +444,12 @@
             <div class="metric-card"><div class="metric-header"><div class="m-icon bg-indigo">W</div><span class="m-title">Active Instances</span></div><div class="metric-value" id="whatsappActive">0</div><div class="trend">available senders</div></div>
           </div>
           <div id="whatsappHealthAlert" class="queue-health-banner" style="display:none;margin-bottom:20px"></div>
-          <div class="card" style="margin-bottom:20px">
-            <div class="card-header"><h2 class="card-title">Client Support Tickets</h2><span id="supportTicketCount" class="status-badge warning">0 open</span></div>
-            <div class="table-wrap"><table><thead><tr><th>Ticket</th><th>Client</th><th>Request</th><th>Status</th><th>Attachments</th><th>Actions</th></tr></thead><tbody id="supportTicketRows"></tbody></table></div>
-          </div>
-          <div class="card" style="margin-bottom:20px">
-            <div class="card-header"><h2 class="card-title">Recent Notification Jobs</h2></div>
-            <div class="table-wrap"><table><thead><tr><th>Job</th><th>Client</th><th>Event</th><th>Status</th><th>Attempts</th><th>Message / Error</th><th>Delivery Time</th></tr></thead><tbody id="notificationRows"></tbody></table></div>
-          </div>
-          <div class="card">
-            <div class="card-header"><h2 class="card-title">WhatsApp Senders</h2></div>
-            <div class="form-card" style="margin:0 0 16px;padding:16px;background:rgba(255,255,255,0.02)">
+          <div class="card notification-sender-card">
+            <div class="card-header notification-card-heading">
+              <div><h2 class="card-title">WhatsApp Senders</h2><p class="card-subtitle">Connect a new number or manage existing sender accounts.</p></div>
+              <span class="status-badge status-healthy">Quick access</span>
+            </div>
+            <div class="form-card notification-sender-form">
               <div class="form-grid">
                 <div class="field"><label>Instance Name</label><input id="waInstanceName" placeholder="e.g. buykori-wa-1"></div>
                 <div class="field"><label>Sender Phone</label><input id="waInstancePhone" placeholder="e.g. 88018..."></div>
@@ -491,6 +486,17 @@
               </div>
             </div>
             <div class="table-wrap"><table><thead><tr><th>Instance</th><th>Phone</th><th>Status / Health</th><th>Clients</th><th>Delivery Load</th><th>Last Activity</th><th>Actions</th></tr></thead><tbody id="whatsappInstanceRows"></tbody></table></div>
+            <div id="whatsappInstancePager" class="table-pager" aria-label="WhatsApp sender pages"></div>
+          </div>
+          <div class="card notification-list-card">
+            <div class="card-header notification-card-heading"><div><h2 class="card-title">Recent Notification Jobs</h2><p class="card-subtitle">Latest delivery attempts, failures, and retry status.</p></div></div>
+            <div class="table-wrap"><table><thead><tr><th>Job</th><th>Client</th><th>Event</th><th>Status</th><th>Attempts</th><th>Message / Error</th><th>Delivery Time</th></tr></thead><tbody id="notificationRows"></tbody></table></div>
+            <div id="notificationPager" class="table-pager" aria-label="Notification job pages"></div>
+          </div>
+          <div class="card notification-list-card">
+            <div class="card-header notification-card-heading"><div><h2 class="card-title">Client Support Tickets</h2><p class="card-subtitle">Requests submitted from the client portal.</p></div><span id="supportTicketCount" class="status-badge warning">0 open</span></div>
+            <div class="table-wrap"><table><thead><tr><th>Ticket</th><th>Client</th><th>Request</th><th>Status</th><th>Attachments</th><th>Actions</th></tr></thead><tbody id="supportTicketRows"></tbody></table></div>
+            <div id="supportTicketPager" class="table-pager" aria-label="Support ticket pages"></div>
           </div>
         </section>
 

@@ -497,6 +497,7 @@ polyline[stroke="#818CF8"] { filter: drop-shadow(0 2px 4px rgba(129, 140, 248, 0
 }
 .card-header { padding: 18px 24px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--card-border); gap: 16px; }
 .card-title { font-size: 14px; font-weight: 800; color: var(--text-main); text-transform: uppercase; letter-spacing: 0.05em; }
+.card-subtitle { margin-top: 4px; color: var(--text-muted); font-size: 12px; line-height: 1.45; }
 .card-tools { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
 .card-tools select {
   min-width: 150px;
@@ -1237,6 +1238,45 @@ tr:last-child td { border-bottom: none; }
 .copy-icon:disabled { opacity: 0.42; cursor: not-allowed; }
 .danger-link { color: var(--danger); }
 .danger-link:hover { color: #ef4444; }
+
+.notification-sender-card { border-color: rgba(var(--primary-rgb), 0.26); }
+.notification-card-heading { padding-top: 14px; padding-bottom: 14px; }
+.notification-sender-form {
+  margin: 0;
+  padding: 14px 20px;
+  border: 0;
+  border-bottom: 1px solid var(--card-border);
+  border-radius: 0;
+  background: rgba(var(--primary-rgb), 0.025);
+}
+.notification-sender-form .form-grid { gap: 12px; }
+.notification-sender-form .field label { margin-bottom: 5px; }
+.notification-sender-form .field input { padding-top: 10px; padding-bottom: 10px; }
+.notification-list-card { margin-bottom: 18px; }
+.table-pager {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 10px;
+  min-height: 48px;
+  padding: 10px 18px;
+  border-top: 1px solid var(--card-border);
+  color: var(--text-muted);
+  font-size: 12px;
+}
+.table-pager[hidden] { display: none; }
+.table-pager-button {
+  width: 34px;
+  height: 30px;
+  border: 1px solid var(--card-border);
+  border-radius: 8px;
+  background: var(--input-bg);
+  color: var(--text-main);
+  font-size: 16px;
+  cursor: pointer;
+}
+.table-pager-button:hover:not(:disabled) { border-color: var(--primary); color: var(--primary); }
+.table-pager-button:disabled { opacity: 0.38; cursor: not-allowed; }
 
 .wa-pairing-layout { display: flex; align-items: flex-start; gap: 24px; margin-bottom: 14px; }
 .wa-pairing-label { margin-bottom: 8px; color: var(--text-muted); font-size: 11px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; }

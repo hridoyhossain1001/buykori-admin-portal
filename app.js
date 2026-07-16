@@ -32,8 +32,14 @@ const state = {
   activeCourierJobId: null,
   dashboardWindow: "24h",
   dashboardWindowRequestId: 0,
-  dashboardWindowAbortController: null
+  dashboardWindowAbortController: null,
+  notificationPagination: {
+    jobs: 1,
+    senders: 1,
+    support: 1
+  }
 };
+const NOTIFICATION_PAGE_SIZE = 5;
 const modalSecrets = new Map();
 const eventsState = {
   events: [],
@@ -983,7 +989,9 @@ function renderNotificationOps() {
     $("supportNavCount").hidden = Number(support.openCount || 0) === 0;
   }
   if ($("supportTicketRows")) {
-    $("supportTicketRows").innerHTML = (support.tickets || []).map(ticket => `
+    const tickets = support.tickets || [];
+    const supportPage = notificationPageSlice(tickets, "support");
+    $("supportTicketRows").innerHTML = supportPage.items.map(ticket => `
       <tr id="support-ticket-${Number(ticket.id)}" data-support-ticket-id="${Number(ticket.id)}">
         <td><div class="client-name">#${esc(ticket.id)} ${esc(ticket.priority === "high" ? "HIGH" : "")}</div><div class="client-sub">${esc(toDeviceDateTime(ticket.created_at))}</div></td>
         <td><div class="client-name">${esc(ticket.client_name)}</div><div class="client-sub">${esc(ticket.user_email)}</div></td>
@@ -997,9 +1005,11 @@ function renderNotificationOps() {
         </td>
       </tr>
     `).join("") || `<tr><td colspan="6" class="empty">No client support tickets.</td></tr>`;
+    renderNotificationPager("supportTicketPager", "support", supportPage);
   }
   if ($("notificationRows")) {
-    $("notificationRows").innerHTML = items.map(job => `
+    const jobPage = notificationPageSlice(items, "jobs");
+    $("notificationRows").innerHTML = jobPage.items.map(job => `
       <tr>
         <td><div class="client-name">#${esc(job.id)}</div><div class="client-sub">${esc(toDeviceDateTime(job.created_at))}</div></td>
         <td><div class="client-name">Client ${esc(job.client_id)}</div><div class="client-sub">WA ${esc(job.whatsapp_instance_id || "-")}</div>${Number(job.failover_count || 0) ? `<div class="client-sub" style="color:var(--warning)">${fmt(job.failover_count)} failover</div>` : ""}</td>
@@ -1014,6 +1024,7 @@ function renderNotificationOps() {
         <td>${esc(toDeviceDateTime(job.next_attempt_at || job.sent_at))}</td>
       </tr>
     `).join("") || `<tr><td colspan="7" class="empty">No notification jobs found.</td></tr>`;
+    renderNotificationPager("notificationPager", "jobs", jobPage);
   }
   if ($("whatsappInstanceRows")) {
     const ageLabel = value => {
@@ -1024,7 +1035,8 @@ function renderNotificationOps() {
       if (seconds < 172800) return `${Math.floor(seconds / 3600)}h ago`;
       return `${Math.floor(seconds / 86400)}d ago`;
     };
-    $("whatsappInstanceRows").innerHTML = (state.whatsappInstances || []).map(inst => `
+    const senderPage = notificationPageSlice(state.whatsappInstances || [], "senders");
+    $("whatsappInstanceRows").innerHTML = senderPage.items.map(inst => `
       <tr>
         <td><div class="client-name">${esc(inst.instance_name)}</div><div class="client-sub">#${esc(inst.id)} ${esc(inst.provider)}</div></td>
         <td>${esc(inst.phone_number || "-")}</td>
@@ -1044,7 +1056,44 @@ function renderNotificationOps() {
         </td>
       </tr>
     `).join("") || `<tr><td colspan="7" class="empty">No WhatsApp senders configured.</td></tr>`;
+    renderNotificationPager("whatsappInstancePager", "senders", senderPage);
   }
+}
+
+function notificationPageSlice(items, key) {
+  const pageCount = Math.max(1, Math.ceil(items.length / NOTIFICATION_PAGE_SIZE));
+  const requestedPage = Number(state.notificationPagination[key] || 1);
+  const page = Math.min(Math.max(1, requestedPage), pageCount);
+  state.notificationPagination[key] = page;
+  const start = (page - 1) * NOTIFICATION_PAGE_SIZE;
+  return {
+    items: items.slice(start, start + NOTIFICATION_PAGE_SIZE),
+    page,
+    pageCount,
+    total: items.length
+  };
+}
+
+function renderNotificationPager(elementId, key, pageData) {
+  const pager = $(elementId);
+  if (!pager) return;
+  if (pageData.total <= NOTIFICATION_PAGE_SIZE) {
+    pager.innerHTML = "";
+    pager.hidden = true;
+    return;
+  }
+  pager.hidden = false;
+  pager.innerHTML = `
+    <button class="table-pager-button" type="button" onclick="changeNotificationPage('${key}', -1)" ${pageData.page <= 1 ? "disabled" : ""} aria-label="Previous page">&#8592;</button>
+    <span>Page <strong>${pageData.page}</strong> of ${pageData.pageCount}</span>
+    <button class="table-pager-button" type="button" onclick="changeNotificationPage('${key}', 1)" ${pageData.page >= pageData.pageCount ? "disabled" : ""} aria-label="Next page">&#8594;</button>
+  `;
+}
+
+function changeNotificationPage(key, direction) {
+  if (!Object.prototype.hasOwnProperty.call(state.notificationPagination, key)) return;
+  state.notificationPagination[key] = Math.max(1, Number(state.notificationPagination[key] || 1) + Number(direction || 0));
+  renderNotificationOps();
 }
 
 function renderSupportAttachment(ticket, file) {
@@ -1571,6 +1620,7 @@ async function refreshRecoveryOps(options = {}) {
 async function refreshNotificationOps(options = {}) {
   const silent = Boolean(options.silent);
   const status = $("notificationStatusFilter")?.value || "";
+  if (!silent) state.notificationPagination.jobs = 1;
   const params = new URLSearchParams({ limit: "100" });
   if (status) params.set("status", status);
   const results = await Promise.allSettled([
