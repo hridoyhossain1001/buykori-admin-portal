@@ -202,6 +202,16 @@ svg { flex-shrink: 0; }
 }
 .nav-item.active .nav-count { background: #fff; color: #dc2626; }
 
+.support-ticket-target {
+  outline: 2px solid var(--primary);
+  outline-offset: -2px;
+  animation: support-ticket-focus 1.4s ease-out 2;
+}
+
+@keyframes support-ticket-focus {
+  50% { background: color-mix(in srgb, var(--primary) 14%, transparent); }
+}
+
 .platform-usage-box {
   margin: 16px;
   padding: 16px;

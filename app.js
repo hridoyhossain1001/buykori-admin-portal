@@ -209,6 +209,7 @@ async function loginAdmin() {
     
     await loadAll();
     showApp();
+    applyInitialRoute();
     $("loginError").textContent = "";
   } catch (error) {
     $("loginError").style.color = "var(--danger)";
@@ -983,7 +984,7 @@ function renderNotificationOps() {
   }
   if ($("supportTicketRows")) {
     $("supportTicketRows").innerHTML = (support.tickets || []).map(ticket => `
-      <tr>
+      <tr id="support-ticket-${Number(ticket.id)}" data-support-ticket-id="${Number(ticket.id)}">
         <td><div class="client-name">#${esc(ticket.id)} ${esc(ticket.priority === "high" ? "HIGH" : "")}</div><div class="client-sub">${esc(toDeviceDateTime(ticket.created_at))}</div></td>
         <td><div class="client-name">${esc(ticket.client_name)}</div><div class="client-sub">${esc(ticket.user_email)}</div></td>
         <td><div class="client-name">${esc(ticket.subject)}</div><div class="client-sub" style="max-width:360px;white-space:normal">${esc(ticket.message)}</div>${ticket.admin_note ? `<div class="client-sub" style="color:var(--success)">Note: ${esc(ticket.admin_note)}</div>` : ""}</td>
@@ -1786,6 +1787,20 @@ function setTab(tab) {
   if (tab === "notificationOps") refreshNotificationOps({ silent: true });
 }
 
+function applyInitialRoute() {
+  const params = new URLSearchParams(window.location.search);
+  if (params.get("tab") !== "notificationOps") return;
+  setTab("notificationOps");
+  const ticketId = Number(params.get("ticket"));
+  if (!Number.isInteger(ticketId) || ticketId <= 0) return;
+  window.requestAnimationFrame(() => {
+    const row = $(`support-ticket-${ticketId}`);
+    if (!row) return;
+    row.classList.add("support-ticket-target");
+    row.scrollIntoView({ behavior: "smooth", block: "center" });
+  });
+}
+
 function downloadReport() {
   const summary = state.summary || {};
   const attempts = Number(summary.total_events || 0);
@@ -1882,7 +1897,7 @@ async function restoreAdminSession() {
 }
 
 restoreAdminSession()
-  .then(restored => restored ? loadAll().then(showApp) : showLogin())
+  .then(restored => restored ? loadAll().then(() => { showApp(); applyInitialRoute(); }) : showLogin())
   .catch(showLogin);
 
 // Modal Functions
