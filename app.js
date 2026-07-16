@@ -235,7 +235,7 @@ function logout() {
 async function loadAll(options = {}) {
   const refreshDashboard = Boolean(options.refreshDashboard);
   const summaryUrl = `/admin/api/summary?window=${encodeURIComponent(state.dashboardWindow)}${refreshDashboard ? "&refresh=1" : ""}`;
-  const [summary, clients, health, courierQueue, intelligence, serverHealth, siteBindings, incompleteOps, notificationJobs, whatsappInstances] = await Promise.all([
+  const [summary, clients, health, courierQueue, intelligence, serverHealth, siteBindings, incompleteOps, notificationJobs, whatsappInstances, supportTickets] = await Promise.all([
     apiOrFallback(summaryUrl, state.summary || {}, "summary"),
     apiOrFallback("/admin/api/clients", { clients: state.clients || [] }, "clients"),
     apiOrFallback("/admin/clients/health", { clients: state.health || [] }, "client health"),
@@ -245,7 +245,8 @@ async function loadAll(options = {}) {
     apiOrFallback("/admin/api/site-bindings?status=all", { bindings: [] }, "site bindings"),
     apiOrFallback("/admin/api/incomplete-checkouts?limit=100", { counts: {}, items: [], top_clients: [], total: 0 }, "incomplete checkouts"),
     apiOrFallback("/admin/notification-jobs?limit=100", { total: 0, items: [] }, "notification jobs"),
-    apiOrFallback("/admin/whatsapp-instances", [], "whatsapp instances")
+    apiOrFallback("/admin/whatsapp-instances", [], "whatsapp instances"),
+    apiOrFallback("/admin/api/support-tickets", state.supportTickets || { tickets: [], openCount: 0 }, "support tickets")
   ]);
   state.summary = summary;
   state.clients = clients.clients || [];
@@ -256,6 +257,7 @@ async function loadAll(options = {}) {
   state.incompleteOps = incompleteOps;
   state.notificationJobs = notificationJobs;
   state.whatsappInstances = Array.isArray(whatsappInstances) ? whatsappInstances : [];
+  state.supportTickets = supportTickets || { tickets: [], openCount: 0 };
   state.siteBindings = siteBindings.bindings || [];
   state.courierQueueLastRefresh = new Date();
   renderAll();
@@ -975,6 +977,10 @@ function renderNotificationOps() {
   }
   const support = state.supportTickets || { tickets: [], openCount: 0 };
   if ($("supportTicketCount")) $("supportTicketCount").textContent = `${fmt(support.openCount)} open`;
+  if ($("supportNavCount")) {
+    $("supportNavCount").textContent = fmt(support.openCount);
+    $("supportNavCount").hidden = Number(support.openCount || 0) === 0;
+  }
   if ($("supportTicketRows")) {
     $("supportTicketRows").innerHTML = (support.tickets || []).map(ticket => `
       <tr>
@@ -1579,7 +1585,12 @@ async function refreshNotificationOps(options = {}) {
 }
 
 async function updateSupportTicket(ticketId, status) {
-  const note = status === "resolved" ? (window.prompt("Resolution note (optional):", "") || "") : "";
+  const current = (state.supportTickets?.tickets || []).find(ticket => Number(ticket.id) === Number(ticketId));
+  const needsReply = status === "in_progress" || status === "resolved";
+  const note = needsReply
+    ? window.prompt(status === "resolved" ? "Resolution message for the client:" : "Reply to the client (optional):", current?.admin_note || "")
+    : "";
+  if (needsReply && note === null) return;
   try {
     await api(`/admin/api/support-tickets/${ticketId}`, {
       method: "PATCH",
