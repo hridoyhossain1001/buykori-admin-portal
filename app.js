@@ -1043,12 +1043,12 @@ function renderNotificationOps() {
         <td>${esc(inst.phone_number || "-")}</td>
         <td><div class="status-badge ${statusClass(inst.status === "active" ? "healthy" : "inactive")}">${esc(inst.status)}</div><div class="client-sub">Health ${esc(ageLabel(inst.last_health_check_at))}</div>${inst.status !== "active" ? `<div class="client-sub">Disconnected ${esc(ageLabel(inst.updated_at))}</div>` : ""}</td>
         <td>
-          <div class="client-name">${fmt(inst.client_count)} assigned</div>
-          <div style="display:flex;gap:6px;align-items:center;margin:6px 0">
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:nowrap">
+            <span class="client-name" style="white-space:nowrap">${fmt(inst.client_count)} assigned</span>
             <input id="waCapacity-${Number(inst.id)}" type="number" min="${Math.max(1, Number(inst.client_count || 0))}" max="1000" value="${Number(inst.client_capacity || 8)}" aria-label="Client capacity for ${esc(inst.instance_name)}" style="width:76px;padding:6px 8px;border:1px solid var(--border);border-radius:8px;background:var(--card-bg);color:var(--text-primary)">
             <button class="copy-icon" onclick="saveWhatsAppInstanceCapacity(${Number(inst.id)})">Save</button>
           </div>
-          <div class="client-sub" style="color:${inst.is_full ? 'var(--danger)' : 'var(--success)'}">${inst.is_full ? "Full - increase capacity to add clients" : `${fmt(inst.available_slots)} slots available`}</div>
+          <div class="client-sub" style="margin-top:5px;color:${inst.is_full ? 'var(--danger)' : 'var(--success)'}">${inst.is_full ? "Full - increase capacity to add clients" : `${fmt(inst.available_slots)} slots available`}</div>
         </td>
         <td><div class="client-name">${fmt(inst.sent_24h)} sent / 24h</div><div class="client-sub">${fmt(inst.sent_7d)} sent, ${fmt(inst.failed_7d)} failed / 7d</div></td>
         <td>${esc(toDeviceDateTime(inst.last_sent_at || inst.last_health_check_at))}</td>
