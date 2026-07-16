@@ -989,7 +989,7 @@ function renderNotificationOps() {
         <td><div class="client-name">${esc(ticket.client_name)}</div><div class="client-sub">${esc(ticket.user_email)}</div></td>
         <td><div class="client-name">${esc(ticket.subject)}</div><div class="client-sub" style="max-width:360px;white-space:normal">${esc(ticket.message)}</div>${ticket.admin_note ? `<div class="client-sub" style="color:var(--success)">Note: ${esc(ticket.admin_note)}</div>` : ""}</td>
         <td><div class="status-badge ${statusClass(ticket.status === "resolved" || ticket.status === "closed" ? "healthy" : ticket.status === "in_progress" ? "warning" : "critical")}">${esc(ticket.status)}</div></td>
-        <td>${(ticket.attachments || []).map(file => `<a class="copy-icon" target="_blank" rel="noopener" href="${API_BASE}/admin/api/support-tickets/${Number(ticket.id)}/attachments/${Number(file.index)}">${esc(file.filename)}</a>`).join(" ") || `<span class="client-sub">None</span>`}</td>
+        <td><div class="support-attachments">${(ticket.attachments || []).map(file => renderSupportAttachment(ticket, file)).join("") || `<span class="client-sub">None</span>`}</div></td>
         <td>
           ${ticket.status === "open" ? `<button class="copy-icon" onclick="updateSupportTicket(${Number(ticket.id)}, 'in_progress')">Start</button>` : ""}
           ${ticket.status !== "resolved" ? `<button class="copy-icon" onclick="updateSupportTicket(${Number(ticket.id)}, 'resolved')">Resolve</button>` : ""}
@@ -1045,6 +1045,19 @@ function renderNotificationOps() {
       </tr>
     `).join("") || `<tr><td colspan="7" class="empty">No WhatsApp senders configured.</td></tr>`;
   }
+}
+
+function renderSupportAttachment(ticket, file) {
+  const url = `${API_BASE}/admin/api/support-tickets/${Number(ticket.id)}/attachments/${Number(file.index)}`;
+  const filename = esc(file.filename || "attachment");
+  const contentType = String(file.content_type || "").toLowerCase();
+  if (contentType.startsWith("image/")) {
+    return `<a class="support-attachment-preview" target="_blank" rel="noopener" href="${url}" title="Open ${filename}">
+      <img src="${url}" alt="${filename}" loading="lazy">
+      <span>${filename}</span>
+    </a>`;
+  }
+  return `<a class="copy-icon support-attachment-file" target="_blank" rel="noopener" href="${url}">${filename}</a>`;
 }
 
 function notificationJobById(jobId) {

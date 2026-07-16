@@ -208,6 +208,42 @@ svg { flex-shrink: 0; }
   animation: support-ticket-focus 1.4s ease-out 2;
 }
 
+.support-attachments {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-width: 120px;
+}
+
+.support-attachment-preview {
+  display: inline-flex;
+  width: 92px;
+  flex-direction: column;
+  gap: 5px;
+  color: var(--text-secondary);
+  font-size: 10px;
+  text-decoration: none;
+}
+
+.support-attachment-preview img {
+  width: 92px;
+  height: 62px;
+  border: 1px solid var(--card-border);
+  border-radius: 8px;
+  background: var(--card-bg);
+  object-fit: cover;
+}
+
+.support-attachment-preview span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.support-attachment-file {
+  display: inline-flex;
+}
+
 @keyframes support-ticket-focus {
   50% { background: color-mix(in srgb, var(--primary) 14%, transparent); }
 }
