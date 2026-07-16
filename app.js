@@ -1042,7 +1042,14 @@ function renderNotificationOps() {
         <td><div class="client-name">${esc(inst.instance_name)}</div><div class="client-sub">#${esc(inst.id)} ${esc(inst.provider)}</div></td>
         <td>${esc(inst.phone_number || "-")}</td>
         <td><div class="status-badge ${statusClass(inst.status === "active" ? "healthy" : "inactive")}">${esc(inst.status)}</div><div class="client-sub">Health ${esc(ageLabel(inst.last_health_check_at))}</div>${inst.status !== "active" ? `<div class="client-sub">Disconnected ${esc(ageLabel(inst.updated_at))}</div>` : ""}</td>
-        <td><div class="client-name">${fmt(inst.client_count)} / ${fmt(inst.client_capacity || 8)}</div><div class="client-sub" style="color:${inst.is_full ? 'var(--danger)' : 'var(--success)'}">${inst.is_full ? "Full" : `${fmt(inst.available_slots)} slots available`}</div></td>
+        <td>
+          <div class="client-name">${fmt(inst.client_count)} assigned</div>
+          <div style="display:flex;gap:6px;align-items:center;margin:6px 0">
+            <input id="waCapacity-${Number(inst.id)}" type="number" min="${Math.max(1, Number(inst.client_count || 0))}" max="1000" value="${Number(inst.client_capacity || 8)}" aria-label="Client capacity for ${esc(inst.instance_name)}" style="width:76px;padding:6px 8px;border:1px solid var(--border);border-radius:8px;background:var(--card-bg);color:var(--text-primary)">
+            <button class="copy-icon" onclick="saveWhatsAppInstanceCapacity(${Number(inst.id)})">Save</button>
+          </div>
+          <div class="client-sub" style="color:${inst.is_full ? 'var(--danger)' : 'var(--success)'}">${inst.is_full ? "Full - increase capacity to add clients" : `${fmt(inst.available_slots)} slots available`}</div>
+        </td>
         <td><div class="client-name">${fmt(inst.sent_24h)} sent / 24h</div><div class="client-sub">${fmt(inst.sent_7d)} sent, ${fmt(inst.failed_7d)} failed / 7d</div></td>
         <td>${esc(toDeviceDateTime(inst.last_sent_at || inst.last_health_check_at))}</td>
         <td>
@@ -1319,27 +1326,43 @@ async function editWhatsAppInstance(instanceId) {
   if (phone_number === null) return;
   const base_url = window.prompt("Provider base URL (optional)", inst.base_url || "");
   if (base_url === null) return;
-  const capacityInput = window.prompt("Maximum clients for this sender", String(inst.client_capacity || 8));
-  if (capacityInput === null) return;
-  const client_capacity = Number(capacityInput);
-  if (!Number.isInteger(client_capacity) || client_capacity < 1 || client_capacity > 1000) {
-    showToast("Client capacity must be a whole number between 1 and 1000.");
-    return;
-  }
   try {
     await api(`/admin/whatsapp-instances/${instanceId}`, {
       method: "PATCH",
       body: JSON.stringify({
         instance_name,
         phone_number,
-        base_url,
-        client_capacity
+        base_url
       })
     });
     await refreshNotificationOps({ silent: true });
     showToast("WhatsApp sender updated.");
   } catch (error) {
     showToast(`Sender update failed: ${readableApiError(error)}`);
+  }
+}
+
+async function saveWhatsAppInstanceCapacity(instanceId) {
+  const inst = (state.whatsappInstances || []).find(item => String(item.id) === String(instanceId));
+  const input = $(`waCapacity-${instanceId}`);
+  if (!inst || !input) return;
+  const client_capacity = Number(input.value);
+  const assignedClients = Number(inst.client_count || 0);
+  if (!Number.isInteger(client_capacity) || client_capacity < Math.max(1, assignedClients) || client_capacity > 1000) {
+    showToast(`Capacity must be between ${Math.max(1, assignedClients)} and 1000.`);
+    input.value = String(inst.client_capacity || 8);
+    return;
+  }
+  try {
+    await api(`/admin/whatsapp-instances/${instanceId}`, {
+      method: "PATCH",
+      body: JSON.stringify({ client_capacity })
+    });
+    await refreshNotificationOps({ silent: true });
+    showToast(`Sender capacity updated to ${client_capacity}.`);
+  } catch (error) {
+    showToast(`Capacity update failed: ${readableApiError(error)}`);
+    input.value = String(inst.client_capacity || 8);
   }
 }
 
