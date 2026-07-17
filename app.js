@@ -1054,7 +1054,7 @@ function renderNotificationOps() {
         <td>${esc(toDeviceDateTime(inst.last_sent_at || inst.last_health_check_at))}</td>
         <td>
           <button class="copy-icon" onclick="editWhatsAppInstance(${Number(inst.id)})">Edit</button>
-          <button class="copy-icon" onclick="connectWhatsAppInstance(${Number(inst.id)})">Pair Code</button>
+          <button class="copy-icon" onclick="connectWhatsAppInstance(${Number(inst.id)})" title="${inst.status === 'active' ? 'Generate a fresh pairing code' : 'Reconnect this existing sender without deleting it'}">${inst.status === "active" ? "Pair Code" : "Reconnect"}</button>
           <button class="copy-icon" onclick="checkWhatsAppInstanceState(${Number(inst.id)})">Check</button>
           <button class="copy-icon" onclick="updateWhatsAppInstanceStatus(${Number(inst.id)}, 'active')">Activate</button>
           <button class="copy-icon" onclick="updateWhatsAppInstanceStatus(${Number(inst.id)}, 'paused')">Pause</button>
