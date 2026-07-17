@@ -1179,25 +1179,39 @@ function renderPairingResult(data) {
     ? "Open WhatsApp on the sender phone, go to Linked devices, choose Link with phone number instead, then enter this code."
     : "Pairing code was not returned. Copy the raw QR code value below and scan/connect it from Evolution if needed.";
   const raw = data?.pairing?.code || "";
+  const qrImage = data?.pairing?.qrImage || "";
   const qrSection = $("waQrSection");
   const qrCanvas = $("waQrCanvas");
   if (qrCanvas) {
     qrCanvas.replaceChildren();
     qrCanvas.classList.remove("is-unavailable");
   }
-  if (qrSection) qrSection.style.display = raw ? "block" : "none";
-  if (raw && qrCanvas) {
-    if (typeof QRCode === "function") {
-      new QRCode(qrCanvas, {
-        text: raw,
-        width: 240,
-        height: 240,
-        colorDark: "#111827",
-        colorLight: "#ffffff",
-        correctLevel: QRCode.CorrectLevel.M
-      });
-    } else {
-      qrCanvas.textContent = "QR renderer could not load. Use the pairing code instead.";
+  if (qrSection) qrSection.style.display = raw || qrImage ? "block" : "none";
+  if ((raw || qrImage) && qrCanvas) {
+    try {
+      if (qrImage && String(qrImage).startsWith("data:image/")) {
+        const image = document.createElement("img");
+        image.src = qrImage;
+        image.alt = "WhatsApp pairing QR code";
+        image.width = 240;
+        image.height = 240;
+        qrCanvas.appendChild(image);
+      } else if (raw && typeof QRCode === "function") {
+        new QRCode(qrCanvas, {
+          text: raw,
+          width: 240,
+          height: 240,
+          colorDark: "#111827",
+          colorLight: "#ffffff",
+          correctLevel: QRCode.CorrectLevel.M
+        });
+      } else {
+        throw new Error("QR renderer unavailable");
+      }
+    } catch (error) {
+      qrCanvas.textContent = latestPairingCode
+        ? "QR preview unavailable. Use the pairing code shown beside it."
+        : "QR preview unavailable. Request a new pairing code.";
       qrCanvas.classList.add("is-unavailable");
     }
   }
@@ -1206,6 +1220,7 @@ function renderPairingResult(data) {
   if ($("waQrRaw")) {
     $("waQrRaw").textContent = raw;
   }
+  panel.scrollIntoView({ behavior: "smooth", block: "center" });
 }
 
 function copyPairingCode() {
@@ -1390,6 +1405,7 @@ async function updateWhatsAppInstanceStatus(instanceId, status) {
 
 async function connectWhatsAppInstance(instanceId) {
   try {
+    showToast("Requesting a fresh WhatsApp pairing code...");
     const result = await api(`/admin/whatsapp-instances/${instanceId}/connect`, { method: "POST" });
     renderPairingResult(result);
     await refreshNotificationOps({ silent: true });
