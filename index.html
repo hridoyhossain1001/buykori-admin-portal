@@ -424,7 +424,7 @@
           <div class="page-header">
             <div>
               <h1 class="page-title">Notification Operations</h1>
-              <p class="page-sub">Monitor WhatsApp delivery jobs, sender availability, and client support requests.</p>
+              <p class="page-sub">Monitor Telegram-first client alerts, delivery jobs, and support requests.</p>
             </div>
             <div class="header-actions">
               <select id="notificationStatusFilter" onchange="refreshNotificationOps({ silent: true })">
@@ -441,10 +441,13 @@
             <div class="metric-card"><div class="metric-header"><div class="m-icon bg-blue">T</div><span class="m-title">Total Jobs</span></div><div class="metric-value" id="notificationTotal">0</div><div class="trend">current filter</div></div>
             <div class="metric-card"><div class="metric-header"><div class="m-icon bg-purple">P</div><span class="m-title">Pending</span></div><div class="metric-value" id="notificationPending">0</div><div class="trend">waiting for worker</div></div>
             <div class="metric-card"><div class="metric-header"><div class="m-icon bg-red">F</div><span class="m-title">Failed</span></div><div class="metric-value" id="notificationFailed">0</div><div class="trend">needs investigation</div></div>
-            <div class="metric-card"><div class="metric-header"><div class="m-icon bg-indigo">W</div><span class="m-title">Active Instances</span></div><div class="metric-value" id="whatsappActive">0</div><div class="trend">available senders</div></div>
+            <div class="metric-card"><div class="metric-header"><div class="m-icon bg-indigo">T</div><span class="m-title">Primary Channel</span></div><div class="metric-value" style="font-size:22px">Telegram</div><div class="trend">verified client bindings</div></div>
           </div>
           <div id="whatsappHealthAlert" class="queue-health-banner" style="display:none;margin-bottom:20px"></div>
-          <div class="card notification-sender-card">
+          <div class="queue-health-banner" style="display:block;margin-bottom:20px;border-color:rgba(99,102,241,.35);background:rgba(99,102,241,.08)">
+            <strong>Legacy WhatsApp delivery is suspended.</strong> Existing sender records are preserved for a future official Cloud API migration. Client order and recovery alerts now use verified Telegram connections.
+          </div>
+          <div class="card notification-sender-card" style="display:none" aria-hidden="true">
             <div class="card-header notification-card-heading">
               <div><h2 class="card-title">WhatsApp Senders</h2><p class="card-subtitle">Connect a new number or manage existing sender accounts.</p></div>
               <span class="status-badge status-healthy">Quick access</span>
@@ -878,7 +881,8 @@
             </div>
           </div>
 
-          <h3 style="margin:24px 0 12px;font-size:12px;color:var(--text-main);text-transform:uppercase;font-weight:800;letter-spacing:0.05em">Owner WhatsApp Alerts</h3>
+          <div style="display:none" aria-hidden="true">
+          <h3 style="margin:24px 0 12px;font-size:12px;color:var(--text-main);text-transform:uppercase;font-weight:800;letter-spacing:0.05em">Legacy Owner WhatsApp Alerts</h3>
           <div class="form-grid">
             <div class="field" style="display:flex;align-items:center;gap:12px;">
               <input type="checkbox" id="editOwnerNotifyWhatsApp" style="width:16px;height:16px;cursor:pointer">
@@ -889,6 +893,7 @@
               <label>Sender Instance</label>
               <select id="editWhatsAppInstance"></select>
             </div>
+          </div>
           </div>
           <div style="margin-top:24px;display:flex;gap:12px;align-items:center">
             <button class="btn btn-primary" onclick="saveClientEdit()">Save Changes</button>

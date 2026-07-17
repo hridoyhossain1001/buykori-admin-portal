@@ -970,7 +970,11 @@ function renderNotificationOps() {
   const jobsAtRisk = Number(jobs.actionable_count || 0);
   if ($("whatsappHealthAlert")) {
     const alert = $("whatsappHealthAlert");
-    if (!activeSenders.length || assignedInactiveSenders.length || recentFailovers.length) {
+    const legacyWhatsAppSuspended = true;
+    if (legacyWhatsAppSuspended) {
+      alert.style.display = "none";
+      alert.textContent = "";
+    } else if (!activeSenders.length || assignedInactiveSenders.length || recentFailovers.length) {
       alert.style.display = "block";
       alert.className = `queue-health-banner ${!activeSenders.length || assignedInactiveSenders.length ? "queue-alert-critical" : "queue-alert-warning"}`;
       alert.textContent = !activeSenders.length
@@ -1013,7 +1017,7 @@ function renderNotificationOps() {
     $("notificationRows").innerHTML = jobPage.items.map(job => `
       <tr>
         <td><div class="client-name">#${esc(job.id)}</div><div class="client-sub">${esc(toDeviceDateTime(job.created_at))}</div></td>
-        <td><div class="client-name">Client ${esc(job.client_id)}</div><div class="client-sub">WA ${esc(job.whatsapp_instance_id || "-")}</div>${Number(job.failover_count || 0) ? `<div class="client-sub" style="color:var(--warning)">${fmt(job.failover_count)} failover</div>` : ""}</td>
+        <td><div class="client-name">Client ${esc(job.client_id)}</div><div class="client-sub">${job.channel === "telegram" ? "Telegram bot" : `WhatsApp sender ${esc(job.whatsapp_instance_id || "-")}`}</div>${Number(job.failover_count || 0) ? `<div class="client-sub" style="color:var(--warning)">${fmt(job.failover_count)} failover</div>` : ""}</td>
         <td>${esc(job.event_type)}</td>
         <td><div class="status-badge ${statusClass(job.status === "sent" ? "healthy" : job.status === "failed" ? "critical" : "warning")}">${esc(job.status)}</div></td>
         <td>${fmt(job.attempt_count)} / ${fmt(job.max_attempts)}</td>
@@ -1139,7 +1143,7 @@ function openNotificationJobDrawer(jobId) {
       <div class="drawer-status-row"><div class="status-badge ${statusClass(job.status === "sent" ? "healthy" : job.status === "failed" ? "critical" : "warning")}">${esc(job.status)}</div><span>${esc(job.event_type)}</span></div>
       <div class="drawer-grid">
         <div><span>Client</span><strong>#${esc(job.client_id)}</strong></div>
-        <div><span>Current Sender</span><strong>#${esc(job.whatsapp_instance_id || "-")}</strong></div>
+        <div><span>Delivery Channel</span><strong>${job.channel === "telegram" ? "Telegram bot" : `WhatsApp sender #${esc(job.whatsapp_instance_id || "-")}`}</strong></div>
         <div><span>Attempts</span><strong>${fmt(job.attempt_count)} / ${fmt(job.max_attempts)}</strong></div>
         <div><span>Failovers</span><strong>${fmt(job.failover_count || 0)}</strong></div>
         <div><span>Created</span><strong>${esc(toDeviceDateTime(job.created_at))}</strong></div>
@@ -2155,7 +2159,7 @@ function renderClientModalIntel(clientId) {
   const setup = intel.setup_snapshot || {};
   const routing = setup.event_routing || {};
   const courier = setup.courier || {};
-  const whatsapp = setup.whatsapp || {};
+  const telegram = setup.telegram || {};
   const hasIdentifier = value => !["", "0", "none", "null"].includes(String(value || "").trim().toLowerCase());
   const metaIdReady = hasIdentifier(setup.meta?.pixel_id);
   const tiktokIdReady = hasIdentifier(setup.tiktok?.pixel_id);
@@ -2176,9 +2180,6 @@ function renderClientModalIntel(clientId) {
   const courierMeta = courierMissing.length
     ? `Missing: ${courierMissing.join(", ")}${courierActionHint ? ` - ${courierActionHint}` : ""}`
     : `Providers: SF ${courierProviders.steadfast ? "yes" : "no"}, Pathao ${courierProviders.pathao ? "yes" : "no"}, RedX ${courierProviders.redx ? "yes" : "no"}`;
-  const whatsappDetail = whatsapp.enabled
-    ? `${whatsapp.number_set ? "Owner number set" : "Owner number missing"}${whatsapp.instance_name ? ` via ${whatsapp.instance_name}` : ""}`
-    : "Owner alerts are off";
   const setupCard = (title, statusHtml, detail, meta = "", action = "") => `
     <div class="setup-card">
       <div class="setup-card-head"><strong>${esc(title)}</strong>${statusHtml}</div>
@@ -2258,11 +2259,15 @@ function renderClientModalIntel(clientId) {
         courier.configured ? "Manual courier booking is ready." : "Fix in Client Portal > Settings > Courier Logistics."
       )}
       ${setupCard(
-        "WhatsApp Alerts",
-        statusBadge(whatsapp.enabled && whatsapp.number_set && whatsapp.instance_id, "Ready", whatsapp.enabled ? "Needs setup" : "Off"),
-        whatsappDetail,
-        whatsapp.instance_status ? `Sender status: ${whatsapp.instance_status}` : "No sender assigned",
-        whatsapp.enabled ? "Fix in Client Portal > Settings > Alerts & Notifications." : "Client has WhatsApp alerts disabled."
+        "Telegram Alerts",
+        statusBadge(telegram.connected, "Connected", "Not connected"),
+        telegram.connected
+          ? `Connected${telegram.username ? ` as @${telegram.username}` : telegram.first_name ? ` as ${telegram.first_name}` : ""}`
+          : "Client has not connected the order-alert bot.",
+        telegram.connected
+          ? `Last sent: ${telegram.last_successful_delivery ? toDeviceDateTime(telegram.last_successful_delivery) : "No successful delivery yet"} - Failed 7d: ${fmt(telegram.failed_count_7d || 0)} - Retrying: ${fmt(telegram.retrying_count || 0)}`
+          : "No verified private Telegram chat",
+        "Connect in Client Portal > Settings > Alerts & Notifications."
       )}
     </div>
     <div class="funnel-list">${funnel.map(item => `<div class="funnel-item ${item.done ? "done" : ""}"><span>${item.done ? "Done" : "Todo"}</span>${esc(item.label)}</div>`).join("")}</div>
@@ -2273,7 +2278,7 @@ function renderClientModalIntel(clientId) {
     ["GA4", setup.ga4?.configured, ga4Missing],
     ["Plugin", setup.plugin?.connected && !setup.plugin?.update_available, setup.plugin?.connected ? "Update available" : "Not connected"],
     ["Courier", courier.configured, courierStatusLabel],
-    ["WhatsApp", whatsapp.enabled && whatsapp.number_set && whatsapp.instance_id, whatsapp.enabled ? "Needs setup" : "Off"]
+    ["Telegram", telegram.connected, telegram.connected ? `${fmt(telegram.retrying_count || 0)} retrying` : "Not connected"]
   ];
   const quickHtml = `
     <div class="client360-quick-head">
