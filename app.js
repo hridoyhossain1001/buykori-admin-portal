@@ -1745,11 +1745,15 @@ async function refreshNotificationOps(options = {}) {
 }
 
 async function decideSmsPayment(receiptId, action) {
+  const payment = (state.paymentReviews?.payments || []).find(item => Number(item.receiptId) === Number(receiptId));
+  const isTestPayment = payment?.intent?.planTier === "test";
   const confirmed = await askAdminDecision({
     title: action === "approve" ? "Approve Payment" : "Reject Payment",
     message: `${action === "approve" ? "Activate the linked plan" : "Reject this receipt"}?`,
-    detail: `Receipt #${receiptId}. Approval changes the client's active plan.`,
-    confirmLabel: action === "approve" ? "Approve & Activate" : "Reject Payment"
+    detail: isTestPayment
+      ? `Receipt #${receiptId} is a BDT 10 test. Approval confirms the payment but does not change the client's plan.`
+      : `Receipt #${receiptId}. Approval changes the client's active plan.`,
+    confirmLabel: action === "approve" ? (isTestPayment ? "Approve Test" : "Approve & Activate") : "Reject Payment"
   });
   if (!confirmed) return;
   try {
