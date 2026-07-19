@@ -24,6 +24,7 @@ const state = {
   notificationJobs: null,
   whatsappInstances: [],
   supportTickets: { tickets: [], openCount: 0 },
+  paymentReviews: { payments: [] },
   siteBindings: [],
   courierQueueAutoRefresh: true,
   courierQueueLastRefresh: null,
@@ -36,7 +37,8 @@ const state = {
   notificationPagination: {
     jobs: 1,
     senders: 1,
-    support: 1
+    support: 1,
+    payments: 1
   }
 };
 const NOTIFICATION_PAGE_SIZE = 5;
@@ -242,7 +244,7 @@ function logout() {
 async function loadAll(options = {}) {
   const refreshDashboard = Boolean(options.refreshDashboard);
   const summaryUrl = `/admin/api/summary?window=${encodeURIComponent(state.dashboardWindow)}${refreshDashboard ? "&refresh=1" : ""}`;
-  const [summary, clients, health, courierQueue, intelligence, serverHealth, siteBindings, incompleteOps, notificationJobs, whatsappInstances, supportTickets] = await Promise.all([
+  const [summary, clients, health, courierQueue, intelligence, serverHealth, siteBindings, incompleteOps, notificationJobs, whatsappInstances, supportTickets, paymentReviews] = await Promise.all([
     apiOrFallback(summaryUrl, state.summary || {}, "summary"),
     apiOrFallback("/admin/api/clients", { clients: state.clients || [] }, "clients"),
     apiOrFallback("/admin/clients/health", { clients: state.health || [] }, "client health"),
@@ -253,7 +255,8 @@ async function loadAll(options = {}) {
     apiOrFallback("/admin/api/incomplete-checkouts?limit=100", { counts: {}, items: [], top_clients: [], total: 0 }, "incomplete checkouts"),
     apiOrFallback("/admin/notification-jobs?limit=100", { total: 0, items: [] }, "notification jobs"),
     apiOrFallback("/admin/whatsapp-instances", [], "whatsapp instances"),
-    apiOrFallback("/admin/api/support-tickets", state.supportTickets || { tickets: [], openCount: 0 }, "support tickets")
+    apiOrFallback("/admin/api/support-tickets", state.supportTickets || { tickets: [], openCount: 0 }, "support tickets"),
+    apiOrFallback("/admin/api/payment-reviews", state.paymentReviews || { payments: [] }, "payment reviews")
   ]);
   state.summary = summary;
   state.clients = clients.clients || [];
@@ -265,6 +268,7 @@ async function loadAll(options = {}) {
   state.notificationJobs = notificationJobs;
   state.whatsappInstances = Array.isArray(whatsappInstances) ? whatsappInstances : [];
   state.supportTickets = supportTickets || { tickets: [], openCount: 0 };
+  state.paymentReviews = paymentReviews || { payments: [] };
   state.siteBindings = siteBindings.bindings || [];
   state.courierQueueLastRefresh = new Date();
   renderAll();
@@ -988,6 +992,27 @@ function renderNotificationOps() {
     }
   }
   const support = state.supportTickets || { tickets: [], openCount: 0 };
+  const payments = state.paymentReviews?.payments || [];
+  if ($("paymentReviewCount")) {
+    const waiting = payments.filter(item => ["matched", "needs_review", "ambiguous"].includes(item.status)).length;
+    $("paymentReviewCount").textContent = `${fmt(waiting)} waiting`;
+  }
+  if ($("paymentReviewRows")) {
+    const paymentPage = notificationPageSlice(payments, "payments");
+    $("paymentReviewRows").innerHTML = paymentPage.items.map(item => `
+      <tr>
+        <td><div class="client-name">${esc(item.provider).toUpperCase()} ${esc(item.paymentType === "agent_cash_in" ? "Cash In" : "Receive")}</div><div class="client-sub">${esc(toDeviceDateTime(item.receivedAt))}</div></td>
+        <td><div class="client-name">${esc(item.client?.name || "Not linked")}</div><div class="client-sub">${item.intent ? `${esc(item.intent.planTier)} · ${esc(item.intent.reference)}` : "Needs manual linking"}</div></td>
+        <td><div class="client-name">BDT ${esc(item.amount)}</div><div class="client-sub">From ${esc(item.senderPhone)}</div></td>
+        <td><div class="client-name">${esc(item.trxId)}</div><div class="client-sub" style="max-width:280px;white-space:normal">${esc(item.note || "-")}</div></td>
+        <td><div class="status-badge ${statusClass(item.status === "approved" ? "healthy" : item.status === "rejected" ? "critical" : "warning")}">${esc(item.status)}</div></td>
+        <td>
+          ${item.intent && ["matched", "needs_review", "ambiguous"].includes(item.status) ? `<button class="copy-icon" onclick="decideSmsPayment(${Number(item.receiptId)}, 'approve')">Approve</button><button class="copy-icon danger-link" onclick="decideSmsPayment(${Number(item.receiptId)}, 'reject')">Reject</button>` : `<span class="client-sub">${item.intent ? "Reviewed" : "Link required"}</span>`}
+        </td>
+      </tr>
+    `).join("") || `<tr><td colspan="6" class="empty">No SMS payments received.</td></tr>`;
+    renderNotificationPager("paymentReviewPager", "payments", paymentPage);
+  }
   if ($("supportTicketCount")) $("supportTicketCount").textContent = `${fmt(support.openCount)} open`;
   if ($("supportNavCount")) {
     $("supportNavCount").textContent = fmt(support.openCount);
@@ -1695,9 +1720,10 @@ async function refreshNotificationOps(options = {}) {
   const results = await Promise.allSettled([
     api(`/admin/notification-jobs?${params.toString()}`),
     api("/admin/whatsapp-instances"),
-    api("/admin/api/support-tickets")
+    api("/admin/api/support-tickets"),
+    api("/admin/api/payment-reviews")
   ]);
-  const [jobsResult, instancesResult, supportResult] = results;
+  const [jobsResult, instancesResult, supportResult, paymentsResult] = results;
   if (jobsResult.status === "fulfilled") state.notificationJobs = jobsResult.value;
   if (instancesResult.status === "fulfilled") {
     state.whatsappInstances = Array.isArray(instancesResult.value) ? instancesResult.value : [];
@@ -1705,6 +1731,7 @@ async function refreshNotificationOps(options = {}) {
   if (supportResult.status === "fulfilled") {
     state.supportTickets = supportResult.value || { tickets: [], openCount: 0 };
   }
+  if (paymentsResult.status === "fulfilled") state.paymentReviews = paymentsResult.value || { payments: [] };
   renderNotificationOps();
 
   if (!silent) {
@@ -1714,6 +1741,26 @@ async function refreshNotificationOps(options = {}) {
     } else {
       showToast(`Some notification data could not be refreshed: ${readableApiError(failures[0].reason)}`);
     }
+  }
+}
+
+async function decideSmsPayment(receiptId, action) {
+  const confirmed = await askAdminDecision({
+    title: action === "approve" ? "Approve Payment" : "Reject Payment",
+    message: `${action === "approve" ? "Activate the linked plan" : "Reject this receipt"}?`,
+    detail: `Receipt #${receiptId}. Approval changes the client's active plan.`,
+    confirmLabel: action === "approve" ? "Approve & Activate" : "Reject Payment"
+  });
+  if (!confirmed) return;
+  try {
+    await api(`/admin/api/payment-reviews/${receiptId}/decision`, {
+      method: "POST",
+      body: JSON.stringify({ action })
+    });
+    await refreshNotificationOps({ silent: true });
+    showToast(`Payment #${receiptId} ${action}d.`);
+  } catch (error) {
+    showToast(`Payment review failed: ${readableApiError(error)}`);
   }
 }
 

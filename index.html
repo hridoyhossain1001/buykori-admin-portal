@@ -493,6 +493,11 @@
             <div id="whatsappInstancePager" class="table-pager" aria-label="WhatsApp sender pages"></div>
           </div>
           <div class="card notification-list-card">
+            <div class="card-header notification-card-heading"><div><h2 class="card-title">SMS Payment Reviews</h2><p class="card-subtitle">bKash and Nagad receipts matched with client payment requests.</p></div><span id="paymentReviewCount" class="status-badge warning">0 waiting</span></div>
+            <div class="table-wrap"><table><thead><tr><th>SMS</th><th>Client / Plan</th><th>Amount / Sender</th><th>TrxID / Match</th><th>Status</th><th>Actions</th></tr></thead><tbody id="paymentReviewRows"></tbody></table></div>
+            <div id="paymentReviewPager" class="table-pager" aria-label="SMS payment review pages"></div>
+          </div>
+          <div class="card notification-list-card">
             <div class="card-header notification-card-heading"><div><h2 class="card-title">Recent Notification Jobs</h2><p class="card-subtitle">Latest delivery attempts, failures, and retry status.</p></div></div>
             <div class="table-wrap"><table><thead><tr><th>Job</th><th>Client</th><th>Event</th><th>Status</th><th>Attempts</th><th>Message / Error</th><th>Delivery Time</th></tr></thead><tbody id="notificationRows"></tbody></table></div>
             <div id="notificationPager" class="table-pager" aria-label="Notification job pages"></div>
