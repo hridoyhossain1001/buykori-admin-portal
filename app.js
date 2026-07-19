@@ -995,7 +995,8 @@ function renderNotificationOps() {
   const payments = state.paymentReviews?.payments || [];
   if ($("paymentReviewCount")) {
     const waiting = payments.filter(item => ["matched", "needs_review", "ambiguous"].includes(item.status)).length;
-    $("paymentReviewCount").textContent = `${fmt(waiting)} waiting`;
+    $("paymentReviewCount").textContent = `${fmt(waiting)} need attention`;
+    $("paymentReviewCount").className = `status-badge ${waiting ? "warning" : "healthy"}`;
   }
   if ($("paymentReviewRows")) {
     const paymentPage = notificationPageSlice(payments, "payments");
@@ -1007,7 +1008,7 @@ function renderNotificationOps() {
         <td><div class="client-name">${esc(item.trxId)}</div><div class="client-sub" style="max-width:280px;white-space:normal">${esc(item.note || "-")}</div></td>
         <td><div class="status-badge ${statusClass(item.status === "approved" ? "healthy" : item.status === "rejected" ? "critical" : "warning")}">${esc(item.status)}</div></td>
         <td>
-          ${item.intent && ["matched", "needs_review", "ambiguous"].includes(item.status) ? `<button class="copy-icon" onclick="decideSmsPayment(${Number(item.receiptId)}, 'approve')">Approve</button><button class="copy-icon danger-link" onclick="decideSmsPayment(${Number(item.receiptId)}, 'reject')">Reject</button>` : `<span class="client-sub">${item.intent ? "Reviewed" : "Link required"}</span>`}
+          ${item.intent && ["matched", "needs_review"].includes(item.status) ? `<button class="copy-icon" onclick="decideSmsPayment(${Number(item.receiptId)}, 'approve')">Approve</button><button class="copy-icon danger-link" onclick="decideSmsPayment(${Number(item.receiptId)}, 'reject')">Reject</button>` : `<span class="client-sub">${item.status === "approved" ? "Automatic" : item.intent ? "Complete" : "Link required"}</span>`}
         </td>
       </tr>
     `).join("") || `<tr><td colspan="6" class="empty">No SMS payments received.</td></tr>`;
@@ -2624,7 +2625,7 @@ function renderEvents() {
   
   tbody.innerHTML = eventsState.events.flatMap(event => {
     const isExpanded = eventsState.expandedEventId === event.id;
-    const statusClass = event.status === "Success" ? "status-healthy" : "status-critical";
+    const statusClass = event.status === "Success" ? "status-healthy" : event.status === "Fired" ? "status-warning" : event.status === "Filtered" ? "status-inactive" : "status-critical";
     const displayTime = toDeviceDateTime(event.timestamp);
     const sampleLabel = event.isReconstructedSample ? " (reconstructed sample)" : "";
     const sampleNotice = event.sampleNotice || "These JSON blocks are reconstructed from stored EventLog fields.";
@@ -2636,8 +2637,8 @@ function renderEvents() {
         <td><span style="color:#818cf8;font-weight:700">${esc(event.name)}</span></td>
         <td style="font-weight:600; font-size:12px;">${esc(event.platform)}</td>
         <td><div class="status-badge ${statusClass}">${esc(event.status)}</div></td>
-        <td class="code-text">${esc(event.httpCode)}</td>
-        <td class="code-text" style="font-size:11px; color:var(--text-muted);">${esc(event.deduplicationKey)}</td>
+        <td><div class="client-name" style="max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(event.contextLabel || "Website event")}">${esc(event.contextLabel || "Website event")}</div><div class="client-sub" style="max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(event.pageUrl || "")}">${esc(event.pageUrl || "Open details for technical data")}</div></td>
+        <td><span class="copy-icon">${isExpanded ? "Hide" : "View"}</span></td>
       </tr>
     `;
     
