@@ -25,6 +25,8 @@ const state = {
   whatsappInstances: [],
   supportTickets: { tickets: [], openCount: 0 },
   paymentReviews: { payments: [] },
+  paymentHistoryFilter: "all",
+  paymentHistoryPage: 1,
   siteBindings: [],
   courierQueueAutoRefresh: true,
   courierQueueLastRefresh: null,
@@ -39,7 +41,8 @@ const state = {
     senders: 1,
     support: 1,
     payments: 1
-  }
+  },
+  notificationOpsTab: "payments"
 };
 const NOTIFICATION_PAGE_SIZE = 5;
 const modalSecrets = new Map();
@@ -549,21 +552,105 @@ function renderClientRows() {
   $("clientRows").innerHTML = filteredClients().map(client => {
     const health = overviewHealthFor(client);
     const intel = intelligenceFor(client.id);
+    const plan = String(client.plan_tier || "free").toLowerCase();
+    const planLimit = Number(client.monthly_event_limit || PLAN_DEFAULTS[plan]?.events || 0);
+    const used = Number(client.event_total || 0);
+    const usage = planLimit > 0 ? Math.min(100, (used / planLimit) * 100) : 0;
+    const integrations = [
+      ["M", integrationState(client, "meta")],
+      ["T", integrationState(client, "tiktok")],
+      ["G", integrationState(client, "ga4")]
+    ];
     return `<tr>
       <td><div class="client-name">${esc(client.name)}</div><div class="client-sub">ID ${esc(client.id)}${intel?.owner?.phone_number ? ` - ${esc(intel.owner.phone_number)}` : ""}</div></td>
-      <td>${domainLink(client)}</td>
-      <td><div class="client-name">${esc(toDeviceDateTime(client.created_at))}</div><div class="client-sub">Joined</div></td>
-      <td>${fmt(client.event_total || 0)}</td>
-      <td><div class="client-sub">API ${esc(String(client.api_key || "").slice(0, 8))}...</div><div class="client-sub">Portal ${client.portal_key ? `${esc(String(client.portal_key).slice(0, 8))}...` : "-"}</div></td>
+      <td><div class="client-store-cell">${domainLink(client)}<div class="client-sub">Registered ${esc(toDeviceDateTime(client.created_at))}</div></div></td>
+      <td><div class="client-plan-row"><span class="plan-chip">${esc(plan)}</span><span>${compactNumber(used)} / ${planLimit ? compactNumber(planLimit) : "Unlimited"}</span></div><div class="client-usage-track"><span style="width:${usage.toFixed(1)}%"></span></div></td>
+      <td><div class="integration-pills">${integrations.map(([label, value]) => `<span class="integration-pill ${value.state === "ready" ? "is-ready" : value.state === "attention" ? "is-attention" : "is-off"}" title="${esc(value.label)}">${label}<i></i></span>`).join("")}</div></td>
       <td><div class="status-badge ${statusClass(health.status)}" title="${esc(health.reasons.join(", "))}">${health.score !== undefined ? `${fmt(health.score)}%` : statusLabel(health.status, client.is_active)}</div></td>
       <td>
-        <div style="display:flex;gap:8px">
+        <div class="client-directory-actions">
           <button class="btn btn-outline btn-sm" onclick="openClientModal(${client.id})">Manage</button>
           <button class="btn btn-sm ${client.is_active ? 'btn-outline' : 'btn-primary'}" onclick="toggleClient(${client.id}, ${!client.is_active})">${client.is_active ? "Deactivate" : "Activate"}</button>
         </div>
       </td>
     </tr>`;
-  }).join("") || `<tr><td colspan="7" class="empty">No clients match this search. Clear the search or add a new client.</td></tr>`;
+  }).join("") || `<tr><td colspan="6" class="empty">No clients match this search. Clear the search or add a new client.</td></tr>`;
+}
+
+function paymentIsPaid(item) {
+  return item.status === "approved" || ["approved", "approved_overpaid"].includes(item.intent?.status);
+}
+
+function paymentNeedsAttention(item) {
+  return !paymentIsPaid(item) && item.status !== "rejected";
+}
+
+function paymentResult(item) {
+  if (item.intent?.refundStatus === "requested") return { label: "Refund requested", tone: "warning" };
+  if (item.intent?.status === "approved_overpaid") return { label: "Paid - extra received", tone: "healthy" };
+  if (paymentIsPaid(item)) return { label: "Paid", tone: "healthy" };
+  if (item.status === "rejected") return { label: "Rejected", tone: "critical" };
+  if (!item.intent) return { label: "Link required", tone: "warning" };
+  return { label: "Needs attention", tone: "warning" };
+}
+
+function renderPaymentHistory() {
+  const all = state.paymentReviews?.payments || [];
+  const paid = all.filter(paymentIsPaid);
+  const attention = all.filter(paymentNeedsAttention);
+  const refunds = all.filter(item => item.intent?.refundStatus === "requested");
+  const total = paid.reduce((sum, item) => sum + Number.parseFloat(item.amount || 0), 0);
+  if ($("paymentCollectedTotal")) $("paymentCollectedTotal").textContent = `BDT ${total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  if ($("paymentPaidCount")) $("paymentPaidCount").textContent = fmt(paid.length);
+  if ($("paymentAttentionCount")) $("paymentAttentionCount").textContent = fmt(attention.length);
+  if ($("paymentRefundCount")) $("paymentRefundCount").textContent = fmt(refunds.length);
+  if ($("paymentNavCount")) {
+    $("paymentNavCount").textContent = fmt(attention.length + refunds.length);
+    $("paymentNavCount").hidden = attention.length + refunds.length === 0;
+  }
+
+  const filter = state.paymentHistoryFilter;
+  const filtered = all.filter(item => filter === "all"
+    || (filter === "paid" && paymentIsPaid(item))
+    || (filter === "review" && paymentNeedsAttention(item))
+    || (filter === "refund" && item.intent?.refundStatus === "requested"));
+  const pageSize = 10;
+  const pageCount = Math.max(1, Math.ceil(filtered.length / pageSize));
+  state.paymentHistoryPage = Math.min(Math.max(1, state.paymentHistoryPage), pageCount);
+  const start = (state.paymentHistoryPage - 1) * pageSize;
+  const pageItems = filtered.slice(start, start + pageSize);
+
+  if ($("paymentHistoryRows")) {
+    $("paymentHistoryRows").innerHTML = pageItems.map(item => {
+      const result = paymentResult(item);
+      const refund = item.intent?.refundAmount ? `<div class="client-sub">Extra BDT ${esc(item.intent.refundAmount)}${item.intent.refundStatus ? ` - ${esc(item.intent.refundStatus)}` : ""}</div>` : "";
+      return `<tr>
+        <td><div class="client-name">${esc(item.provider).toUpperCase()} ${esc(item.paymentType === "agent_cash_in" ? "Cash In" : "Receive")}</div><div class="client-sub">${esc(toDeviceDateTime(item.receivedAt))}</div></td>
+        <td><div class="client-name">${esc(item.client?.name || "Not linked")}</div><div class="client-sub">${item.client?.id ? `Client #${esc(item.client.id)}` : "No client matched"}</div></td>
+        <td><div class="client-name">${esc(item.intent?.planTier || "-")}</div><div class="client-sub">${esc(item.intent?.reference || "No payment request")}</div></td>
+        <td><div class="client-name">BDT ${esc(item.amount)}</div><div class="client-sub">From ${esc(item.senderPhone)}</div>${refund}</td>
+        <td><div class="client-name payment-trx">${esc(item.trxId)}</div><div class="client-sub">Receipt #${esc(item.receiptId)}</div></td>
+        <td><span class="status-badge ${statusClass(result.tone)}">${esc(result.label)}</span><div class="client-sub payment-result-note">${esc(item.note || item.intent?.statusMessage || "-")}</div></td>
+      </tr>`;
+    }).join("") || `<tr><td colspan="6" class="empty">No payments match this filter.</td></tr>`;
+  }
+
+  const pager = $("paymentHistoryPager");
+  if (pager) {
+    pager.hidden = filtered.length <= pageSize;
+    pager.innerHTML = filtered.length <= pageSize ? "" : `<button class="table-pager-button" onclick="changePaymentHistoryPage(-1)" ${state.paymentHistoryPage <= 1 ? "disabled" : ""} aria-label="Previous page">&#8592;</button><span>Page <strong>${state.paymentHistoryPage}</strong> of ${pageCount}</span><button class="table-pager-button" onclick="changePaymentHistoryPage(1)" ${state.paymentHistoryPage >= pageCount ? "disabled" : ""} aria-label="Next page">&#8594;</button>`;
+  }
+}
+
+function setPaymentHistoryFilter(value) {
+  state.paymentHistoryFilter = ["paid", "review", "refund"].includes(value) ? value : "all";
+  state.paymentHistoryPage = 1;
+  renderPaymentHistory();
+}
+
+function changePaymentHistoryPage(direction) {
+  state.paymentHistoryPage = Math.max(1, state.paymentHistoryPage + Number(direction || 0));
+  renderPaymentHistory();
 }
 
 function bindingStatusClass(status) {
@@ -675,13 +762,24 @@ function renderSiteBindings() {
 }
 
 function renderHealthRows() {
+  const healthReason = item => {
+    if (!item.is_active || item.health_status === "inactive") return "Client is inactive";
+    if (!item.last_event_at) return "No successful event received yet";
+    if (Number(item.hours_silent || 0) > 48) return `No event for ${fmt(Math.round(item.hours_silent))} hours`;
+    if (Number(item.hours_silent || 0) > 12) return `Last event was ${fmt(Math.round(item.hours_silent))} hours ago`;
+    if (Number(item.today_events || 0) > 0 && Number(item.success_rate || 0) < 80) return `Delivery success is only ${pct(item.success_rate)}`;
+    if (Number(item.today_events || 0) === 0) return "No event received today";
+    return "Events are arriving normally";
+  };
   $("healthRows").innerHTML = state.health.map(item => `<tr>
     <td><div class="client-name">${esc(item.client_name)}</div><div class="client-sub">${esc(item.domain || "")}</div></td>
     <td><div class="status-badge ${statusClass(item.health_status)}">${statusLabel(item.health_status, item.health_status !== "inactive")}</div></td>
+    <td><div class="health-reason">${esc(healthReason(item))}</div></td>
     <td>${fmt(item.today_events)}</td>
     <td>${pct(item.success_rate)}</td>
     <td>${esc(toDeviceDateTime(item.last_event_at))}</td>
-  </tr>`).join("") || `<tr><td colspan="5" class="empty">Health data will appear when clients start sending events.</td></tr>`;
+    <td><button class="btn btn-outline btn-sm" onclick="openClientModal(${Number(item.client_id)})">Open client</button></td>
+  </tr>`).join("") || `<tr><td colspan="7" class="empty">Health data will appear when clients start sending events.</td></tr>`;
 }
 
 function renderClientIntelligence() {
@@ -750,27 +848,53 @@ function renderOpsMonitor() {
     const webhookTotals = webhookMonitor.totals || {};
     const webhookProviders = webhookMonitor.providers || {};
     const smokeMonitor = worker.courier_smoke_monitor || {};
+    const eventOutboxDepth = Number(eventOutbox.queued || 0) + Number(eventOutbox.processing || 0);
+    const failedDepth = Number(failedEvents.pending || 0) + Number(failedEvents.dead || 0);
+    const courierDepth = Number(courier.queued || 0) + Number(courier.processing || 0);
+    const webhookProblems = Number(webhookTotals.auth_failed || 0) + Number(webhookTotals.rate_limited || 0);
+    if ($("workerEventOutboxDepth")) $("workerEventOutboxDepth").textContent = fmt(eventOutboxDepth);
+    if ($("workerFailedDepth")) $("workerFailedDepth").textContent = fmt(failedDepth);
+    if ($("workerCourierDepth")) $("workerCourierDepth").textContent = fmt(courierDepth);
+    if ($("workerWebhookProblems")) $("workerWebhookProblems").textContent = fmt(webhookProblems);
+    const queueState = (label, value) => {
+      const cleanLabel = String(label).toLowerCase();
+      const numericValue = Number(value || 0);
+      if (cleanLabel.includes("smoke monitor")) {
+        const cleanValue = String(value || "never_run").toLowerCase();
+        return ["healthy", "passed"].includes(cleanValue) ? ["Healthy", "status-healthy"] : [cleanValue.replaceAll("_", " "), "status-critical"];
+      }
+      if (cleanLabel.includes("dead") || cleanLabel.includes("auth failures") || cleanLabel.includes("rate limited") || cleanLabel.includes("unknown courier")) {
+        return numericValue > 0 ? ["Needs action", "status-critical"] : ["Clear", "status-healthy"];
+      }
+      if (cleanLabel.includes("queued") || cleanLabel.includes("processing") || cleanLabel.includes("pending")) {
+        return numericValue > 0 ? [cleanLabel.includes("failed") ? "Needs retry" : "Active", "status-warning"] : ["Idle", "status-healthy"];
+      }
+      return ["Reported", "status-healthy"];
+    };
     $("workerMonitorRows").innerHTML = [
-      ["Event outbox queued", eventOutbox.queued || 0],
-      ["Event outbox processing", eventOutbox.processing || 0],
-      ["Event outbox dead", eventOutbox.dead || 0],
-      ["Failed events pending", failedEvents.pending || 0],
-      ["Failed events dead", failedEvents.dead || 0],
-      ["Courier queued", courier.queued || 0],
-      ["Courier processing", courier.processing || 0],
-      ["Courier dead", courier.dead || 0],
-      ["Unknown courier statuses (24h)", courierStatuses.unknown_status_total || 0],
-      ["Courier webhooks received (24h)", webhookTotals.received || 0],
-      ["Courier webhooks applied (24h)", webhookTotals.applied || 0],
-      ["Courier webhooks replayed (24h)", webhookTotals.replayed || 0],
-      ["Courier webhook auth failures (24h)", webhookTotals.auth_failed || 0],
-      ["Courier webhook rate limited (24h)", webhookTotals.rate_limited || 0],
-      ["SteadFast webhooks received", webhookProviders.steadfast?.received || 0],
-      ["Pathao webhooks received", webhookProviders.pathao?.received || 0],
-      ["RedX webhooks received", webhookProviders.redx?.received || 0],
-      ["Courier smoke monitor", smokeMonitor.status || "never_run"],
-      ["Courier smoke age", smokeMonitor.age_seconds == null ? "-" : formatDuration(smokeMonitor.age_seconds)],
-    ].map(row => `<tr><td>${esc(row[0])}</td><td>${typeof row[1] === "number" ? fmt(row[1]) : esc(row[1])}</td></tr>`).join("");
+      ["Events", "Outbox queued", eventOutbox.queued || 0],
+      ["Events", "Outbox processing", eventOutbox.processing || 0],
+      ["Events", "Outbox dead", eventOutbox.dead || 0],
+      ["Events", "Failed pending", failedEvents.pending || 0],
+      ["Events", "Failed dead", failedEvents.dead || 0],
+      ["Courier", "Booking queued", courier.queued || 0],
+      ["Courier", "Booking processing", courier.processing || 0],
+      ["Courier", "Booking dead", courier.dead || 0],
+      ["Courier", "Unknown courier statuses (24h)", courierStatuses.unknown_status_total || 0],
+      ["Webhooks", "Courier webhooks received (24h)", webhookTotals.received || 0],
+      ["Webhooks", "Courier webhooks applied (24h)", webhookTotals.applied || 0],
+      ["Webhooks", "Courier webhooks replayed (24h)", webhookTotals.replayed || 0],
+      ["Webhooks", "Courier webhook auth failures (24h)", webhookTotals.auth_failed || 0],
+      ["Webhooks", "Courier webhook rate limited (24h)", webhookTotals.rate_limited || 0],
+      ["Providers", "SteadFast received", webhookProviders.steadfast?.received || 0],
+      ["Providers", "Pathao received", webhookProviders.pathao?.received || 0],
+      ["Providers", "RedX received", webhookProviders.redx?.received || 0],
+      ["Smoke Test", "Courier smoke monitor", smokeMonitor.status || "never_run"],
+      ["Smoke Test", "Courier smoke age", smokeMonitor.age_seconds == null ? "-" : formatDuration(smokeMonitor.age_seconds)],
+    ].map(sourceRow => [sourceRow[1], sourceRow[2], sourceRow[0]]).map(row => {
+      const stateInfo = queueState(row[0], row[1]);
+      return `<tr><td><span class="worker-system-label">${esc(row[2])}</span></td><td>${esc(row[0])}</td><td><strong class="worker-value">${typeof row[1] === "number" ? fmt(row[1]) : esc(row[1])}</strong></td><td><span class="status-badge ${stateInfo[1]}">${esc(stateInfo[0])}</span></td></tr>`;
+    }).join("");
   }
 }
 
@@ -829,16 +953,25 @@ function derivedAlerts() {
   const webhookRateLimited = Number(webhookTotals.rate_limited || 0);
   const smokeMonitor = state.serverHealth?.worker_monitor?.courier_smoke_monitor || {};
   const smokeUnhealthy = ["failed", "stale", "never_run"].includes(String(smokeMonitor.status || "never_run"));
+  const healthAlert = (items, rank, cls, title) => items.length ? {
+    rank,
+    cls,
+    title,
+    desc: `${items[0].client.name}: ${items[0].health.reasons.slice(0, 2).join(", ") || "Review recent event delivery"}${items.length > 1 ? ` (+${items.length - 1} more)` : ""}`,
+    value: `${items.length}`,
+    action: "open-client",
+    clientId: Number(items[0].client.id)
+  } : null;
   return [
-    smokeUnhealthy ? { rank: "High", cls: "alert-high", title: "Courier production smoke monitor unhealthy", desc: smokeMonitor.status === "failed" ? "The latest automated courier health check failed" : "The automated courier health check is stale or has not run", value: String(smokeMonitor.status || "never_run") } : null,
-    webhookAuthFailures ? { rank: "Medium", cls: "alert-medium", title: "Courier webhook authentication failures", desc: "Review provider webhook secrets and recent callback traffic", value: `${webhookAuthFailures}` } : null,
-    webhookRateLimited ? { rank: "Medium", cls: "alert-medium", title: "Courier webhook rate limit triggered", desc: "Review provider burst traffic in Server Status", value: `${webhookRateLimited}` } : null,
+    smokeUnhealthy ? { rank: "High", cls: "alert-high", title: "Courier production smoke monitor unhealthy", desc: smokeMonitor.status === "failed" ? "The latest automated courier health check failed" : "The automated courier health check is stale or has not run", value: String(smokeMonitor.status || "never_run"), action: "server" } : null,
+    webhookAuthFailures ? { rank: "Medium", cls: "alert-medium", title: "Courier webhook authentication failures", desc: "Review provider webhook secrets and recent callback traffic", value: `${webhookAuthFailures}`, action: "server" } : null,
+    webhookRateLimited ? { rank: "Medium", cls: "alert-medium", title: "Courier webhook rate limit triggered", desc: "Review provider burst traffic in Server Status", value: `${webhookRateLimited}`, action: "server" } : null,
     unknownCourierStatuses ? { rank: "Medium", cls: "alert-medium", title: "Unknown courier statuses", desc: unknownCourierDescription, value: `${unknownCourierStatuses}`, action: "acknowledge-courier-statuses" } : null,
-    critical.length ? { rank: "High", cls: "alert-high", title: "Critical client health", desc: `Affects ${critical.length} client${critical.length > 1 ? "s" : ""}`, value: `${critical.length}` } : null,
-    warning.length ? { rank: "Medium", cls: "alert-medium", title: "Warning status detected", desc: `Affects ${warning.length} client${warning.length > 1 ? "s" : ""}`, value: `${warning.length}` } : null,
-    setupIncomplete.length ? { rank: "Low", cls: "alert-low", title: "Client setup incomplete", desc: `${setupIncomplete.length} active client${setupIncomplete.length > 1 ? "s are" : " is"} waiting for a first successful event`, value: `${setupIncomplete.length}` } : null,
-    inactive.length ? { rank: "Medium", cls: "alert-medium", title: "Inactive clients", desc: `Affects ${inactive.length} client${inactive.length > 1 ? "s" : ""}`, value: `${inactive.length}` } : null,
-    noDomain.length ? { rank: "Low", cls: "alert-low", title: "Domain validation warning", desc: `Affects ${noDomain.length} domain${noDomain.length > 1 ? "s" : ""}`, value: `${noDomain.length}` } : null
+    healthAlert(critical, "High", "alert-high", "Critical client health"),
+    healthAlert(warning, "Medium", "alert-medium", "Warning status detected"),
+    setupIncomplete.length ? { rank: "Low", cls: "alert-low", title: "Client setup incomplete", desc: `${setupIncomplete[0].client.name} is waiting for a first successful event${setupIncomplete.length > 1 ? ` (+${setupIncomplete.length - 1} more)` : ""}`, value: `${setupIncomplete.length}`, action: "open-client", clientId: Number(setupIncomplete[0].client.id) } : null,
+    inactive.length ? { rank: "Medium", cls: "alert-medium", title: "Inactive clients", desc: `${inactive[0].name}${inactive.length > 1 ? ` and ${inactive.length - 1} more` : ""} require review`, value: `${inactive.length}`, action: "clients" } : null,
+    noDomain.length ? { rank: "Low", cls: "alert-low", title: "Domain validation warning", desc: `${noDomain[0].name}${noDomain.length > 1 ? ` and ${noDomain.length - 1} more` : ""} have no domain set`, value: `${noDomain.length}`, action: "clients" } : null
   ].filter(Boolean);
 }
 function renderAlerts() {
@@ -848,17 +981,28 @@ function renderAlerts() {
     cls: alert.severity === "critical" ? "alert-high" : "alert-medium",
     title: alert.code === "dead_letter_jobs" ? "Courier booking dead letters" : alert.code === "processing_stalled" ? "Courier worker stalled" : "Courier booking queue delayed",
     desc: alert.count ? `${fmt(alert.count)} job${alert.count > 1 ? "s" : ""} need operator retry` : `Age ${formatDuration(alert.age_seconds)}`,
-    value: alert.count || formatDuration(alert.age_seconds)
+    value: alert.count || formatDuration(alert.age_seconds),
+    action: "courier"
   }));
   const rows = [...queueAlerts, ...derivedAlerts()];
   $("alertCount").textContent = rows.length;
-  $("alertRows").innerHTML = rows.map((row, index) => `<div class="stream-item" style="align-items:center;${index === rows.length - 1 ? "border-bottom:none" : ""}">
+  $("alertRows").innerHTML = rows.map((row, index) => `<div class="stream-item signal-alert-row" style="align-items:center;${index === rows.length - 1 ? "border-bottom:none" : ""}">
     <svg style="width:20px;height:20px;color:${row.cls === "alert-high" ? "var(--danger)" : row.cls === "alert-medium" ? "var(--warning)" : "var(--primary)"}" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>
     <div class="stream-content"><div class="stream-title">${esc(row.title)}</div><div class="stream-desc">${esc(row.desc)}</div></div>
     <div class="alert-rank ${row.cls}">${esc(row.rank)}</div>
     <div style="font-size:12px;color:var(--text-muted);font-weight:700">${esc(row.value)}</div>
-    ${row.action === "acknowledge-courier-statuses" ? `<button class="btn btn-outline btn-sm" onclick="acknowledgeUnknownCourierStatuses()">Acknowledge</button>` : ""}
+    ${row.action === "acknowledge-courier-statuses" ? `<button class="btn btn-outline btn-sm" onclick="acknowledgeUnknownCourierStatuses()">Acknowledge</button>` : row.action ? `<button class="btn btn-outline btn-sm alert-action" onclick="runAlertAction('${esc(row.action)}', ${Number(row.clientId || 0)})">${row.action === "open-client" ? "Open client" : row.action === "server" ? "Server status" : row.action === "courier" ? "Courier queue" : "Review clients"}</button>` : ""}
   </div>`).join("") || `<div class="stream-item" style="align-items:center;border-bottom:none"><div class="stream-dot success"></div><div class="stream-content"><div class="stream-title">System Status</div><div class="stream-desc">All systems operational</div></div></div>`;
+}
+
+function runAlertAction(action, clientId = 0) {
+  if (action === "open-client" && clientId > 0) {
+    openClientModal(clientId);
+    return;
+  }
+  if (action === "server") setTab("opsMonitor");
+  else if (action === "courier") setTab("courierQueue");
+  else setTab("clients");
 }
 
 async function acknowledgeUnknownCourierStatuses() {
@@ -954,6 +1098,21 @@ function renderRecoveryOps() {
   }
 }
 
+function setNotificationOpsTab(tab) {
+  const allowed = new Set(["payments", "jobs", "support"]);
+  state.notificationOpsTab = allowed.has(tab) ? tab : "payments";
+  document.querySelectorAll("[data-notification-panel]").forEach(panel => {
+    const active = panel.dataset.notificationPanel === state.notificationOpsTab;
+    panel.hidden = !active;
+    panel.classList.toggle("active", active);
+  });
+  document.querySelectorAll(".ops-tab").forEach(button => {
+    const active = button.id === `notificationTab${state.notificationOpsTab[0].toUpperCase()}${state.notificationOpsTab.slice(1)}`;
+    button.classList.toggle("active", active);
+    button.setAttribute("aria-selected", active ? "true" : "false");
+  });
+}
+
 function renderNotificationOps() {
   const jobs = state.notificationJobs || { total: 0, items: [] };
   const items = jobs.items || [];
@@ -993,6 +1152,9 @@ function renderNotificationOps() {
   }
   const support = state.supportTickets || { tickets: [], openCount: 0 };
   const payments = state.paymentReviews?.payments || [];
+  if ($("notificationPaymentsTabCount")) $("notificationPaymentsTabCount").textContent = fmt(payments.length);
+  if ($("notificationJobsTabCount")) $("notificationJobsTabCount").textContent = fmt(jobs.total || items.length);
+  if ($("notificationSupportTabCount")) $("notificationSupportTabCount").textContent = fmt(support.openCount || 0);
   if ($("paymentReviewCount")) {
     const waiting = payments.filter(item => ["matched", "needs_review", "ambiguous"].includes(item.status)).length;
     $("paymentReviewCount").textContent = `${fmt(waiting)} need attention`;
@@ -1096,6 +1258,7 @@ function renderNotificationOps() {
     `).join("") || `<tr><td colspan="7" class="empty">No WhatsApp senders configured.</td></tr>`;
     renderNotificationPager("whatsappInstancePager", "senders", senderPage);
   }
+  setNotificationOpsTab(state.notificationOpsTab);
 }
 
 function notificationPageSlice(items, key) {
@@ -1692,6 +1855,7 @@ function renderAll() {
   renderCourierQueue();
   renderRecoveryOps();
   renderNotificationOps();
+  renderPaymentHistory();
   renderClientIntelligence();
   renderOpsMonitor();
 }
@@ -1734,6 +1898,7 @@ async function refreshNotificationOps(options = {}) {
   }
   if (paymentsResult.status === "fulfilled") state.paymentReviews = paymentsResult.value || { payments: [] };
   renderNotificationOps();
+  renderPaymentHistory();
 
   if (!silent) {
     const failures = results.filter(result => result.status === "rejected");
@@ -1969,6 +2134,7 @@ function setTab(tab) {
   if (tab === "siteBindings") refreshSiteBindings({ silent: true });
   if (tab === "recoveryOps") refreshRecoveryOps({ silent: true });
   if (tab === "notificationOps") refreshNotificationOps({ silent: true });
+  if (tab === "payments") refreshNotificationOps({ silent: true });
 }
 
 function applyInitialRoute() {
@@ -2631,14 +2797,14 @@ function renderEvents() {
     const sampleNotice = event.sampleNotice || "These JSON blocks are reconstructed from stored EventLog fields.";
     
     const mainRow = `
-      <tr onclick="toggleEventDetail('${event.id}')" style="cursor:pointer;" class="event-row">
+      <tr onclick="toggleEventDetail('${event.id}')" class="event-row ${event.status === "Failed" ? "event-row-failed" : ""}">
         <td class="code-text" style="white-space:nowrap;">${esc(displayTime)}</td>
         <td><div class="client-name" style="font-size:12.5px;">${esc(event.client_name)}</div><div class="client-sub">ID ${event.client_id}</div></td>
         <td><span style="color:#818cf8;font-weight:700">${esc(event.name)}</span></td>
         <td style="font-weight:600; font-size:12px;">${esc(event.platform)}</td>
         <td><div class="status-badge ${statusClass}">${esc(event.status)}</div></td>
         <td><div class="client-name" style="max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(event.contextLabel || "Website event")}">${esc(event.contextLabel || "Website event")}</div><div class="client-sub" style="max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(event.pageUrl || "")}">${esc(event.pageUrl || "Open details for technical data")}</div></td>
-        <td><span class="copy-icon">${isExpanded ? "Hide" : "View"}</span></td>
+        <td><button type="button" class="event-detail-button ${event.status === "Failed" ? "event-detail-button-failed" : ""}" aria-expanded="${isExpanded ? "true" : "false"}">${event.status === "Failed" && !isExpanded ? "Inspect failure" : isExpanded ? "Hide details" : "View details"}</button></td>
       </tr>
     `;
     
@@ -2673,20 +2839,12 @@ function renderEvents() {
 }
 
 function toggleEventDetail(id) {
-  const row = document.getElementById(`detail-${id}`);
-  if (!row) return;
-  
   if (eventsState.expandedEventId === id) {
-    row.style.display = "none";
     eventsState.expandedEventId = null;
   } else {
-    if (eventsState.expandedEventId) {
-      const oldRow = document.getElementById(`detail-${eventsState.expandedEventId}`);
-      if (oldRow) oldRow.style.display = "none";
-    }
-    row.style.display = "table-row";
     eventsState.expandedEventId = id;
   }
+  renderEvents();
 }
 
 function handleEventsFilterChange() {

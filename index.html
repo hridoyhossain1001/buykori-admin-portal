@@ -55,10 +55,12 @@
       </div>
 
       <div class="nav-menu">
+        <div class="nav-group-label">Workspace</div>
         <button class="nav-item active" data-tab="dashboard">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3 12l9-9 9 9M5 10v10h14V10"/></svg>
           Overview
         </button>
+        <div class="nav-group-label">Clients</div>
         <button class="nav-item" data-tab="clients">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
           Clients
@@ -67,6 +69,11 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3l8 4v5c0 5-3.4 8.7-8 9-4.6-.3-8-4-8-9V7l8-4zM9 12l2 2 4-5"/></svg>
           Connected Sites
         </button>
+        <button class="nav-item" data-tab="clientIntel">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3 3h18v4H3zM5 11h14M5 16h9M17 16h2M5 21h6"/></svg>
+          Client Details
+        </button>
+        <div class="nav-group-label">Operations</div>
         <button class="nav-item" data-tab="events">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7h8v8M21 7l-8 8-4-4-6 6"/></svg>
           Events
@@ -83,10 +90,11 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M18 8a6 6 0 00-12 0c0 7-3 7-3 7h18s-3 0-3-7M13.7 21a2 2 0 01-3.4 0"/></svg>
           <span>Notifications</span><span id="supportNavCount" class="nav-count" hidden>0</span>
         </button>
-        <button class="nav-item" data-tab="clientIntel">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3 3h18v4H3zM5 11h14M5 16h9M17 16h2M5 21h6"/></svg>
-          Client Details
+        <button class="nav-item" data-tab="payments">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="5" width="18" height="14" rx="2"/><path stroke-linecap="round" d="M3 10h18M7 15h3"/></svg>
+          <span>Payments</span><span id="paymentNavCount" class="nav-count" hidden>0</span>
         </button>
+        <div class="nav-group-label">Monitoring</div>
         <button class="nav-item" data-tab="opsMonitor">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M4 19V5M4 19h18M8 16v-5M13 16V8M18 16v-9"/></svg>
           Server Status
@@ -492,20 +500,68 @@
             <div class="table-wrap"><table><thead><tr><th>Instance</th><th>Phone</th><th>Status / Health</th><th>Clients / Capacity</th><th>Delivery Load</th><th>Last Activity</th><th>Actions</th></tr></thead><tbody id="whatsappInstanceRows"></tbody></table></div>
             <div id="whatsappInstancePager" class="table-pager" aria-label="WhatsApp sender pages"></div>
           </div>
+          <div class="ops-tabs" role="tablist" aria-label="Notification operation views">
+            <button id="notificationTabPayments" class="ops-tab active" type="button" role="tab" aria-selected="true" onclick="setNotificationOpsTab('payments')">Payments <span id="notificationPaymentsTabCount" class="ops-tab-count">0</span></button>
+            <button id="notificationTabJobs" class="ops-tab" type="button" role="tab" aria-selected="false" onclick="setNotificationOpsTab('jobs')">Delivery Jobs <span id="notificationJobsTabCount" class="ops-tab-count">0</span></button>
+            <button id="notificationTabSupport" class="ops-tab" type="button" role="tab" aria-selected="false" onclick="setNotificationOpsTab('support')">Support <span id="notificationSupportTabCount" class="ops-tab-count">0</span></button>
+          </div>
+          <div class="notification-panel active" data-notification-panel="payments" role="tabpanel">
           <div class="card notification-list-card">
             <div class="card-header notification-card-heading"><div><h2 class="card-title">SMS Payments</h2><p class="card-subtitle">Automatic matches, plan activations, and payment exceptions that need attention.</p></div><span id="paymentReviewCount" class="status-badge warning">0 need attention</span></div>
             <div class="table-wrap"><table><thead><tr><th>Payment</th><th>Client / Plan</th><th>Amount / Sender</th><th>TrxID / Result</th><th>Status</th><th>Action</th></tr></thead><tbody id="paymentReviewRows"></tbody></table></div>
             <div id="paymentReviewPager" class="table-pager" aria-label="SMS payment review pages"></div>
           </div>
+          </div>
+          <div class="notification-panel" data-notification-panel="jobs" role="tabpanel" hidden>
           <div class="card notification-list-card">
             <div class="card-header notification-card-heading"><div><h2 class="card-title">Recent Notification Jobs</h2><p class="card-subtitle">Latest delivery attempts, failures, and retry status.</p></div></div>
             <div class="table-wrap"><table><thead><tr><th>Job</th><th>Client</th><th>Event</th><th>Status</th><th>Attempts</th><th>Message / Error</th><th>Delivery Time</th></tr></thead><tbody id="notificationRows"></tbody></table></div>
             <div id="notificationPager" class="table-pager" aria-label="Notification job pages"></div>
           </div>
+          </div>
+          <div class="notification-panel" data-notification-panel="support" role="tabpanel" hidden>
           <div class="card notification-list-card">
             <div class="card-header notification-card-heading"><div><h2 class="card-title">Client Support Tickets</h2><p class="card-subtitle">Requests submitted from the client portal.</p></div><span id="supportTicketCount" class="status-badge warning">0 open</span></div>
             <div class="table-wrap"><table><thead><tr><th>Ticket</th><th>Client</th><th>Request</th><th>Status</th><th>Attachments</th><th>Actions</th></tr></thead><tbody id="supportTicketRows"></tbody></table></div>
             <div id="supportTicketPager" class="table-pager" aria-label="Support ticket pages"></div>
+          </div>
+          </div>
+        </section>
+
+        <section id="payments" class="section">
+          <div class="page-header">
+            <div>
+              <h1 class="page-title">Payments</h1>
+              <p class="page-sub">See paid plans, payment exceptions, and overpayment refund requests in one place.</p>
+            </div>
+            <div class="header-actions">
+              <select id="paymentHistoryFilter" onchange="setPaymentHistoryFilter(this.value)">
+                <option value="all">All payments</option>
+                <option value="paid">Paid</option>
+                <option value="review">Needs attention</option>
+                <option value="refund">Refund requests</option>
+              </select>
+              <button class="btn btn-outline" onclick="refreshNotificationOps()">Refresh</button>
+            </div>
+          </div>
+          <div class="metrics-grid payment-metrics-grid">
+            <div class="metric-card"><div class="metric-header"><span class="m-title">Collected</span></div><div class="metric-value" id="paymentCollectedTotal">BDT 0</div><div class="trend">approved payments</div></div>
+            <div class="metric-card"><div class="metric-header"><span class="m-title">Paid</span></div><div class="metric-value" id="paymentPaidCount">0</div><div class="trend">plans activated</div></div>
+            <div class="metric-card"><div class="metric-header"><span class="m-title">Needs attention</span></div><div class="metric-value" id="paymentAttentionCount">0</div><div class="trend">manual review or linking</div></div>
+            <div class="metric-card"><div class="metric-header"><span class="m-title">Refund requests</span></div><div class="metric-value" id="paymentRefundCount">0</div><div class="trend">extra amount to return</div></div>
+          </div>
+          <div class="card payment-history-card">
+            <div class="card-header payment-history-heading">
+              <div><h2 class="card-title">Payment History</h2><p class="card-subtitle">The latest 200 SMS payment receipts received by Buykori.</p></div>
+              <button class="view-all" onclick="setTab('notificationOps'); setNotificationOpsTab('payments')">Open review queue</button>
+            </div>
+            <div class="table-wrap">
+              <table class="payment-history-table">
+                <thead><tr><th>Payment</th><th>Client</th><th>Plan</th><th>Amount</th><th>Transaction</th><th>Result</th></tr></thead>
+                <tbody id="paymentHistoryRows"></tbody>
+              </table>
+            </div>
+            <div id="paymentHistoryPager" class="table-pager" aria-label="Payment history pages"></div>
           </div>
         </section>
 
@@ -513,15 +569,15 @@
           <div class="page-header">
             <div>
               <h1 class="page-title">Clients</h1>
-              <p class="page-sub">Manage client status, domains, keys, and event totals.</p>
+              <p class="page-sub">See each client, connected store, plan usage, integrations, and current health.</p>
             </div>
             <button class="btn btn-primary" onclick="setTab('create')">Add Client</button>
           </div>
           <div class="card">
             <div class="card-header"><h2 class="card-title">Client Directory</h2></div>
             <div class="table-wrap">
-              <table>
-                <thead><tr><th>Client</th><th>Domain</th><th>Registered</th><th>Events</th><th>Keys</th><th>Health</th><th>Actions</th></tr></thead>
+              <table class="client-directory-table">
+                <thead><tr><th>Client</th><th>Store / Registered</th><th>Plan &amp; Usage</th><th>Integrations</th><th>Health</th><th>Actions</th></tr></thead>
                 <tbody id="clientRows"></tbody>
               </table>
             </div>
@@ -674,9 +730,9 @@
                 <button class="view-all" onclick="loadEvents()">Refresh</button>
               </div>
             </div>
-            <div class="table-wrap" style="max-height: calc(100vh - 320px); overflow-y: auto;">
+            <div class="table-wrap event-stream-wrap">
               <table>
-                <thead style="position: sticky; top: 0; background: var(--bg-color); z-index: 10;">
+                <thead class="event-stream-head">
                   <tr>
                     <th>Time</th>
                     <th>Client</th>
@@ -708,12 +764,12 @@
             <div><h1 class="page-title">Client Details</h1><p class="page-sub">Client health, trial follow-ups, onboarding progress, and support notes.</p></div>
             <button class="btn btn-outline" onclick="loadAll()">Refresh Details</button>
           </div>
-          <div class="grid-layout">
-            <div class="card">
+          <div class="client-intelligence-layout">
+            <div class="card client-intel-card">
               <div class="card-header"><h2 class="card-title">Trial Follow-up Queue</h2></div>
               <div class="table-wrap"><table><thead><tr><th>Client</th><th>Priority</th><th>Reason</th><th>Action</th><th>Open</th></tr></thead><tbody id="trialFollowupRows"></tbody></table></div>
             </div>
-            <div class="card">
+            <div class="card client-intel-card client-intel-card-wide">
               <div class="card-header"><h2 class="card-title">Client 360 Snapshot</h2></div>
               <div class="table-wrap"><table><thead><tr><th>Client</th><th>Health</th><th>Funnel</th><th>Follow-up</th><th>Notes</th><th>Open</th></tr></thead><tbody id="clientIntelRows"></tbody></table></div>
             </div>
@@ -732,7 +788,7 @@
             <div class="metric-card"><div class="metric-header"><div class="m-icon bg-indigo">L</div><span class="m-title">Load Avg</span></div><div class="metric-value" id="serverLoadAvg">-</div><div class="trend">1m / 5m / 15m</div></div>
             <div class="metric-card"><div class="metric-header"><div class="m-icon bg-red">D</div><span class="m-title">Disk Used</span></div><div class="metric-value" id="serverDiskUsed">-</div><div class="trend">root volume</div></div>
           </div>
-          <div class="grid-layout">
+          <div class="ops-monitor-layout">
             <div class="card">
               <div class="card-header"><h2 class="card-title">Runtime Health</h2></div>
               <div class="queue-summary">
@@ -747,7 +803,13 @@
                 <h2 class="card-title">Worker Monitor</h2>
                 <div id="workerMonitorStatus" class="status-badge status-healthy">-</div>
               </div>
-              <div class="table-wrap"><table><thead><tr><th>Queue</th><th>Count</th></tr></thead><tbody id="workerMonitorRows"></tbody></table></div>
+              <div class="worker-summary-grid">
+                <div class="worker-summary-item"><span>Event Outbox</span><strong id="workerEventOutboxDepth">0</strong><small>queued or processing</small></div>
+                <div class="worker-summary-item"><span>Failed Events</span><strong id="workerFailedDepth">0</strong><small>pending or dead</small></div>
+                <div class="worker-summary-item"><span>Courier Jobs</span><strong id="workerCourierDepth">0</strong><small>queued or processing</small></div>
+                <div class="worker-summary-item"><span>Webhook Problems</span><strong id="workerWebhookProblems">0</strong><small>auth or rate-limit failures</small></div>
+              </div>
+              <div class="table-wrap worker-monitor-table"><table><thead><tr><th>System</th><th>Metric</th><th>Value</th><th>State</th></tr></thead><tbody id="workerMonitorRows"></tbody></table></div>
             </div>
           </div>
         </section>
@@ -775,7 +837,7 @@
           </div>
           <div class="card">
             <div class="card-header"><h2 class="card-title">Client Health</h2></div>
-            <div class="table-wrap"><table><thead><tr><th>Client</th><th>Status</th><th>Today</th><th>Success</th><th>Last Event</th></tr></thead><tbody id="healthRows"></tbody></table></div>
+            <div class="table-wrap"><table><thead><tr><th>Client</th><th>Status</th><th>Why</th><th>Today</th><th>Success</th><th>Last Event</th><th>Action</th></tr></thead><tbody id="healthRows"></tbody></table></div>
           </div>
         </section>
 
