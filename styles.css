@@ -613,6 +613,10 @@ tr:last-child td { border-bottom: none; }
 .action-btn:hover { background: rgba(var(--primary-rgb), 0.08); border-color: rgba(var(--primary-rgb), 0.3); }
 
 .grid-layout { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; }
+.team-layout { align-items: start; }
+.team-layout .form-card { display: grid; gap: 14px; }
+.team-role { display: inline-flex; border-radius: 999px; padding: 4px 9px; background: rgba(var(--primary-rgb), .1); color: var(--primary); font-size: 10px; font-weight: 800; text-transform: uppercase; }
+.team-actions { display: flex; flex-wrap: wrap; gap: 6px; }
 .ops-monitor-layout { display: grid; grid-template-columns: minmax(0, 1fr); gap: 20px; }
 .worker-summary-grid {
   display: grid;

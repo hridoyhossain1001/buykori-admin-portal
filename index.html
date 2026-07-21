@@ -111,6 +111,13 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78L12 21.23l8.84-8.84a5.5 5.5 0 000-7.78z"/></svg>
           Health Check
         </button>
+        <div id="teamNavGroup" hidden>
+          <div class="nav-group-label">Administration</div>
+          <button class="nav-item" data-tab="team">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8M19 8v6M22 11h-6"/></svg>
+            Team &amp; Access
+          </button>
+        </div>
       </div>
 
       <div class="platform-usage-box">
@@ -838,6 +845,30 @@
           <div class="card">
             <div class="card-header"><h2 class="card-title">Client Health</h2></div>
             <div class="table-wrap"><table><thead><tr><th>Client</th><th>Status</th><th>Why</th><th>Today</th><th>Success</th><th>Last Event</th><th>Action</th></tr></thead><tbody id="healthRows"></tbody></table></div>
+          </div>
+        </section>
+
+        <section id="team" class="section">
+          <div class="page-header">
+            <div><h1 class="page-title">Team &amp; Access</h1><p class="page-sub">Create administrators, assign ownership, and revoke access.</p></div>
+            <button class="btn btn-outline" onclick="refreshAdminUsers()">Refresh</button>
+          </div>
+          <div class="grid-layout team-layout">
+            <div class="card">
+              <div class="card-header"><h2 class="card-title">Admin users</h2><span id="teamCount" class="client-sub">0 users</span></div>
+              <div class="table-wrap"><table><thead><tr><th>User</th><th>Role</th><th>Status</th><th>Last login</th><th>Actions</th></tr></thead><tbody id="teamRows"></tbody></table></div>
+            </div>
+            <div class="card">
+              <div class="card-header"><h2 class="card-title">Add administrator</h2></div>
+              <form class="form-card" onsubmit="createAdminUser(event)">
+                <div class="field"><label for="teamUsername">Username</label><input id="teamUsername" minlength="3" maxlength="120" autocomplete="off" required></div>
+                <div class="field"><label for="teamDisplayName">Display name</label><input id="teamDisplayName" maxlength="120" required></div>
+                <div class="field"><label for="teamPassword">Temporary password</label><input id="teamPassword" type="password" minlength="12" maxlength="128" autocomplete="new-password" required><small>12-128 characters. Share through a secure channel.</small></div>
+                <div class="field"><label for="teamRole">Role</label><select id="teamRole"><option value="admin">Admin</option><option value="owner">Owner</option></select></div>
+                <button id="teamCreateButton" class="btn btn-primary" type="submit">Add administrator</button>
+                <p id="teamFormMessage" class="notice"></p>
+              </form>
+            </div>
           </div>
         </section>
 

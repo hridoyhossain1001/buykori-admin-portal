@@ -13,6 +13,8 @@ const PLAN_DEFAULTS = Object.freeze({
 });
 let adminCsrfToken = "";
 const state = {
+  currentAdmin: null,
+  adminUsers: [],
   summary: null,
   clients: [],
   health: [],
@@ -217,6 +219,7 @@ async function loginAdmin() {
     
     const data = await res.json();
     adminCsrfToken = data.csrf_token || csrfFromCookie();
+    applyAdminIdentity(data.user);
     
     await loadAll();
     showApp();
@@ -289,6 +292,87 @@ function healthFor(client) {
 
 function intelligenceFor(clientId) {
   return (state.intelligence?.clients || []).find(row => String(row.client?.id) === String(clientId)) || null;
+}
+
+function applyAdminIdentity(user) {
+  state.currentAdmin = user || null;
+  const isOwner = user?.role === "owner";
+  if ($("teamNavGroup")) $("teamNavGroup").hidden = !isOwner;
+  const name = document.querySelector(".user-profile .name");
+  const email = document.querySelector(".user-profile .email");
+  const avatar = document.querySelector(".user-profile .avatar");
+  if (name) name.textContent = user?.displayName || user?.username || "Admin Panel";
+  if (email) email.textContent = user ? `${user.username} · ${user.role}` : "Secure session";
+  if (avatar) avatar.textContent = String(user?.displayName || user?.username || "A").trim().slice(0, 2).toUpperCase();
+}
+
+async function refreshAdminUsers() {
+  if (state.currentAdmin?.role !== "owner") return;
+  try {
+    const data = await api("/admin/api/admin-users");
+    state.adminUsers = Array.isArray(data.users) ? data.users : [];
+    renderAdminUsers();
+  } catch (error) {
+    $("teamRows").innerHTML = `<tr><td colspan="5" class="empty">${esc(readableApiError(error, "Could not load admin users."))}</td></tr>`;
+  }
+}
+
+function renderAdminUsers() {
+  const users = state.adminUsers || [];
+  if ($("teamCount")) $("teamCount").textContent = `${users.length} user${users.length === 1 ? "" : "s"}`;
+  $("teamRows").innerHTML = users.length ? users.map(user => {
+    const nextRole = user.role === "owner" ? "admin" : "owner";
+    const nextActive = !user.isActive;
+    return `<tr>
+      <td><strong>${esc(user.displayName)}</strong><div class="client-sub">@${esc(user.username)}</div></td>
+      <td><span class="team-role">${esc(user.role)}</span></td>
+      <td><span class="status-badge ${user.isActive ? "status-active" : "status-inactive"}">${user.isActive ? "Active" : "Disabled"}</span></td>
+      <td>${esc(user.lastLoginAt ? toDeviceDateTime(user.lastLoginAt) : "Never")}</td>
+      <td><div class="team-actions">
+        <button class="btn btn-outline btn-sm" onclick="updateAdminUserAccess('${user.id}', {role:'${nextRole}'}, 'Change ${esc(user.username)} to ${nextRole}?')">Make ${nextRole}</button>
+        <button class="btn btn-outline btn-sm" onclick="updateAdminUserAccess('${user.id}', {is_active:${nextActive}}, '${nextActive ? "Enable" : "Disable"} ${esc(user.username)}?')">${nextActive ? "Enable" : "Disable"}</button>
+      </div></td>
+    </tr>`;
+  }).join("") : `<tr><td colspan="5" class="empty">No admin users found.</td></tr>`;
+}
+
+async function createAdminUser(event) {
+  event.preventDefault();
+  const button = $("teamCreateButton");
+  button.disabled = true;
+  $("teamFormMessage").textContent = "Creating administrator...";
+  try {
+    await api("/admin/api/admin-users", {
+      method: "POST",
+      body: JSON.stringify({
+        username: $("teamUsername").value,
+        display_name: $("teamDisplayName").value,
+        password: $("teamPassword").value,
+        role: $("teamRole").value
+      })
+    });
+    event.target.reset();
+    $("teamFormMessage").textContent = "Administrator created.";
+    await refreshAdminUsers();
+  } catch (error) {
+    $("teamFormMessage").textContent = readableApiError(error, "Could not create administrator.");
+  } finally {
+    button.disabled = false;
+  }
+}
+
+async function updateAdminUserAccess(publicId, changes, confirmation) {
+  if (!window.confirm(confirmation)) return;
+  try {
+    await api(`/admin/api/admin-users/${encodeURIComponent(publicId)}`, {
+      method: "PATCH",
+      body: JSON.stringify(changes)
+    });
+    showToast("Admin access updated.");
+    await refreshAdminUsers();
+  } catch (error) {
+    showToast(readableApiError(error, "Could not update admin access."));
+  }
 }
 
 function overviewHealthFor(client) {
@@ -2135,6 +2219,7 @@ function setTab(tab) {
   if (tab === "recoveryOps") refreshRecoveryOps({ silent: true });
   if (tab === "notificationOps") refreshNotificationOps({ silent: true });
   if (tab === "payments") refreshNotificationOps({ silent: true });
+  if (tab === "team") refreshAdminUsers();
 }
 
 function applyInitialRoute() {
@@ -2243,6 +2328,7 @@ async function restoreAdminSession() {
 
   const data = await response.json();
   adminCsrfToken = data.csrf_token || csrfFromCookie();
+  applyAdminIdentity(data.user);
   return Boolean(adminCsrfToken);
 }
 
