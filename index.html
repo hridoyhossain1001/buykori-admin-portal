@@ -566,7 +566,7 @@
                   <svg style="width:18px;height:18px" viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="5" width="18" height="14" rx="2"/><path stroke-linecap="round" d="M3 10h18M7 15h3"/></svg>
                   Admin Test Payment Tool (৳10 SMS System Check)
                 </h2>
-                <p class="card-subtitle" style="color:var(--text-muted);">Run or simulate a BDT 10 test payment intent for system testing, diagnostics, or manual SMS matching verification without affecting production client plans.</p>
+                <p class="card-subtitle" style="color:var(--text-muted);">Create a real BDT 10 SMS-matching test. The selected client is only an audit label; its plan, billing status, and saved details will not change.</p>
               </div>
             </div>
             <div style="display:flex; flex-wrap:wrap; gap:12px; align-items:center;">
@@ -577,9 +577,8 @@
                 <option value="bkash">bKash (৳10)</option>
                 <option value="nagad">Nagad (৳10)</option>
               </select>
-              <input id="adminTestSenderPhone" placeholder="Sender Phone (01XXXXXXXXX)" style="min-width:190px; padding:9px 12px; border-radius:8px; border:1px solid var(--card-border); background:var(--card-bg); color:var(--text-main); font-size:12px; font-mono font-weight:600;">
               <button class="btn" onclick="triggerAdminTestPayment()" style="background:#f59e0b; color:#ffffff; font-weight:700; border:none; padding:9px 16px; border-radius:8px; cursor:pointer;">
-                ⚡ Run BDT 10 Test Payment
+                ⚡ Start BDT 10 SMS Test
               </button>
             </div>
             <div id="adminTestPaymentResult" style="margin-top:12px; font-size:12px; font-weight:600; display:none;"></div>

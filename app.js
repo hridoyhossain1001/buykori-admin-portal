@@ -2812,10 +2812,60 @@ function populateClientFilter() {
   });
 }
 
+let adminTestPaymentPollToken = 0;
+
+function renderAdminTestPaymentResult(resultDiv, payment, clientName) {
+  if (!resultDiv || !payment) return;
+  const status = String(payment.status || "pending").toLowerCase();
+  const passed = ["approved", "approved_overpaid"].includes(status);
+  const failed = ["expired", "cancelled", "rejected", "underpaid", "needs_review", "ambiguous"].includes(status);
+  const statusLabel = passed ? "TEST PASSED" : failed ? status.replaceAll("_", " ").toUpperCase() : "WAITING FOR SMS";
+  resultDiv.style.display = "block";
+  resultDiv.style.color = passed ? "var(--success)" : failed ? "var(--danger-text)" : "var(--text-main)";
+  resultDiv.innerHTML = `
+    <div style="display:grid;gap:7px;line-height:1.55">
+      <div><strong>${passed ? "✅" : failed ? "⚠️" : "⏳"} ${esc(statusLabel)}</strong>${clientName ? ` · Audit client: ${esc(clientName)}` : ""}</div>
+      <div>Send exactly <strong>BDT ${esc(payment.totalAmount || "10.00")}</strong> to <strong>${esc(payment.receivingPhone || "configured receiver")}</strong> using ${esc(String(payment.provider || "bKash").toUpperCase())}.</div>
+      <div>In the payment app's <strong>Reference</strong> field enter only: <code style="font-family:monospace;background:rgba(245,158,11,.16);padding:3px 10px;border-radius:5px;font-size:15px;font-weight:900">${esc(payment.paymentReference || "-")}</code> <span style="color:var(--text-muted)">(number between 1 and 100)</span></div>
+      <div style="color:var(--text-muted)">Any sender number is accepted for this admin-only test. Client plan and billing details will not change.</div>
+      ${payment.statusMessage ? `<div>${esc(payment.statusMessage)}</div>` : ""}
+    </div>`;
+}
+
+function watchAdminTestPayment(reference, resultDiv, initialPayment, clientName) {
+  const token = ++adminTestPaymentPollToken;
+  const terminal = new Set(["approved", "approved_overpaid", "expired", "cancelled", "rejected", "underpaid", "needs_review", "ambiguous"]);
+  renderAdminTestPaymentResult(resultDiv, initialPayment, clientName);
+
+  const poll = async () => {
+    if (token !== adminTestPaymentPollToken) return;
+    try {
+      const statusResponse = await api(`/admin/api/payments/intents/${encodeURIComponent(reference)}/status`);
+      const payment = statusResponse?.payment;
+      const status = String(payment?.status || "").toLowerCase();
+      renderAdminTestPaymentResult(resultDiv, payment, statusResponse?.client?.name || clientName);
+      if (terminal.has(status)) {
+        if (["approved", "approved_overpaid"].includes(status)) {
+          showToast("BDT 10 SMS payment test passed!");
+          await refreshNotificationOps({ silent: true });
+        }
+        return;
+      }
+    } catch (err) {
+      if (resultDiv) {
+        resultDiv.style.color = "var(--danger-text)";
+        resultDiv.textContent = `Could not check test status: ${readableApiError(err)}`;
+      }
+      return;
+    }
+    setTimeout(poll, 3000);
+  };
+  setTimeout(poll, 3000);
+}
+
 async function triggerAdminTestPayment() {
   const clientSelect = $("adminTestPaymentClient");
   const provider = $("adminTestPaymentProvider")?.value || "bkash";
-  const senderPhone = ($("adminTestSenderPhone")?.value || "").trim();
   const resultDiv = $("adminTestPaymentResult");
   const clientId = clientSelect?.value;
 
@@ -2823,7 +2873,7 @@ async function triggerAdminTestPayment() {
     if (resultDiv) {
       resultDiv.style.display = "block";
       resultDiv.style.color = "var(--danger-text)";
-      resultDiv.textContent = "⚠️ Please select a client to run the ৳10 test payment.";
+      resultDiv.textContent = "Please select an existing client as the audit label for this test.";
     }
     return;
   }
@@ -2832,28 +2882,22 @@ async function triggerAdminTestPayment() {
     if (resultDiv) {
       resultDiv.style.display = "block";
       resultDiv.style.color = "var(--text-muted)";
-      resultDiv.textContent = "⏳ Creating BDT 10 Test Payment Intent...";
+      resultDiv.textContent = "Creating BDT 10 SMS test...";
     }
 
     const res = await api(`/admin/api/clients/${clientId}/test-payment`, {
       method: "POST",
-      body: JSON.stringify({
-        senderPhone: senderPhone || "01700000000",
-        provider: provider
-      })
+      body: JSON.stringify({ provider })
     });
 
-    if (resultDiv) {
-      resultDiv.style.color = "var(--success)";
-      resultDiv.innerHTML = `✅ BDT 10 Test Payment Intent created successfully!<br>Reference: <code style="font-family:monospace; background:rgba(16,185,129,0.15); padding:2px 8px; border-radius:4px; font-weight:800">${res?.payment?.reference || res?.reference || 'CREATED'}</code> | Provider: <strong>${provider.toUpperCase()}</strong> | Status: <strong>Pending SMS Match</strong>`;
-    }
-    showToast("৳10 Test Payment created in Admin Portal!");
+    watchAdminTestPayment(res?.payment?.reference, resultDiv, res?.payment, res?.client?.name);
+    showToast("BDT 10 SMS test is ready. Use the short Reference shown below.");
     await refreshNotificationOps({ silent: true });
   } catch (err) {
     if (resultDiv) {
       resultDiv.style.display = "block";
       resultDiv.style.color = "var(--danger-text)";
-      resultDiv.textContent = `❌ Error creating test payment: ${readableApiError(err)}`;
+      resultDiv.textContent = `Error creating test payment: ${readableApiError(err)}`;
     }
   }
 }
