@@ -74,8 +74,13 @@ const esc = value => {
 };
 const safeHref = value => {
   const str = String(value ?? "").trim();
-  if (!/^https?:\/\//i.test(str)) return "#";
-  return esc(str);
+  try {
+    const parsed = new URL(str);
+    if (!['http:', 'https:'].includes(parsed.protocol)) return "#";
+    return esc(parsed.href);
+  } catch {
+    return "#";
+  }
 };
 
 function csrfFromCookie() {
@@ -542,13 +547,24 @@ function domainLink(client) {
   const domain = client.display_domain || client.domain || "No domain set";
   if (!client.display_domain && !client.domain) return `<span class="domain-link">${esc(domain)}</span>`;
   const href = String(domain).startsWith("http") ? domain : `https://${domain}`;
-  return `<a href="${esc(href)}" target="_blank" rel="noopener" class="domain-link">${esc(domain)} <span style="font-size:11px;opacity:0.8">open</span></a>`;
+  return `<a href="${safeHref(href)}" target="_blank" rel="noopener noreferrer" class="domain-link">${esc(domain)} <span style="font-size:11px;opacity:0.8">open</span></a>`;
 }
 
-function integrationBadge(integration, color, icon) {
+const INTEGRATION_LOGOS = Object.freeze({
+  meta: { src: "platforms/meta.svg", label: "Meta" },
+  tiktok: { src: "platforms/tiktok.png", label: "TikTok" },
+  ga4: { src: "platforms/ga4.svg", label: "Google Analytics 4" }
+});
+
+function integrationLogo(platform) {
+  const logo = INTEGRATION_LOGOS[platform];
+  return logo ? `<img class="platform-logo" src="${logo.src}" alt="${logo.label} logo" loading="lazy" decoding="async">` : "";
+}
+
+function integrationBadge(integration, platform) {
   const stateName = integration?.state || "off";
   const dot = stateName === "ready" ? "dot-active" : stateName === "attention" ? "dot-warning" : "dot-inactive";
-  return `<div class="integration-status">${icon ? `<span style="color:${color};font-weight:900;margin-right:2px">${icon}</span>` : ""}<div class="dot ${dot}"></div>${esc(integration?.label || "Off")}</div>`;
+  return `<div class="integration-status">${integrationLogo(platform)}<div class="dot ${dot}"></div>${esc(integration?.label || "Off")}</div>`;
 }
 
 function filteredClients() {
@@ -628,9 +644,9 @@ function renderIntegrationRows() {
     return `<tr>
       <td><div class="client-name">${esc(client.name)}</div><div class="client-sub">${esc(client.pixel_id || `ID ${client.id}`)}</div></td>
       <td>${domainLink(client)}</td>
-      <td>${integrationBadge(integrationState(client, "meta"), "#1877F2", "f")}</td>
-      <td>${integrationBadge(integrationState(client, "tiktok"), "#3B82F6", "T")}</td>
-      <td>${integrationBadge(integrationState(client, "ga4"), "#F9AB00", "G")}</td>
+      <td>${integrationBadge(integrationState(client, "meta"), "meta")}</td>
+      <td>${integrationBadge(integrationState(client, "tiktok"), "tiktok")}</td>
+      <td>${integrationBadge(integrationState(client, "ga4"), "ga4")}</td>
       <td><span class="text-success" style="font-weight:700">${fmt(health.periodEvents)}</span> <span style="font-size:10px;color:var(--text-subtle)">${esc(dashboardWindowShortLabel())}</span></td>
       <td><div class="status-badge ${statusClass(health.status)}" title="${esc(health.reasons.join(", "))}">${health.score !== undefined ? `${fmt(health.score)}%` : statusLabel(health.status, client.is_active)}</div></td>
       <td><button class="action-btn" onclick="openClientModal(${client.id})" title="Manage client">...</button></td>
@@ -646,15 +662,15 @@ function renderClientRows() {
     const used = Number(client.event_total || 0);
     const usage = planLimit > 0 ? Math.min(100, (used / planLimit) * 100) : 0;
     const integrations = [
-      ["M", integrationState(client, "meta")],
-      ["T", integrationState(client, "tiktok")],
-      ["G", integrationState(client, "ga4")]
+      ["meta", integrationState(client, "meta")],
+      ["tiktok", integrationState(client, "tiktok")],
+      ["ga4", integrationState(client, "ga4")]
     ];
     return `<tr>
       <td><div class="client-name">${esc(client.name)}</div><div class="client-sub">ID ${esc(client.id)}${intel?.owner?.phone_number ? ` - ${esc(intel.owner.phone_number)}` : ""}</div></td>
       <td><div class="client-store-cell">${domainLink(client)}<div class="client-sub">Registered ${esc(toDeviceDateTime(client.created_at))}</div></div></td>
       <td><div class="client-plan-row"><span class="plan-chip">${esc(plan)}</span><span>${compactNumber(used)} / ${planLimit ? compactNumber(planLimit) : "Unlimited"}</span></div><div class="client-usage-track"><span style="width:${usage.toFixed(1)}%"></span></div></td>
-      <td><div class="integration-pills">${integrations.map(([label, value]) => `<span class="integration-pill ${value.state === "ready" ? "is-ready" : value.state === "attention" ? "is-attention" : "is-off"}" title="${esc(value.label)}">${label}<i></i></span>`).join("")}</div></td>
+      <td><div class="integration-pills">${integrations.map(([platform, value]) => `<span class="integration-pill ${value.state === "ready" ? "is-ready" : value.state === "attention" ? "is-attention" : "is-off"}" title="${esc(value.label)}">${integrationLogo(platform)}<i></i></span>`).join("")}</div></td>
       <td><div class="status-badge ${statusClass(health.status)}" title="${esc(health.reasons.join(", "))}">${health.score !== undefined ? `${fmt(health.score)}%` : statusLabel(health.status, client.is_active)}</div></td>
       <td>
         <div class="client-directory-actions">
@@ -992,9 +1008,9 @@ function renderMatrixRows() {
     const health = overviewHealthFor(client);
     return `<tr>
       <td><div class="client-name">${esc(client.name)}</div></td>
-      <td>${integrationBadge(integrationState(client, "meta"), "#1877F2", "f")}</td>
-      <td>${integrationBadge(integrationState(client, "tiktok"), "#3B82F6", "T")}</td>
-      <td>${integrationBadge(integrationState(client, "ga4"), "#F9AB00", "G")}</td>
+      <td>${integrationBadge(integrationState(client, "meta"), "meta")}</td>
+      <td>${integrationBadge(integrationState(client, "tiktok"), "tiktok")}</td>
+      <td>${integrationBadge(integrationState(client, "ga4"), "ga4")}</td>
       <td><div class="status-badge ${statusClass(health.status)}">${health.score !== undefined ? `${fmt(health.score)}%` : statusLabel(health.status, client.is_active)}</div></td>
     </tr>`;
   }).join("") || `<tr><td colspan="5" class="empty">No integration data yet. Add a client to start tracking setup.</td></tr>`;
@@ -2309,6 +2325,11 @@ function handleSearchInput() {
 }
 
 document.querySelectorAll(".nav-item[data-tab]").forEach(button => button.addEventListener("click", () => setTab(button.dataset.tab)));
+$("adminLoginForm")?.addEventListener("submit", event => {
+  event.preventDefault();
+  loginAdmin();
+});
+$("adminPassEye")?.addEventListener("click", toggleAdminPassword);
 $("editPlanTier")?.addEventListener("change", syncBillingForPlanSelection);
 $("editBillingStatus")?.addEventListener("change", syncPlanQuotaFields);
 document.addEventListener("keydown", event => {
