@@ -70,7 +70,12 @@ const optionalInteger = value => {
 const esc = value => {
   const div = document.createElement("div");
   div.textContent = String(value ?? "");
-  return div.innerHTML;
+  return div.innerHTML.replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+};
+const safeHref = value => {
+  const str = String(value ?? "").trim();
+  if (!/^https?:\/\//i.test(str)) return "#";
+  return esc(str);
 };
 
 function csrfFromCookie() {
@@ -1164,7 +1169,7 @@ function renderRecoveryOps() {
           <td><div class="client-sub">${esc(item.order_id || "-")}</div></td>
           <td>
             <div class="queue-actions">
-              ${item.page_url ? `<a class="btn btn-outline btn-sm" href="${esc(item.page_url)}" target="_blank" rel="noreferrer">Open</a>` : ""}
+              ${item.page_url ? `<a class="btn btn-outline btn-sm" href="${safeHref(item.page_url)}" target="_blank" rel="noreferrer">Open</a>` : ""}
               ${!locked ? `<button class="btn btn-outline btn-sm" onclick="updateRecoveryStatus(${Number(item.id)}, 'contacted')">Contacted</button><button class="btn btn-outline btn-sm" onclick="updateRecoveryStatus(${Number(item.id)}, 'ignored')">Ignore</button>` : ""}
             </div>
           </td>
