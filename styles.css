@@ -1,37 +1,19 @@
-/* Fonts moved to index.html for parallel preloading */
-
 :root {
   color-scheme: light dark;
-  --bg-gradient: radial-gradient(at 0% 0%, hsla(242,100%,90%,1) 0px, transparent 50%),
-                 radial-gradient(at 100% 0%, hsla(168,100%,88%,1) 0px, transparent 50%),
-                 radial-gradient(at 100% 100%, hsla(285,100%,91%,1) 0px, transparent 50%),
-                 radial-gradient(at 0% 100%, hsla(202,100%,88%,1) 0px, transparent 50%);
   --bg-color: #f0f4fd;
-  --text-main: #0f172a; /* Slate 900 for high contrast */
-  --text-muted: #475569; /* Slate 600 for better readability */
-  --text-subtle: #475569; /* Slate 600 instead of 500 for WCAG AA compliance */
-  
-  --card-bg: rgba(255, 255, 255, 0.65); /* More opaque for readability */
-  --card-border: rgba(255, 255, 255, 0.7);
-  --card-shadow: 0 12px 40px 0 rgba(31, 38, 135, 0.06);
-  
-  --sidebar-bg: rgba(255, 255, 255, 0.45);
-  --sidebar-border: rgba(255, 255, 255, 0.6);
-  
-  --input-bg: rgba(255, 255, 255, 0.55);
-  --input-border: rgba(255, 255, 255, 0.8);
-  
-  --primary: #4f46e5; /* Indigo 600 for WCAG AA compliance */
-  --primary-hover: #3730a3; /* Indigo 800 */
-  --primary-rgb: 79, 70, 229;
-  --accent: #7c3aed; /* Purple 600 */
-  
+  --text-main: #0f172a;
+  --text-muted: #475569;
+  --text-subtle: #475569;
+  --primary: #2563eb; /* Royal Blue from official brand shield */
+  --primary-hover: #1d4ed8;
+  --primary-rgb: 37, 99, 235;
+  --accent: #10b981; /* Emerald/Teal from official brand curved arrow */
   --success: #10b981;
   --success-bg: rgba(16, 185, 129, 0.12);
-  --success-text: #047857; /* High contrast success text */
-  --warning: #f59e0b;
-  --warning-bg: rgba(245, 158, 11, 0.12);
-  --warning-text: #b45309; /* High contrast warning text */
+  --success-text: #047857;
+  --card-bg: rgba(255, 255, 255, 0.65);
+  --card-border: rgba(255, 255, 255, 0.7);
+  --card-shadow: 0 12px 40px 0 rgba(31, 38, 135, 0.06);
   --danger: #ef4444;
   --danger-bg: rgba(239, 68, 68, 0.12);
   --danger-text: #b91c1c; /* High contrast danger text */

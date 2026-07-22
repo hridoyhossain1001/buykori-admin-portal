@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Buykori Admin Portal</title>
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%238b5cf6'/%3E%3Ctext x='32' y='44' text-anchor='middle' font-size='38' font-family='Arial' font-weight='700' fill='white'%3EB%3C/text%3E%3C/svg%3E">
+  <link rel="icon" type="image/png" href="/brand-logo.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Space+Grotesk:wght@600&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
@@ -25,7 +25,7 @@
 
   <div id="login" class="login">
     <div class="brand">
-      <div class="brand-logo">B</div>
+      <img src="/brand-logo.png" alt="Buykori Logo" class="brand-logo-img" style="height:52px;width:auto;object-fit:contain">
       <div class="brand-text">Buykori <span>AdSync</span></div>
     </div>
     <h1>Admin Portal</h1>
@@ -50,7 +50,7 @@
   <div id="app" class="shell">
     <aside class="sidebar" id="sidebar">
       <div class="brand">
-        <div class="brand-logo">B</div>
+        <img src="/brand-logo.png" alt="Buykori Logo" class="brand-logo-img" style="height:42px;width:auto;object-fit:contain">
         <div class="brand-text">Buykori <span>AdSync</span></div>
       </div>
 
@@ -556,6 +556,33 @@
             <div class="metric-card"><div class="metric-header"><span class="m-title">Paid</span></div><div class="metric-value" id="paymentPaidCount">0</div><div class="trend">plans activated</div></div>
             <div class="metric-card"><div class="metric-header"><span class="m-title">Needs attention</span></div><div class="metric-value" id="paymentAttentionCount">0</div><div class="trend">manual review or linking</div></div>
             <div class="metric-card"><div class="metric-header"><span class="m-title">Refund requests</span></div><div class="metric-value" id="paymentRefundCount">0</div><div class="trend">extra amount to return</div></div>
+          </div>
+
+          <!-- Admin Test Payment Simulation Tool -->
+          <div class="card" style="margin-bottom:24px; padding:20px; border:1px dashed #f59e0b; background:rgba(245, 158, 11, 0.05);">
+            <div class="card-header" style="margin-bottom:14px; border-bottom:none; padding:0;">
+              <div>
+                <h2 class="card-title" style="color:#d97706; display:flex; align-items:center; gap:8px;">
+                  <svg style="width:18px;height:18px" viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="5" width="18" height="14" rx="2"/><path stroke-linecap="round" d="M3 10h18M7 15h3"/></svg>
+                  Admin Test Payment Tool (৳10 SMS System Check)
+                </h2>
+                <p class="card-subtitle" style="color:var(--text-muted);">Run or simulate a BDT 10 test payment intent for system testing, diagnostics, or manual SMS matching verification without affecting production client plans.</p>
+              </div>
+            </div>
+            <div style="display:flex; flex-wrap:wrap; gap:12px; align-items:center;">
+              <select id="adminTestPaymentClient" style="min-width:220px; padding:9px 12px; border-radius:8px; border:1px solid var(--card-border); background:var(--card-bg); color:var(--text-main); font-size:12px; font-weight:600;">
+                <option value="">Select Client for Test Payment</option>
+              </select>
+              <select id="adminTestPaymentProvider" style="min-width:140px; padding:9px 12px; border-radius:8px; border:1px solid var(--card-border); background:var(--card-bg); color:var(--text-main); font-size:12px; font-weight:600;">
+                <option value="bkash">bKash (৳10)</option>
+                <option value="nagad">Nagad (৳10)</option>
+              </select>
+              <input id="adminTestSenderPhone" placeholder="Sender Phone (01XXXXXXXXX)" style="min-width:190px; padding:9px 12px; border-radius:8px; border:1px solid var(--card-border); background:var(--card-bg); color:var(--text-main); font-size:12px; font-mono font-weight:600;">
+              <button class="btn" onclick="triggerAdminTestPayment()" style="background:#f59e0b; color:#ffffff; font-weight:700; border:none; padding:9px 16px; border-radius:8px; cursor:pointer;">
+                ⚡ Run BDT 10 Test Payment
+              </button>
+            </div>
+            <div id="adminTestPaymentResult" style="margin-top:12px; font-size:12px; font-weight:600; display:none;"></div>
           </div>
           <div class="card payment-history-card">
             <div class="card-header payment-history-heading">

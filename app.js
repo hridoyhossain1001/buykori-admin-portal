@@ -2795,21 +2795,67 @@ async function deleteClient() {
 }
 
 function populateClientFilter() {
-  ["eventsClientFilter", "recoveryClientFilter"].forEach(id => {
+  ["eventsClientFilter", "recoveryClientFilter", "adminTestPaymentClient"].forEach(id => {
     const filterEl = $(id);
     if (!filterEl) return;
     const selected = filterEl.value;
-    filterEl.innerHTML = '<option value="">All Clients</option>';
+    filterEl.innerHTML = id === "adminTestPaymentClient" ? '<option value="">Select Client for Test Payment</option>' : '<option value="">All Clients</option>';
     state.clients.forEach(client => {
       const opt = document.createElement("option");
       opt.value = client.id;
-      opt.textContent = client.name;
+      opt.textContent = `${client.name} (#${client.id})`;
       filterEl.appendChild(opt);
     });
     if (selected && state.clients.some(c => String(c.id) === selected)) {
       filterEl.value = selected;
     }
   });
+}
+
+async function triggerAdminTestPayment() {
+  const clientSelect = $("adminTestPaymentClient");
+  const provider = $("adminTestPaymentProvider")?.value || "bkash";
+  const senderPhone = ($("adminTestSenderPhone")?.value || "").trim();
+  const resultDiv = $("adminTestPaymentResult");
+  const clientId = clientSelect?.value;
+
+  if (!clientId) {
+    if (resultDiv) {
+      resultDiv.style.display = "block";
+      resultDiv.style.color = "var(--danger-text)";
+      resultDiv.textContent = "⚠️ Please select a client to run the ৳10 test payment.";
+    }
+    return;
+  }
+
+  try {
+    if (resultDiv) {
+      resultDiv.style.display = "block";
+      resultDiv.style.color = "var(--text-muted)";
+      resultDiv.textContent = "⏳ Creating BDT 10 Test Payment Intent...";
+    }
+
+    const res = await api(`/admin/api/clients/${clientId}/test-payment`, {
+      method: "POST",
+      body: JSON.stringify({
+        senderPhone: senderPhone || "01700000000",
+        provider: provider
+      })
+    });
+
+    if (resultDiv) {
+      resultDiv.style.color = "var(--success)";
+      resultDiv.innerHTML = `✅ BDT 10 Test Payment Intent created successfully!<br>Reference: <code style="font-family:monospace; background:rgba(16,185,129,0.15); padding:2px 8px; border-radius:4px; font-weight:800">${res?.payment?.reference || res?.reference || 'CREATED'}</code> | Provider: <strong>${provider.toUpperCase()}</strong> | Status: <strong>Pending SMS Match</strong>`;
+    }
+    showToast("৳10 Test Payment created in Admin Portal!");
+    await refreshNotificationOps({ silent: true });
+  } catch (err) {
+    if (resultDiv) {
+      resultDiv.style.display = "block";
+      resultDiv.style.color = "var(--danger-text)";
+      resultDiv.textContent = `❌ Error creating test payment: ${readableApiError(err)}`;
+    }
+  }
 }
 
 async function loadEvents() {
