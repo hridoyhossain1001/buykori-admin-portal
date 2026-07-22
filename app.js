@@ -658,9 +658,14 @@ function renderClientRows() {
     const health = overviewHealthFor(client);
     const intel = intelligenceFor(client.id);
     const plan = String(client.plan_tier || "free").toLowerCase();
-    const planLimit = Number(client.monthly_event_limit || PLAN_DEFAULTS[plan]?.events || 0);
+    const isTrial = Boolean(client.is_trial || String(client.billing_status || "").toLowerCase() === "trial");
+    const planLabel = isTrial ? "Growth Trial" : `${plan.charAt(0).toUpperCase()}${plan.slice(1)}`;
+    const planLimit = Number(client.monthly_event_limit ?? client.monthly_limit ?? (isTrial ? PLAN_DEFAULTS.trial.events : PLAN_DEFAULTS[plan]?.events) ?? 0);
     const used = Number(client.event_total || 0);
     const usage = planLimit > 0 ? Math.min(100, (used / planLimit) * 100) : 0;
+    const orderLimit = Number(client.orders_quota ?? (isTrial ? PLAN_DEFAULTS.trial.orders : PLAN_DEFAULTS[plan]?.orders) ?? 0);
+    const ordersUsed = Number(client.orders_used || 0);
+    const orderUsage = orderLimit > 0 ? Math.min(100, (ordersUsed / orderLimit) * 100) : 0;
     const integrations = [
       ["meta", integrationState(client, "meta")],
       ["tiktok", integrationState(client, "tiktok")],
@@ -669,7 +674,13 @@ function renderClientRows() {
     return `<tr>
       <td><div class="client-name">${esc(client.name)}</div><div class="client-sub">ID ${esc(client.id)}${intel?.owner?.phone_number ? ` - ${esc(intel.owner.phone_number)}` : ""}</div></td>
       <td><div class="client-store-cell">${domainLink(client)}<div class="client-sub">Registered ${esc(toDeviceDateTime(client.created_at))}</div></div></td>
-      <td><div class="client-plan-row"><span class="plan-chip">${esc(plan)}</span><span>${compactNumber(used)} / ${planLimit ? compactNumber(planLimit) : "Unlimited"}</span></div><div class="client-usage-track"><span style="width:${usage.toFixed(1)}%"></span></div></td>
+      <td>
+        <div class="client-plan-row"><span class="plan-chip${isTrial ? " is-trial" : ""}">${esc(planLabel)}</span>${isTrial && client.trial_days_remaining ? `<span class="trial-days">${esc(client.trial_days_remaining)}d left</span>` : ""}</div>
+        <div class="client-quota-row"><span>Events</span><strong>${compactNumber(used)} / ${planLimit ? compactNumber(planLimit) : "Unlimited"}</strong></div>
+        <div class="client-usage-track"><span style="width:${usage.toFixed(1)}%"></span></div>
+        <div class="client-quota-row"><span>Orders</span><strong>${compactNumber(ordersUsed)} / ${orderLimit ? compactNumber(orderLimit) : "Unlimited"}</strong></div>
+        <div class="client-usage-track order"><span style="width:${orderUsage.toFixed(1)}%"></span></div>
+      </td>
       <td><div class="integration-pills">${integrations.map(([platform, value]) => `<span class="integration-pill ${value.state === "ready" ? "is-ready" : value.state === "attention" ? "is-attention" : "is-off"}" title="${esc(value.label)}">${integrationLogo(platform)}<i></i></span>`).join("")}</div></td>
       <td><div class="status-badge ${statusClass(health.status)}" title="${esc(health.reasons.join(", "))}">${health.score !== undefined ? `${fmt(health.score)}%` : statusLabel(health.status, client.is_active)}</div></td>
       <td>
