@@ -14,26 +14,47 @@
 <body>
 
   <div id="login" class="login">
-    <div class="brand">
-      <img src="/brand-logo.png" alt="Buykori Logo" class="brand-logo-img" style="height:52px;width:auto;object-fit:contain">
-      <div class="brand-text">Buykori <span>AdSync</span></div>
-    </div>
-    <h1>Admin Portal</h1>
-    <p>Log in with your administrator credentials to monitor clients, usage, and workspace health.</p>
-    
-    <form id="adminLoginForm" autocomplete="on">
-      <label for="adminUsername">Username</label>
-      <input id="adminUsername" name="username" type="text" placeholder="Enter username" autocomplete="username" required style="margin-bottom:16px">
+    <div class="admin-auth-card">
+      <aside class="admin-auth-story">
+        <div class="admin-auth-brand">
+          <img src="/brand-logo.png" alt="Buykori Logo">
+          <span>Buykori <strong>AdSync</strong></span>
+        </div>
+        <div class="admin-story-copy">
+          <div class="admin-story-kicker">Secure operations center</div>
+          <h1>Control every signal from one <span>trusted workspace.</span></h1>
+          <p>Monitor clients, event delivery, payments and platform health without losing operational context.</p>
+          <div class="admin-story-points">
+            <span><i>✓</i> Client and connected-store oversight</span>
+            <span><i>✓</i> Event delivery and infrastructure health</span>
+            <span><i>✓</i> Payments, courier and recovery operations</span>
+          </div>
+        </div>
+        <div class="admin-auth-foot">Restricted to authorized Buykori administrators</div>
+      </aside>
+      <section class="admin-auth-form">
+        <div class="admin-mobile-brand">
+          <img src="/brand-logo.png" alt="Buykori Logo">
+          <span>Buykori <strong>AdSync</strong></span>
+        </div>
+        <p class="admin-auth-eyebrow">Administrator access</p>
+        <h1>Welcome back</h1>
+        <p>Sign in to continue to the Buykori operations dashboard.</p>
+        <form id="adminLoginForm" autocomplete="on">
+          <label for="adminUsername">Username</label>
+          <input id="adminUsername" name="username" type="text" placeholder="Enter your username" autocomplete="username" required>
 
-      <label for="adminPassword">Password</label>
-      <div style="position:relative;display:flex;align-items:center">
-        <input id="adminPassword" name="password" type="password" placeholder="Enter password" autocomplete="current-password" required style="padding-right:58px">
-        <button type="button" style="position:absolute;right:10px;background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:12px;font-weight:800;display:flex;align-items:center;justify-content:center" id="adminPassEye" aria-label="Show password">Show</button>
-      </div>
-      <div style="height:20px"></div>
-      <button class="btn btn-primary" type="submit" style="width:100%">Sign In</button>
-      <p id="loginError" class="login-error" aria-live="polite"></p>
-    </form>
+          <label for="adminPassword">Password</label>
+          <div class="admin-password-wrap">
+            <input id="adminPassword" name="password" type="password" placeholder="Enter your password" autocomplete="current-password" required>
+            <button type="button" id="adminPassEye" aria-label="Show password">Show</button>
+          </div>
+          <button class="admin-auth-submit" type="submit">Sign in securely&nbsp; →</button>
+          <p id="loginError" class="login-error" aria-live="polite"></p>
+        </form>
+        <div class="admin-auth-note">♙ &nbsp;Encrypted session · CSRF protected · Activity monitored</div>
+      </section>
+    </div>
   </div>
 
   <button class="hamburger" id="hamburger" onclick="toggleSidebar()" aria-label="Open menu"><span></span><span></span><span></span></button>
