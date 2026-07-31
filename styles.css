@@ -5,6 +5,7 @@
   --text-muted: #475569;
   --text-subtle: #475569;
   --text: #0f172a; /* alias of --text-main, consumed by .client-quota-row strong */
+  --text-primary: var(--text-main); /* compatibility alias used by dynamic form controls */
   --text-secondary: #475569; /* alias of --text-muted, consumed by .support-attachment-preview */
   --primary: #285ac7;
   --primary-hover: #1d469f;
@@ -18,6 +19,7 @@
   --warning-text: #b45309; /* Amber 700 - High contrast warning text */
   --card-bg: rgba(255, 255, 255, 0.65);
   --card-border: rgba(255, 255, 255, 0.7);
+  --border: var(--card-border); /* compatibility alias used by pairing controls */
   --card-shadow: 0 12px 40px 0 rgba(31, 38, 135, 0.06);
   --danger: #ef4444;
   --danger-bg: rgba(239, 68, 68, 0.12);
