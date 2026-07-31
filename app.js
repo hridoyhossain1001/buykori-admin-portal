@@ -2310,9 +2310,11 @@ function toggleAdminPassword() {
   if (input.type === "password") {
     input.type = "text";
     eye.textContent = "Hide";
+    eye.setAttribute("aria-label", "Hide password");
   } else {
     input.type = "password";
     eye.textContent = "Show";
+    eye.setAttribute("aria-label", "Show password");
   }
 }
 
