@@ -2443,6 +2443,10 @@ const ADMIN_ACTIONS = Object.freeze({
   "client-modal:rotate-key": {
     event: "click",
     run: ({ element }) => rotateKey(element.dataset.keyType)
+  },
+  "client-modal:add-note": {
+    event: "click",
+    run: ({ element }) => addSupportNote(element)
   }
 });
 
@@ -2466,7 +2470,7 @@ document.addEventListener("submit", dispatchNamedAdminAction);
 // declarative data-admin-* actions; this dispatcher accepts only literals and an
 // explicit function allowlist, without eval or new Function.
 const ADMIN_ACTION_NAMES = new Set([
-  "addSupportNote", "changeEventsPage",
+  "changeEventsPage",
   "changeNotificationPage", "changePaymentHistoryPage", "checkLatestPairingState",
   "checkWhatsAppInstanceState", "closeAdminDecision",
   "closeNotificationJobDrawer", "confirmAdminDecision",
@@ -2875,18 +2879,26 @@ async function loadSupportNotes(clientId) {
   renderSupportNotes();
 }
 
-async function addSupportNote() {
+async function addSupportNote(button) {
   if (!currentClientId) return;
-  const note = $("supportNoteInput").value.trim();
+  const input = $("supportNoteInput");
+  const note = input.value.trim();
   if (!note) return;
-  await api(`/admin/api/clients/${currentClientId}/support-notes`, {
-    method: "POST",
-    body: JSON.stringify({ note })
-  });
-  $("supportNoteInput").value = "";
-  await loadSupportNotes(currentClientId);
-  await loadAll();
-  showToast("Support note added.");
+  button.disabled = true;
+  try {
+    await api(`/admin/api/clients/${currentClientId}/support-notes`, {
+      method: "POST",
+      body: JSON.stringify({ note })
+    });
+    input.value = "";
+    await loadSupportNotes(currentClientId);
+    await loadAll();
+    showToast("Support note added.");
+  } catch (error) {
+    showToast(readableApiError(error, "Failed to add support note."));
+  } finally {
+    button.disabled = false;
+  }
 }
 
 function closeClientModal() {
