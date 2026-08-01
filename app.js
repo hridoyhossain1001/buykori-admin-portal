@@ -2427,6 +2427,10 @@ const ADMIN_ACTIONS = Object.freeze({
       if (element.dataset.selfOnly === "true" && event.target !== element) return;
       closeClientModal();
     }
+  },
+  "client-modal:save": {
+    event: "click",
+    run: () => saveClientEdit()
   }
 });
 
@@ -2463,7 +2467,7 @@ const ADMIN_ACTION_NAMES = new Set([
   "refreshNotificationOps", "refreshRecoveryOps",
   "refreshSiteBindings", "registerExistingWhatsAppInstance", "releaseSiteBinding",
   "renderSiteBindings", "retryNotificationJob", "revealSecret",
-  "rotateKey", "saveClientEdit", "saveWhatsAppInstanceCapacity",
+  "rotateKey", "saveWhatsAppInstanceCapacity",
   "setNotificationOpsTab", "setPaymentHistoryFilter", "setTab",
   "toggleEventDetail",
   "toggleSidebar", "toggleTheme", "transferSiteBinding", "triggerAdminTestPayment",
