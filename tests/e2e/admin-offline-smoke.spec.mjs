@@ -119,6 +119,7 @@ test("owner can navigate the admin shell with the production API offline", async
   const summaryWindows = [];
   let courierQueueRequests = 0;
   const clientPatches = [];
+  const clientCreates = [];
 
   page.on("pageerror", error => browserErrors.push(`pageerror: ${error.message}`));
   page.on("console", message => {
@@ -140,6 +141,25 @@ test("owner can navigate the admin shell with the production API offline", async
       route.request().method() === "PATCH"
     ) {
       clientPatches.push(route.request().postDataJSON());
+    }
+    if (
+      requestUrl.pathname === "/api/v1/admin/api/clients" &&
+      route.request().method() === "POST"
+    ) {
+      const payload = route.request().postDataJSON();
+      clientCreates.push(payload);
+      if (payload.name === "Rejected Client") {
+        await route.fulfill({
+          status: 422,
+          contentType: "application/json",
+          headers: {
+            "access-control-allow-origin": "http://127.0.0.1:5050",
+            "access-control-allow-credentials": "true",
+          },
+          body: JSON.stringify({ detail: "Offline fixture rejection" }),
+        });
+        return;
+      }
     }
 
     if (fixture === undefined) {
@@ -227,6 +247,47 @@ test("owner can navigate the admin shell with the production API offline", async
   await page.locator('#clientRows [data-action="clients:toggle-active"]').click();
   await expect.poll(() => clientPatches.length).toBe(1);
   expect(clientPatches).toEqual([{ is_active: false }]);
+
+  await page.locator('[data-action="clients:open-create"]').click();
+  const createSubmit = page.locator("#createClientSubmit");
+  await createSubmit.click();
+  expect(clientCreates).toEqual([]);
+  expect(
+    await page.locator("#newName").evaluate(element => element.validationMessage.length > 0)
+  ).toBe(true);
+
+  await page.locator("#newName").fill("  Created Offline Client  ");
+  await page.locator("#newDomain").fill("  created-offline.example  ");
+  await page.locator("#newPixel").fill("pixel-created");
+  await page.locator("#newToken").fill("secret-created");
+  await page.locator("#newTiktokPixel").fill("tiktok-created");
+  await page.locator("#newGa4").fill("G-CREATED");
+  await createSubmit.click();
+  await expect.poll(() => clientCreates.length).toBe(1);
+  expect(clientCreates[0]).toEqual({
+    name: "Created Offline Client",
+    domain: "created-offline.example",
+    pixel_id: "pixel-created",
+    access_token: "secret-created",
+    tiktok_pixel_id: "tiktok-created",
+    ga4_measurement_id: "G-CREATED",
+  });
+  await expect(page.locator("#clients")).toHaveClass(/active/);
+  await expect(page.locator("#newToken")).toHaveValue("");
+
+  await page.locator('[data-action="clients:open-create"]').click();
+  await page.locator("#newName").fill("Rejected Client");
+  await page.locator("#newDomain").fill("rejected.example");
+  await createSubmit.click();
+  await expect.poll(() => clientCreates.length).toBe(2);
+  await expect(page.locator("#create")).toHaveClass(/active/);
+  await expect(page.locator("#createMsg")).toContainText("Offline fixture rejection");
+  await expect(createSubmit).toBeEnabled();
+  const expectedRejectionIndex = browserErrors.findIndex(message =>
+    message.includes("422 (Unprocessable Entity)")
+  );
+  expect(expectedRejectionIndex).toBeGreaterThanOrEqual(0);
+  browserErrors.splice(expectedRejectionIndex, 1);
 
   const themeToggle = page.locator("#themeToggle");
   const wasDark = await page

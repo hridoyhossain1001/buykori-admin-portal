@@ -2191,26 +2191,36 @@ async function toggleClient(id, is_active) {
 }
 
 async function createClient() {
-  $("createMsg").style.color = "var(--success)";
-  $("createMsg").textContent = "Creating...";
+  const form = $("createClientForm");
+  const submitButton = $("createClientSubmit");
+  const message = $("createMsg");
+  if (!form?.reportValidity()) return;
+  submitButton.disabled = true;
+  submitButton.setAttribute("aria-busy", "true");
+  message.style.color = "var(--success)";
+  message.textContent = "Creating...";
   try {
     await api("/admin/api/clients", {
       method: "POST",
       body: JSON.stringify({
-        name: $("newName").value,
-        domain: $("newDomain").value,
-        pixel_id: $("newPixel").value,
-        access_token: $("newToken").value,
-        tiktok_pixel_id: $("newTiktokPixel").value || null,
-        ga4_measurement_id: $("newGa4").value || null
+        name: $("newName").value.trim(),
+        domain: $("newDomain").value.trim(),
+        pixel_id: $("newPixel").value.trim(),
+        access_token: $("newToken").value.trim(),
+        tiktok_pixel_id: $("newTiktokPixel").value.trim() || null,
+        ga4_measurement_id: $("newGa4").value.trim() || null
       })
     });
-    $("createMsg").textContent = "Client created.";
+    message.textContent = "Client created.";
+    form.reset();
     await loadAll();
     setTab("clients");
   } catch (error) {
-    $("createMsg").style.color = "var(--danger)";
-    $("createMsg").textContent = "Create failed. Check required fields and admin key.";
+    message.style.color = "var(--danger)";
+    message.textContent = readableApiError(error, "Create failed. Check required fields and admin key.");
+  } finally {
+    submitButton.disabled = false;
+    submitButton.removeAttribute("aria-busy");
   }
 }
 
@@ -2399,6 +2409,13 @@ const ADMIN_ACTIONS = Object.freeze({
   "clients:toggle-active": {
     event: "click",
     run: ({ element }) => toggleClient(Number(element.dataset.clientId), element.dataset.isActive === "true")
+  },
+  "clients:create": {
+    event: "submit",
+    run: ({ event }) => {
+      event.preventDefault();
+      return createClient();
+    }
   }
 });
 
@@ -2416,6 +2433,7 @@ function dispatchNamedAdminAction(event) {
 
 document.addEventListener("click", dispatchNamedAdminAction);
 document.addEventListener("change", dispatchNamedAdminAction);
+document.addEventListener("submit", dispatchNamedAdminAction);
 
 // AP-03: CSP-safe replacement for legacy inline event attributes. Templates retain
 // declarative data-admin-* actions; this dispatcher accepts only literals and an
@@ -2426,7 +2444,7 @@ const ADMIN_ACTION_NAMES = new Set([
   "checkWhatsAppInstanceState", "closeAdminDecision", "closeClientModal",
   "closeNotificationJobDrawer", "confirmAdminDecision",
   "connectWhatsAppInstance", "copyPairingCode", "copyText", "createAdminUser",
-  "createClient", "createWhatsAppInstance", "decideSmsPayment", "deleteClient",
+  "createWhatsAppInstance", "decideSmsPayment", "deleteClient",
   "deleteWhatsAppInstance", "editWhatsAppInstance",
   "handleEventsFilterChange", "handleSearchInput", "loadAll", "loadEvents", "logout",
   "logoutWhatsAppInstance", "openClientModal",

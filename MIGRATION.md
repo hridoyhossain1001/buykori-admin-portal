@@ -41,7 +41,7 @@ honest answer to the AP-02 question that manual review could not settle — a
 Drive the baseline down and lock it in:
 
 The initial count was 94. The completed action-migration slices lowered the
-current lock to 87. Next:
+current lock to 85. Next:
 
 1. Fix warnings in small PRs, lowering `--max-warnings` each time.
 2. At zero for a given rule, promote it from `warn` to `error`.
@@ -71,7 +71,10 @@ Progress:
 - Clients directory: migrated Add Client navigation, Manage and
   Activate/Deactivate. Its offline flow also caught and removed a stale
   `getAttribute("onclick")` dependency in modal tab selection. The lint ratchet
-  is now 87 warnings.
+  moved to 87 warnings.
+- Create Client: migrated to a named submit action with required-field
+  validation, double-submit protection, trimmed payloads, secret-field reset
+  and explicit API-error feedback. The lint ratchet is now 85 warnings.
 
 When the last inline handler is gone:
 
