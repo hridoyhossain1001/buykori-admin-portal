@@ -16,3 +16,4 @@ package-lock.json
 app.js
 index.html
 styles.css
+vercel.json

@@ -16,13 +16,13 @@ The first version uses `X-Admin-API-Key` and the split-admin JSON endpoints unde
 
 There is no build step. The deployed artifact is exactly what is in this
 repository — `index.html` loads `app.js` directly via a classic `<script>` tag.
-The tooling below only *checks* the code; it never transforms it.
+The tooling below only _checks_ the code; it never transforms it.
 
 ```bash
-npm install
+npm ci
 
 npm run dev           # static server on http://localhost:5050
-npm run lint          # ESLint 9 (flat config) — warnings only, does not fail
+npm run lint          # ESLint 9; fails if the 94-warning baseline increases
 npm run typecheck     # tsc --noEmit (allowJs, checkJs off)
 npm run format:check  # Prettier, excluding the three large legacy files
 ```

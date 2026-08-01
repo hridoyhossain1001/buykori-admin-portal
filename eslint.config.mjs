@@ -18,7 +18,9 @@ export default [
   js.configs.recommended,
 
   {
-    files: ["**/*.js", "**/*.mjs"],
+    // Only the deployed browser scripts are classic scripts. This config file
+    // is an ES module and must keep ESLint's default `sourceType: "module"`.
+    files: ["**/*.js"],
     languageOptions: {
       ecmaVersion: 2022,
 
@@ -67,6 +69,7 @@ export default [
       // --- Correctness ------------------------------------------------------
       "no-undef": "warn",
       "no-unused-vars": ["warn", { args: "none", varsIgnorePattern: "^_" }],
+      "no-useless-escape": "warn",
       "no-implied-eval": "error",
       "no-new-func": "error",
 

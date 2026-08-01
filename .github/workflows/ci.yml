@@ -17,15 +17,11 @@ jobs:
         with:
           node-version: "22"
 
-      # `npm ci` requires a lockfile. There is none yet because this is the
-      # first package.json in the repo. Once the first `npm install` is
-      # committed as package-lock.json, switch this line to `npm ci`.
       - name: Install dependencies
-        run: npm install
+        run: npm ci
 
-      # Rules are all "warn" in step 1, so this reports without failing.
-      # Swap in `--max-warnings=<baseline>` once the baseline is known, then
-      # ratchet that number down. That is what stops NEW problems landing.
+      # Preserve the measured 94-warning legacy baseline. Any new warning
+      # fails CI; later migration steps ratchet this number down.
       - name: Lint
         run: npm run lint
 

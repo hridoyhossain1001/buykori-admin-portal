@@ -9,11 +9,11 @@ The client portal is TypeScript + Vite + Vitest with six test suites. The admin
 portal, until this commit, had **no `package.json` at all**: no build step, no
 lint, no type checking, no tests, no CI. Two files carry the whole product:
 
-| File | Size |
-| --- | --- |
-| `app.js` | ~150 KB |
-| `index.html` | ~75 KB |
-| `styles.css` | ~58 KB |
+| File         | Size    |
+| ------------ | ------- |
+| `app.js`     | ~150 KB |
+| `index.html` | ~75 KB  |
+| `styles.css` | ~58 KB  |
 
 The language is not the problem. Vanilla JS is a legitimate choice for a small
 UI. The problem is that this UI stopped being small — it now carries RBAC, a
@@ -28,20 +28,22 @@ Add `package.json`, ESLint 9 flat config, `tsconfig.json` (`allowJs: true`,
 `checkJs: false`), Prettier and GitHub Actions CI.
 
 **Zero changes to `app.js`, `index.html` or `styles.css`.** Runtime behaviour is
-bit-for-bit identical. Every lint rule is `warn`, so this lands green.
+bit-for-bit identical. The measured legacy baseline is 94 warnings, and
+`--max-warnings=94` keeps this PR green while making any new warning fail CI.
 
-The deliverable is a **number**: how many `no-unsanitized` warnings exist today.
-That number is the honest answer to the AP-02 question that manual review could
-not settle — a `grep` can only prove presence, never absence.
+The baseline is **94 warnings**: 36 `no-unsanitized/property`, 54
+`no-unused-vars`, two `prefer-const`, and two `no-useless-escape`. That is the
+honest answer to the AP-02 question that manual review could not settle — a
+`grep` can only prove presence, never absence.
 
-### Step 2 — Ratchet
+### ✅ Step 2 — Ratchet baseline
 
 Drive the baseline down and lock it in:
 
-1. Run `npm run lint` and record the warning count.
-2. Set `--max-warnings=<count>` in CI. New problems now fail the build.
-3. Fix warnings in small PRs, lowering the number each time.
-4. At zero for a given rule, promote it from `warn` to `error`.
+The initial count is now locked at 94. Next:
+
+1. Fix warnings in small PRs, lowering `--max-warnings` each time.
+2. At zero for a given rule, promote it from `warn` to `error`.
 
 Priority order: `no-unsanitized/property` → `no-undef` → `no-unused-vars`.
 
