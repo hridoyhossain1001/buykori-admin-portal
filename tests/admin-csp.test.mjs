@@ -104,3 +104,17 @@ test("clients directory uses named actions", async () => {
   assert.match(renderSource, /data-action="clients:open-client"/);
   assert.match(renderSource, /data-action="clients:toggle-active"/);
 });
+
+test("client creation uses a named submit action", async () => {
+  const indexHtml = await read("index.html");
+  const sectionStart = indexHtml.indexOf('<section id="create"');
+  const sectionEnd = indexHtml.indexOf("</main>", sectionStart);
+  const markup = indexHtml.slice(sectionStart, sectionEnd);
+
+  assert.ok(sectionStart >= 0 && sectionEnd > sectionStart, "create section must be present");
+  assert.doesNotMatch(markup, /data-admin-(?:click|change|input|submit)=/);
+  assert.match(markup, /<form[^>]+data-action="clients:create"/);
+  assert.match(markup, /id="newName"[^>]+required/);
+  assert.match(markup, /id="newDomain"[^>]+required/);
+  assert.match(markup, /id="createClientSubmit"[^>]+type="submit"/);
+});

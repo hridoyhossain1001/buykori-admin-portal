@@ -910,19 +910,19 @@
           </div>
           <div class="card">
             <div class="card-header"><h2 class="card-title">New Client</h2></div>
-            <div class="form-card">
+            <form id="createClientForm" class="form-card" data-action="clients:create">
               <div class="form-grid">
-                <div class="field"><label>Name</label><input id="newName" placeholder="ABC Ecommerce"></div>
-                <div class="field"><label>Domain</label><input id="newDomain" placeholder="example.com"></div>
+                <div class="field"><label for="newName">Name</label><input id="newName" name="name" placeholder="ABC Ecommerce" required></div>
+                <div class="field"><label for="newDomain">Domain</label><input id="newDomain" name="domain" placeholder="example.com" required></div>
                 <div class="field"><label>Facebook Pixel ID</label><input id="newPixel" placeholder="1234567890"></div>
                 <div class="field"><label>Facebook Access Token</label><input id="newToken" type="password" placeholder="EAA..."></div>
                 <div class="field"><label>TikTok Pixel ID</label><input id="newTiktokPixel" placeholder="Optional"></div>
                 <div class="field"><label>GA4 Measurement ID</label><input id="newGa4" placeholder="G-XXXXXXXXXX"></div>
               </div>
               <div style="height:20px"></div>
-              <button class="btn btn-primary" data-admin-click="createClient()">Create client</button>
-              <p id="createMsg" class="notice"></p>
-            </div>
+              <button id="createClientSubmit" class="btn btn-primary" type="submit">Create client</button>
+              <p id="createMsg" class="notice" role="status" aria-live="polite"></p>
+            </form>
           </div>
         </section>
       </main>
