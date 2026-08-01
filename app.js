@@ -685,8 +685,8 @@ function renderClientRows() {
       <td><div class="status-badge ${statusClass(health.status)}" title="${esc(health.reasons.join(", "))}">${health.score !== undefined ? `${fmt(health.score)}%` : statusLabel(health.status, client.is_active)}</div></td>
       <td>
         <div class="client-directory-actions">
-          <button class="btn btn-outline btn-sm" data-admin-click="openClientModal(${client.id})">Manage</button>
-          <button class="btn btn-sm ${client.is_active ? 'btn-outline' : 'btn-primary'}" data-admin-click="toggleClient(${client.id}, ${!client.is_active})">${client.is_active ? "Deactivate" : "Activate"}</button>
+          <button class="btn btn-outline btn-sm" data-action="clients:open-client" data-client-id="${Number(client.id)}">Manage</button>
+          <button class="btn btn-sm ${client.is_active ? 'btn-outline' : 'btn-primary'}" data-action="clients:toggle-active" data-client-id="${Number(client.id)}" data-is-active="${!client.is_active}">${client.is_active ? "Deactivate" : "Activate"}</button>
         </div>
       </td>
     </tr>`;
@@ -2387,6 +2387,18 @@ const ADMIN_ACTIONS = Object.freeze({
       if (element.dataset.selfOnly === "true" && event.target !== element) return;
       closeCourierJobDrawer();
     }
+  },
+  "clients:open-create": {
+    event: "click",
+    run: () => setTab("create")
+  },
+  "clients:open-client": {
+    event: "click",
+    run: ({ element }) => openClientModal(Number(element.dataset.clientId))
+  },
+  "clients:toggle-active": {
+    event: "click",
+    run: ({ element }) => toggleClient(Number(element.dataset.clientId), element.dataset.isActive === "true")
   }
 });
 
@@ -2424,7 +2436,7 @@ const ADMIN_ACTION_NAMES = new Set([
   "renderSiteBindings", "retryNotificationJob", "revealSecret",
   "rotateKey", "saveClientEdit", "saveWhatsAppInstanceCapacity",
   "setNotificationOpsTab", "setPaymentHistoryFilter", "setTab",
-  "switchModalTab", "toggleClient", "toggleEventDetail",
+  "switchModalTab", "toggleEventDetail",
   "toggleSidebar", "toggleTheme", "transferSiteBinding", "triggerAdminTestPayment",
   "updateAdminUserAccess", "updateRecoveryStatus", "updateSupportTicket",
   "updateWhatsAppInstanceStatus"
@@ -2648,7 +2660,7 @@ function revealSecret(id) {
 }
 
 function switchModalTab(tab) {
-  document.querySelectorAll('.modal-body .tab-btn').forEach(b => b.classList.toggle('active', b.innerText.toLowerCase().includes(tab) || b.getAttribute('onclick').includes(tab)));
+  document.querySelectorAll('.modal-body .tab-btn').forEach(b => b.classList.toggle('active', b.dataset.modalTab === tab));
   document.querySelectorAll('.modal-body .tab-content').forEach(c => c.classList.toggle('active', c.id === 'tab-' + tab));
 }
 
