@@ -228,3 +228,38 @@ test("recovery and client lookup sections use named actions", async () => {
   assert.equal((indexHtml.match(/data-action="client-lookup:refresh"/g) || []).length, 2);
   assert.equal((appJs.match(/data-action="client-lookup:open"/g) || []).length, 3);
 });
+
+test("notification, payment, support and WhatsApp controls use named actions", async () => {
+  const indexHtml = await read("index.html");
+  const appJs = await read("app.js");
+  const sectionStart = indexHtml.indexOf('<section id="notificationOps"');
+  const sectionEnd = indexHtml.indexOf('<section id="siteBindings"', sectionStart);
+  const drawerStart = indexHtml.indexOf('<div id="notificationDrawerOverlay"');
+  const sectionMarkup = indexHtml.slice(sectionStart, sectionEnd);
+  const drawerMarkup = indexHtml.slice(drawerStart);
+
+  assert.ok(sectionStart >= 0 && sectionEnd > sectionStart, "notification section must be present");
+  assert.ok(drawerStart >= 0, "notification drawer must be present");
+  assert.doesNotMatch(sectionMarkup, /data-admin-(?:click|change|input|submit)=/);
+  assert.doesNotMatch(drawerMarkup, /data-admin-(?:click|change|input|submit)=/);
+  assert.doesNotMatch(
+    appJs,
+    /data-admin-click="(?:decideSmsPayment|updateSupportTicket|openNotificationJobDrawer|retryNotificationJob|(?:connect|delete|edit|logout|update)WhatsAppInstance)/
+  );
+  assert.equal((sectionMarkup.match(/data-action="notification:set-tab"/g) || []).length, 3);
+  assert.equal((drawerMarkup.match(/data-action="notification:close-drawer"/g) || []).length, 3);
+  for (const action of ["decide-payment", "update-support", "open-job", "retry-job"]) {
+    assert.match(appJs, new RegExp(`data-action="notification:${action}"`));
+  }
+  for (const action of [
+    "save-capacity",
+    "edit",
+    "connect",
+    "check-state",
+    "update-status",
+    "logout",
+    "delete",
+  ]) {
+    assert.match(appJs, new RegExp(`data-action="whatsapp:${action}"`));
+  }
+});
