@@ -57,8 +57,8 @@
     </div>
   </div>
 
-  <button class="hamburger" id="hamburger" onclick="toggleSidebar()" aria-label="Open menu"><span></span><span></span><span></span></button>
-  <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+  <button class="hamburger" id="hamburger" data-admin-click="toggleSidebar()" aria-label="Open menu"><span></span><span></span><span></span></button>
+  <div class="sidebar-overlay" id="sidebarOverlay" data-admin-click="toggleSidebar()"></div>
 
   <div id="app" class="shell">
     <aside class="sidebar" id="sidebar">
@@ -143,11 +143,11 @@
       </div>
 
       <div class="sidebar-bottom">
-        <button class="nav-item" onclick="loadAll({ refreshDashboard: true })">
+        <button class="nav-item" data-admin-click="loadAll({ refreshDashboard: true })">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M21 12a9 9 0 11-2.64-6.36M21 3v6h-6"/></svg>
           Refresh
         </button>
-        <button class="nav-item" onclick="logout()">
+        <button class="nav-item" data-admin-click="logout()">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/></svg>
           Log out
         </button>
@@ -158,12 +158,12 @@
       <header class="topbar">
         <div class="search-box">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
-          <input id="searchInput" placeholder="Search clients, events, IPs..." oninput="handleSearchInput()">
+          <input id="searchInput" placeholder="Search clients, events, IPs..." data-admin-input="handleSearchInput()">
           <span class="kbd">CTRL K</span>
         </div>
         <div class="topbar-right">
           <div class="env-badge">PRODUCTION</div>
-          <button class="theme-toggle-btn" id="themeToggle" onclick="toggleTheme()" title="Toggle Theme" aria-label="Toggle Theme">
+          <button class="theme-toggle-btn" id="themeToggle" data-admin-click="toggleTheme()" title="Toggle Theme" aria-label="Toggle Theme">
             <span class="theme-icon-light">☀️ <span class="theme-btn-text">LIGHT</span></span>
             <span class="theme-icon-dark">🌙 <span class="theme-btn-text">DARK</span></span>
           </button>
@@ -187,14 +187,14 @@
             <div class="header-actions">
               <label class="dashboard-window-control">
                 <svg style="width:16px;height:16px" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3M16 7V3M5 11h14M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-                <select id="dashboardWindow" onchange="setDashboardWindow(this.value)" aria-label="Dashboard timeframe">
+                <select id="dashboardWindow" data-admin-change="setDashboardWindow(this.value)" aria-label="Dashboard timeframe">
                   <option value="24h">Last 24 Hours</option>
                   <option value="7d">Last 7 Days</option>
                   <option value="30d">Last 30 Days</option>
                 </select>
               </label>
               <span id="dashboardFreshness" class="dashboard-freshness">Waiting for data</span>
-              <button class="btn btn-primary" onclick="downloadReport()">
+              <button class="btn btn-primary" data-admin-click="downloadReport()">
                 <svg style="width:16px;height:16px" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1M12 4v12M8 8l4-4 4 4"/></svg>
                 Export Report
               </button>
@@ -248,7 +248,7 @@
                 <div class="card-header">
                   <h2 class="card-title">Active Client Integrations</h2>
                   <div class="card-tools">
-                    <button class="view-all" onclick="setTab('clients')">View all</button>
+                    <button class="view-all" data-admin-click="setTab('clients')">View all</button>
                   </div>
                 </div>
                 <div class="table-wrap">
@@ -287,7 +287,7 @@
               <div class="card">
                 <div class="card-header">
                   <h2 class="card-title">Courier Booking Queue</h2>
-                  <button class="view-all" onclick="setTab('courierQueue')">Open</button>
+                  <button class="view-all" data-admin-click="setTab('courierQueue')">Open</button>
                 </div>
                 <div class="queue-summary">
                   <div>
@@ -335,8 +335,8 @@
             </div>
             <div class="header-actions">
               <span id="courierQueueRefreshStatus" class="refresh-status">Not refreshed yet</span>
-              <button id="courierQueueAutoRefreshToggle" class="btn btn-primary btn-sm" onclick="toggleCourierQueueAutoRefresh()">Auto Refresh On</button>
-              <button class="btn btn-outline" onclick="refreshCourierQueue()">Refresh Queue</button>
+              <button id="courierQueueAutoRefreshToggle" class="btn btn-primary btn-sm" data-admin-click="toggleCourierQueueAutoRefresh()">Auto Refresh On</button>
+              <button class="btn btn-outline" data-admin-click="refreshCourierQueue()">Refresh Queue</button>
             </div>
           </div>
 
@@ -369,7 +369,7 @@
                 <h2 class="card-title">Recent Courier Booking Jobs</h2>
                 <div class="card-tools">
                   <div id="courierQueueStatus" class="status-badge status-healthy">HEALTHY</div>
-                  <button class="view-all" onclick="refreshCourierQueue()">Refresh</button>
+                  <button class="view-all" data-admin-click="refreshCourierQueue()">Refresh</button>
                 </div>
               </div>
               <div class="table-wrap">
@@ -410,8 +410,8 @@
               <p class="page-sub">Monitor incomplete checkout leads, linked orders, and client recovery workloads.</p>
             </div>
             <div class="header-actions">
-              <select id="recoveryClientFilter" onchange="refreshRecoveryOps({ silent: true })"><option value="">All Clients</option></select>
-              <select id="recoveryStatusFilter" onchange="refreshRecoveryOps({ silent: true })">
+              <select id="recoveryClientFilter" data-admin-change="refreshRecoveryOps({ silent: true })"><option value="">All Clients</option></select>
+              <select id="recoveryStatusFilter" data-admin-change="refreshRecoveryOps({ silent: true })">
                 <option value="">All Statuses</option>
                 <option value="active">Active</option>
                 <option value="incomplete">Incomplete</option>
@@ -420,7 +420,7 @@
                 <option value="ignored">Ignored</option>
                 <option value="expired">Expired</option>
               </select>
-              <button class="btn btn-outline" onclick="refreshRecoveryOps()">Refresh</button>
+              <button class="btn btn-outline" data-admin-click="refreshRecoveryOps()">Refresh</button>
             </div>
           </div>
           <div class="metrics-grid">
@@ -448,14 +448,14 @@
               <p class="page-sub">Monitor Telegram-first client alerts, delivery jobs, and support requests.</p>
             </div>
             <div class="header-actions">
-              <select id="notificationStatusFilter" onchange="refreshNotificationOps({ silent: true })">
+              <select id="notificationStatusFilter" data-admin-change="refreshNotificationOps({ silent: true })">
                 <option value="">All Statuses</option>
                 <option value="pending">Pending</option>
                 <option value="processing">Processing</option>
                 <option value="sent">Sent</option>
                 <option value="failed">Failed</option>
               </select>
-              <button class="btn btn-outline" onclick="refreshNotificationOps()">Refresh</button>
+              <button class="btn btn-outline" data-admin-click="refreshNotificationOps()">Refresh</button>
             </div>
           </div>
           <div class="metrics-grid">
@@ -482,8 +482,8 @@
                 <div class="field"><label>Client Capacity</label><input id="waInstanceCapacity" type="number" min="1" max="1000" value="8"><span class="client-sub">Maximum clients assigned to this sender.</span></div>
               </div>
               <div style="margin-top:12px;display:flex;gap:12px;align-items:center;flex-wrap:wrap">
-                <button class="btn btn-primary" onclick="createWhatsAppInstance()">Connect Sender</button>
-                <button class="btn btn-outline" onclick="registerExistingWhatsAppInstance()">Register Existing</button>
+                <button class="btn btn-primary" data-admin-click="createWhatsAppInstance()">Connect Sender</button>
+                <button class="btn btn-outline" data-admin-click="registerExistingWhatsAppInstance()">Register Existing</button>
                 <span id="waInstanceMsg" class="notice" style="margin:0"></span>
               </div>
               <div id="waPairingPanel" style="display:none;margin-top:16px;padding:16px;border:1px solid var(--border);border-radius:14px;background:rgba(255,255,255,0.05)">
@@ -501,8 +501,8 @@
                   </div>
                 </div>
                 <div style="display:flex;gap:8px;flex-wrap:wrap">
-                  <button class="copy-icon" onclick="copyPairingCode()">Copy Code</button>
-                  <button class="copy-icon" onclick="checkLatestPairingState()">Check Connection</button>
+                  <button class="copy-icon" data-admin-click="copyPairingCode()">Copy Code</button>
+                  <button class="copy-icon" data-admin-click="checkLatestPairingState()">Check Connection</button>
                 </div>
                 <details id="waQrRawDetails" style="display:none;margin-top:12px">
                   <summary class="client-sub">Technical QR value</summary>
@@ -514,9 +514,9 @@
             <div id="whatsappInstancePager" class="table-pager" aria-label="WhatsApp sender pages"></div>
           </div>
           <div class="ops-tabs" role="tablist" aria-label="Notification operation views">
-            <button id="notificationTabPayments" class="ops-tab active" type="button" role="tab" aria-selected="true" onclick="setNotificationOpsTab('payments')">Payments <span id="notificationPaymentsTabCount" class="ops-tab-count">0</span></button>
-            <button id="notificationTabJobs" class="ops-tab" type="button" role="tab" aria-selected="false" onclick="setNotificationOpsTab('jobs')">Delivery Jobs <span id="notificationJobsTabCount" class="ops-tab-count">0</span></button>
-            <button id="notificationTabSupport" class="ops-tab" type="button" role="tab" aria-selected="false" onclick="setNotificationOpsTab('support')">Support <span id="notificationSupportTabCount" class="ops-tab-count">0</span></button>
+            <button id="notificationTabPayments" class="ops-tab active" type="button" role="tab" aria-selected="true" data-admin-click="setNotificationOpsTab('payments')">Payments <span id="notificationPaymentsTabCount" class="ops-tab-count">0</span></button>
+            <button id="notificationTabJobs" class="ops-tab" type="button" role="tab" aria-selected="false" data-admin-click="setNotificationOpsTab('jobs')">Delivery Jobs <span id="notificationJobsTabCount" class="ops-tab-count">0</span></button>
+            <button id="notificationTabSupport" class="ops-tab" type="button" role="tab" aria-selected="false" data-admin-click="setNotificationOpsTab('support')">Support <span id="notificationSupportTabCount" class="ops-tab-count">0</span></button>
           </div>
           <div class="notification-panel active" data-notification-panel="payments" role="tabpanel">
           <div class="card notification-list-card">
@@ -548,13 +548,13 @@
               <p class="page-sub">See paid plans, payment exceptions, and overpayment refund requests in one place.</p>
             </div>
             <div class="header-actions">
-              <select id="paymentHistoryFilter" onchange="setPaymentHistoryFilter(this.value)">
+              <select id="paymentHistoryFilter" data-admin-change="setPaymentHistoryFilter(this.value)">
                 <option value="all">All payments</option>
                 <option value="paid">Paid</option>
                 <option value="review">Needs attention</option>
                 <option value="refund">Refund requests</option>
               </select>
-              <button class="btn btn-outline" onclick="refreshNotificationOps()">Refresh</button>
+              <button class="btn btn-outline" data-admin-click="refreshNotificationOps()">Refresh</button>
             </div>
           </div>
           <div class="metrics-grid payment-metrics-grid">
@@ -583,7 +583,7 @@
                 <option value="bkash">bKash (৳10)</option>
                 <option value="nagad">Nagad (৳10)</option>
               </select>
-              <button class="btn" onclick="triggerAdminTestPayment()" style="background:#f59e0b; color:#ffffff; font-weight:700; border:none; padding:9px 16px; border-radius:8px; cursor:pointer;">
+              <button class="btn" data-admin-click="triggerAdminTestPayment()" style="background:#f59e0b; color:#ffffff; font-weight:700; border:none; padding:9px 16px; border-radius:8px; cursor:pointer;">
                 ⚡ Start BDT 10 SMS Test
               </button>
             </div>
@@ -592,7 +592,7 @@
           <div class="card payment-history-card">
             <div class="card-header payment-history-heading">
               <div><h2 class="card-title">Payment History</h2><p class="card-subtitle">The latest 200 SMS payment receipts received by Buykori.</p></div>
-              <button class="view-all" onclick="setTab('notificationOps'); setNotificationOpsTab('payments')">Open review queue</button>
+              <button class="view-all" data-admin-click="setTab('notificationOps'); setNotificationOpsTab('payments')">Open review queue</button>
             </div>
             <div class="table-wrap">
               <table class="payment-history-table">
@@ -610,7 +610,7 @@
               <h1 class="page-title">Clients</h1>
               <p class="page-sub">See each client, connected store, plan usage, integrations, and current health.</p>
             </div>
-            <button class="btn btn-primary" onclick="setTab('create')">Add Client</button>
+            <button class="btn btn-primary" data-admin-click="setTab('create')">Add Client</button>
           </div>
           <div class="card">
             <div class="card-header"><h2 class="card-title">Client Directory</h2></div>
@@ -630,7 +630,7 @@
               <p class="page-sub">Manage connected WordPress domains, release requests, and transfer workflows.</p>
             </div>
             <div class="header-actions">
-              <button class="btn btn-outline" onclick="refreshSiteBindings()">Refresh Sites</button>
+              <button class="btn btn-outline" data-admin-click="refreshSiteBindings()">Refresh Sites</button>
             </div>
           </div>
 
@@ -662,13 +662,13 @@
               <div class="card-header">
                 <h2 class="card-title">Connected Websites</h2>
                 <div class="card-tools">
-                  <select id="bindingStatusFilter" onchange="renderSiteBindings()">
+                  <select id="bindingStatusFilter" data-admin-change="renderSiteBindings()">
                     <option value="all">All statuses</option>
                     <option value="active">Active</option>
                     <option value="released">Released</option>
                     <option value="transferred">Transferred</option>
                   </select>
-                  <select id="bindingClientFilter" onchange="renderSiteBindings()">
+                  <select id="bindingClientFilter" data-admin-change="renderSiteBindings()">
                     <option value="">All clients</option>
                   </select>
                 </div>
@@ -705,7 +705,7 @@
                     <label for="transferReason">Support Reason</label>
                     <textarea id="transferReason" rows="4" placeholder="Approved transfer request, billing/account merge, or verified owner request."></textarea>
                   </div>
-                  <button class="btn btn-primary" onclick="transferSiteBinding()">Transfer Binding</button>
+                  <button class="btn btn-primary" data-admin-click="transferSiteBinding()">Transfer Binding</button>
                   <p id="siteBindingMsg" class="form-msg"></p>
                 </div>
               </div>
@@ -733,17 +733,17 @@
             <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:16px;">
               <div class="field">
                 <label for="eventsSearch">Search</label>
-                <input type="text" id="eventsSearch" placeholder="Search event, IP, error..." oninput="handleEventsFilterChange()">
+                <input type="text" id="eventsSearch" placeholder="Search event, IP, error..." data-admin-input="handleEventsFilterChange()">
               </div>
               <div class="field">
                 <label for="eventsClientFilter">Client</label>
-                <select id="eventsClientFilter" onchange="handleEventsFilterChange()">
+                <select id="eventsClientFilter" data-admin-change="handleEventsFilterChange()">
                   <option value="">All Clients</option>
                 </select>
               </div>
               <div class="field">
                 <label for="eventsPlatformFilter">Platform</label>
-                <select id="eventsPlatformFilter" onchange="handleEventsFilterChange()">
+                <select id="eventsPlatformFilter" data-admin-change="handleEventsFilterChange()">
                   <option value="">All Platforms</option>
                   <option value="Meta CAPI">Meta CAPI</option>
                   <option value="TikTok Events API">TikTok Events API</option>
@@ -753,7 +753,7 @@
               </div>
               <div class="field">
                 <label for="eventsStatusFilter">Status</label>
-                <select id="eventsStatusFilter" onchange="handleEventsFilterChange()">
+                <select id="eventsStatusFilter" data-admin-change="handleEventsFilterChange()">
                   <option value="">All Statuses</option>
                   <option value="Success">Success</option>
                   <option value="Failed">Failed</option>
@@ -766,7 +766,7 @@
             <div class="card-header">
               <h2 class="card-title">Live Event Stream</h2>
               <div class="card-tools">
-                <button class="view-all" onclick="loadEvents()">Refresh</button>
+                <button class="view-all" data-admin-click="loadEvents()">Refresh</button>
               </div>
             </div>
             <div class="table-wrap event-stream-wrap">
@@ -790,9 +790,9 @@
             <div style="padding:14px 20px;border-top:1px solid var(--card-border);display:flex;justify-content:space-between;align-items:center;">
               <div style="font-size:12px;color:var(--text-muted);" id="eventsTableMeta">Showing 0 events</div>
               <div style="display:flex;gap:4px;">
-                <button class="action-btn" title="Previous" onclick="changeEventsPage(-1)">&#8249;</button>
+                <button class="action-btn" title="Previous" data-admin-click="changeEventsPage(-1)">&#8249;</button>
                 <button class="action-btn" style="background:var(--primary);color:white;border-color:rgba(var(--primary-rgb),0.3)" id="eventsCurrentPage">1</button>
-                <button class="action-btn" title="Next" onclick="changeEventsPage(1)">&#8250;</button>
+                <button class="action-btn" title="Next" data-admin-click="changeEventsPage(1)">&#8250;</button>
               </div>
             </div>
           </div>
@@ -801,7 +801,7 @@
         <section id="clientIntel" class="section">
           <div class="page-header">
             <div><h1 class="page-title">Client Details</h1><p class="page-sub">Client health, trial follow-ups, onboarding progress, and support notes.</p></div>
-            <button class="btn btn-outline" onclick="loadAll()">Refresh Details</button>
+            <button class="btn btn-outline" data-admin-click="loadAll()">Refresh Details</button>
           </div>
           <div class="client-intelligence-layout">
             <div class="card client-intel-card">
@@ -818,7 +818,7 @@
         <section id="opsMonitor" class="section">
           <div class="page-header">
             <div><h1 class="page-title">Server Status</h1><p class="page-sub">Server, database, Redis, and worker queue health.</p></div>
-            <button class="btn btn-outline" onclick="loadAll()">Refresh Status</button>
+            <button class="btn btn-outline" data-admin-click="loadAll()">Refresh Status</button>
           </div>
           <div class="metrics-grid">
             <div class="metric-card"><div class="metric-header"><div class="m-icon bg-blue">S</div><span class="m-title">Server</span></div><div class="metric-value" id="serverHealthStatus">-</div><div class="trend">overall status</div></div>
@@ -883,7 +883,7 @@
         <section id="team" class="section">
           <div class="page-header">
             <div><h1 class="page-title">Team &amp; Access</h1><p class="page-sub">Create administrators, assign ownership, and revoke access.</p></div>
-            <button class="btn btn-outline" onclick="refreshAdminUsers()">Refresh</button>
+            <button class="btn btn-outline" data-admin-click="refreshAdminUsers()">Refresh</button>
           </div>
           <div class="grid-layout team-layout">
             <div class="card">
@@ -892,7 +892,7 @@
             </div>
             <div class="card">
               <div class="card-header"><h2 class="card-title">Add administrator</h2></div>
-              <form class="form-card" onsubmit="createAdminUser(event)">
+              <form class="form-card" data-admin-submit="createAdminUser(event)">
                 <div class="field"><label for="teamUsername">Username</label><input id="teamUsername" minlength="3" maxlength="120" autocomplete="off" required></div>
                 <div class="field"><label for="teamDisplayName">Display name</label><input id="teamDisplayName" maxlength="120" required></div>
                 <div class="field"><label for="teamPassword">Temporary password</label><input id="teamPassword" type="password" minlength="12" maxlength="128" autocomplete="new-password" required><small>12-128 characters. Share through a secure channel.</small></div>
@@ -920,7 +920,7 @@
                 <div class="field"><label>GA4 Measurement ID</label><input id="newGa4" placeholder="G-XXXXXXXXXX"></div>
               </div>
               <div style="height:20px"></div>
-              <button class="btn btn-primary" onclick="createClient()">Create client</button>
+              <button class="btn btn-primary" data-admin-click="createClient()">Create client</button>
               <p id="createMsg" class="notice"></p>
             </div>
           </div>
@@ -930,20 +930,20 @@
   </div>
 
   <!-- Client Management Modal -->
-  <div id="modalOverlay" class="modal-overlay" onclick="if(event.target===this) closeClientModal()">
+  <div id="modalOverlay" class="modal-overlay" data-admin-click="if(event.target===this) closeClientModal()">
     <div class="modal">
       <div class="modal-header">
         <div class="modal-title" id="modalTitle">Manage Client</div>
-        <button class="modal-close" onclick="closeClientModal()">&times;</button>
+        <button class="modal-close" data-admin-click="closeClientModal()">&times;</button>
       </div>
       <div class="modal-body">
         <div id="client360QuickSummary" class="client360-quick"></div>
         <div class="tabs">
-          <button class="tab-btn active" onclick="switchModalTab('edit')">Client</button>
-          <button class="tab-btn" onclick="switchModalTab('keys')">Keys</button>
-          <button class="tab-btn" onclick="switchModalTab('instructions')">API Setup</button>
-          <button class="tab-btn" onclick="switchModalTab('intel')">360 & Notes</button>
-          <button class="tab-btn" onclick="switchModalTab('danger')">Danger Zone</button>
+          <button class="tab-btn active" data-admin-click="switchModalTab('edit')">Client</button>
+          <button class="tab-btn" data-admin-click="switchModalTab('keys')">Keys</button>
+          <button class="tab-btn" data-admin-click="switchModalTab('instructions')">API Setup</button>
+          <button class="tab-btn" data-admin-click="switchModalTab('intel')">360 & Notes</button>
+          <button class="tab-btn" data-admin-click="switchModalTab('danger')">Danger Zone</button>
         </div>
         
         <div id="tab-edit" class="tab-content active form-card" style="padding:0">
@@ -1026,7 +1026,7 @@
           </div>
           </div>
           <div style="margin-top:24px;display:flex;gap:12px;align-items:center">
-            <button class="btn btn-primary" onclick="saveClientEdit()">Save Changes</button>
+            <button class="btn btn-primary" data-admin-click="saveClientEdit()">Save Changes</button>
             <span id="editMsg" class="notice" style="margin:0"></span>
           </div>
         </div>
@@ -1037,24 +1037,24 @@
           <label style="color:var(--text-main);font-weight:800;font-size:10px;text-transform:uppercase;display:block;margin-bottom:8px;letter-spacing:0.05em">API Key (Data Ingestion)</label>
           <div class="api-key-cell">
             <span id="keyApi" data-hidden="1">********************************</span>
-            <button class="copy-icon" onclick="revealSecret('keyApi')" title="Reveal">Reveal</button>
-            <button class="copy-icon" onclick="copyText('keyApi')" title="Copy">Copy</button>
+            <button class="copy-icon" data-admin-click="revealSecret('keyApi')" title="Reveal">Reveal</button>
+            <button class="copy-icon" data-admin-click="copyText('keyApi')" title="Copy">Copy</button>
           </div>
-          <button class="btn btn-outline btn-sm" style="margin-bottom:24px" onclick="rotateKey('api_key')">Rotate API Key</button>
+          <button class="btn btn-outline btn-sm" style="margin-bottom:24px" data-admin-click="rotateKey('api_key')">Rotate API Key</button>
           
           <label style="color:var(--text-main);font-weight:800;font-size:10px;text-transform:uppercase;display:block;margin-bottom:8px;letter-spacing:0.05em">Portal Key (Dashboard Access)</label>
           <div class="api-key-cell">
             <span id="keyPortal" data-hidden="1">********************************</span>
-            <button class="copy-icon" onclick="revealSecret('keyPortal')" title="Reveal">Reveal</button>
-            <button class="copy-icon" onclick="copyText('keyPortal')" title="Copy">Copy</button>
+            <button class="copy-icon" data-admin-click="revealSecret('keyPortal')" title="Reveal">Reveal</button>
+            <button class="copy-icon" data-admin-click="copyText('keyPortal')" title="Copy">Copy</button>
           </div>
-          <button class="btn btn-outline btn-sm" style="margin-bottom:24px" onclick="rotateKey('portal_key')">Rotate Portal Key</button>
+          <button class="btn btn-outline btn-sm" style="margin-bottom:24px" data-admin-click="rotateKey('portal_key')">Rotate Portal Key</button>
           
           <label style="color:var(--text-main);font-weight:800;font-size:10px;text-transform:uppercase;display:block;margin-bottom:8px;letter-spacing:0.05em">Access Token (Meta)</label>
           <div class="api-key-cell">
             <span id="keyToken" data-hidden="1">********************************</span>
-            <button class="copy-icon" onclick="revealSecret('keyToken')" title="Reveal">Reveal</button>
-            <button class="copy-icon" onclick="copyText('keyToken')" title="Copy">Copy</button>
+            <button class="copy-icon" data-admin-click="revealSecret('keyToken')" title="Reveal">Reveal</button>
+            <button class="copy-icon" data-admin-click="copyText('keyToken')" title="Copy">Copy</button>
           </div>
         </div>
         
@@ -1064,18 +1064,18 @@
           <label style="color:var(--text-main);font-weight:800;font-size:10px;text-transform:uppercase;display:block;margin-bottom:8px;letter-spacing:0.05em">API Endpoint</label>
           <div class="api-key-cell">
             <span id="instrEndpoint">https://api.buykori.app/api/v1/events</span>
-              <button class="copy-icon" onclick="copyText('instrEndpoint')" title="Copy">Copy</button>
+              <button class="copy-icon" data-admin-click="copyText('instrEndpoint')" title="Copy">Copy</button>
           </div>
           
           <label style="color:var(--text-main);font-weight:800;font-size:10px;text-transform:uppercase;display:block;margin-bottom:8px;letter-spacing:0.05em">cURL Example</label>
           <div class="instr-box" id="instrCurl"></div>
-          <button class="btn btn-outline btn-sm" onclick="copyText('instrCurl')">Copy Example</button>
+          <button class="btn btn-outline btn-sm" data-admin-click="copyText('instrCurl')">Copy Example</button>
           
           <div style="margin-top:24px">
             <label style="color:var(--text-main);font-weight:800;font-size:10px;text-transform:uppercase;display:block;margin-bottom:8px;letter-spacing:0.05em">Client Portal Link</label>
             <div class="api-key-cell">
               <span id="instrPortal">https://client.buykori.app</span>
-              <button class="copy-icon" onclick="copyText('instrPortal')" title="Copy">Copy</button>
+              <button class="copy-icon" data-admin-click="copyText('instrPortal')" title="Copy">Copy</button>
             </div>
             <p style="font-size:11px;color:var(--text-muted)">The client will need their Portal Key to login.</p>
           </div>
@@ -1089,7 +1089,7 @@
             <textarea id="supportNoteInput" rows="3" placeholder="Call summary, feedback, upgrade interest, setup blocker..."></textarea>
           </div>
           <div style="margin-top:12px;display:flex;gap:12px;align-items:center">
-            <button class="btn btn-primary" onclick="addSupportNote()">Add Note</button>
+            <button class="btn btn-primary" data-admin-click="addSupportNote()">Add Note</button>
           </div>
           <div id="supportNotesList" class="support-notes-list"></div>
         </div>
@@ -1098,7 +1098,7 @@
           <div style="padding:20px;border:1px solid rgba(239,68,68,0.25);border-radius:12px;background:rgba(239,68,68,0.05)">
             <h3 style="color:var(--danger);margin-bottom:8px;font-size:15px;font-weight:800">Delete Client</h3>
             <p style="color:var(--text-muted);margin-bottom:16px;font-size:13px">Once you delete a client, there is no going back. All events, logs, and authentication keys will be permanently destroyed.</p>
-            <button class="btn btn-danger" onclick="deleteClient()">I understand, delete this client</button>
+            <button class="btn btn-danger" data-admin-click="deleteClient()">I understand, delete this client</button>
           </div>
         </div>
         
@@ -1106,11 +1106,11 @@
     </div>
   </div>
 
-  <div id="adminDecisionOverlay" class="modal-overlay decision-overlay" onclick="if(event.target===this) closeAdminDecision(false)">
+  <div id="adminDecisionOverlay" class="modal-overlay decision-overlay" data-admin-click="if(event.target===this) closeAdminDecision(false)">
     <div class="modal decision-modal" role="dialog" aria-modal="true" aria-labelledby="adminDecisionTitle">
       <div class="modal-header">
         <div class="modal-title" id="adminDecisionTitle">Confirm Action</div>
-        <button class="modal-close" onclick="closeAdminDecision(false)" aria-label="Close">&times;</button>
+        <button class="modal-close" data-admin-click="closeAdminDecision(false)" aria-label="Close">&times;</button>
       </div>
       <div class="modal-body decision-body">
         <p id="adminDecisionMessage" class="decision-message"></p>
@@ -1121,38 +1121,38 @@
           <div id="adminDecisionError" class="decision-error"></div>
         </div>
         <div class="decision-actions">
-          <button id="adminDecisionCancel" class="btn btn-outline" onclick="closeAdminDecision(false)">Cancel</button>
-          <button id="adminDecisionConfirm" class="btn btn-primary" onclick="confirmAdminDecision()">Confirm</button>
+          <button id="adminDecisionCancel" class="btn btn-outline" data-admin-click="closeAdminDecision(false)">Cancel</button>
+          <button id="adminDecisionConfirm" class="btn btn-primary" data-admin-click="confirmAdminDecision()">Confirm</button>
         </div>
       </div>
     </div>
   </div>
 
-  <div id="queueDrawerOverlay" class="drawer-overlay" onclick="if(event.target===this) closeCourierJobDrawer()">
+  <div id="queueDrawerOverlay" class="drawer-overlay" data-admin-click="if(event.target===this) closeCourierJobDrawer()">
     <aside class="queue-drawer" role="dialog" aria-modal="true" aria-labelledby="queueDrawerTitle">
       <div class="drawer-header">
         <div>
           <div class="drawer-kicker">Courier Queue</div>
           <h2 id="queueDrawerTitle">Courier Job</h2>
         </div>
-        <button class="modal-close" onclick="closeCourierJobDrawer()" aria-label="Close">&times;</button>
+        <button class="modal-close" data-admin-click="closeCourierJobDrawer()" aria-label="Close">&times;</button>
       </div>
       <div id="queueDrawerBody" class="drawer-body"></div>
       <div class="drawer-footer">
-        <button class="btn btn-outline" onclick="closeCourierJobDrawer()">Close</button>
+        <button class="btn btn-outline" data-admin-click="closeCourierJobDrawer()">Close</button>
         <button id="queueDrawerRetry" class="btn btn-primary" style="display:none">Retry Job</button>
       </div>
     </aside>
   </div>
 
-  <div id="notificationDrawerOverlay" class="drawer-overlay" onclick="if(event.target===this) closeNotificationJobDrawer()">
+  <div id="notificationDrawerOverlay" class="drawer-overlay" data-admin-click="if(event.target===this) closeNotificationJobDrawer()">
     <aside class="queue-drawer" role="dialog" aria-modal="true" aria-labelledby="notificationDrawerTitle">
       <div class="drawer-header">
         <div><div class="drawer-kicker">WhatsApp Delivery</div><h2 id="notificationDrawerTitle">Notification Job</h2></div>
-        <button class="modal-close" onclick="closeNotificationJobDrawer()" aria-label="Close">&times;</button>
+        <button class="modal-close" data-admin-click="closeNotificationJobDrawer()" aria-label="Close">&times;</button>
       </div>
       <div id="notificationDrawerBody" class="drawer-body"></div>
-      <div class="drawer-footer"><button class="btn btn-outline" onclick="closeNotificationJobDrawer()">Close</button></div>
+      <div class="drawer-footer"><button class="btn btn-outline" data-admin-click="closeNotificationJobDrawer()">Close</button></div>
     </aside>
   </div>
 

@@ -7,8 +7,9 @@ on:
 
 jobs:
   check:
-    name: Lint, typecheck, format
+    name: Lint, typecheck, format and CSP
     runs-on: ubuntu-latest
+    timeout-minutes: 10
 
     steps:
       - uses: actions/checkout@v4
@@ -16,6 +17,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
+          cache: npm
 
       - name: Install dependencies
         run: npm ci
@@ -30,3 +32,9 @@ jobs:
 
       - name: Format check
         run: npm run format:check
+
+      - name: Check JavaScript syntax
+        run: node --check app.js
+
+      - name: Test enforced CSP migration
+        run: node --test tests/admin-csp.test.mjs

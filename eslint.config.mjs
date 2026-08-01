@@ -79,4 +79,11 @@ export default [
       "prefer-const": "warn",
     },
   },
+
+  {
+    files: ["tests/**/*.mjs"],
+    languageOptions: {
+      globals: globals.node,
+    },
+  },
 ];
