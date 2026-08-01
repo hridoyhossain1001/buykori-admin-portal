@@ -263,3 +263,26 @@ test("notification, payment, support and WhatsApp controls use named actions", a
     assert.match(appJs, new RegExp(`data-action="whatsapp:${action}"`));
   }
 });
+
+test("site binding controls use named actions", async () => {
+  const indexHtml = await read("index.html");
+  const appJs = await read("app.js");
+  const sectionStart = indexHtml.indexOf('<section id="siteBindings"');
+  const sectionEnd = indexHtml.indexOf('<section id="events"', sectionStart);
+  const markup = indexHtml.slice(sectionStart, sectionEnd);
+
+  assert.ok(
+    sectionStart >= 0 && sectionEnd > sectionStart,
+    "site bindings section must be present"
+  );
+  assert.doesNotMatch(markup, /data-admin-(?:click|change|input|submit)=/);
+  assert.equal((markup.match(/data-action="site-bindings:filter"/g) || []).length, 2);
+  assert.match(markup, /data-action="site-bindings:refresh"/);
+  assert.match(markup, /data-action="site-bindings:transfer"/);
+  assert.doesNotMatch(
+    appJs,
+    /data-admin-click="(?:prepareSiteBindingTransfer|releaseSiteBinding)\(/
+  );
+  assert.match(appJs, /data-action="site-bindings:prepare-transfer"/);
+  assert.match(appJs, /data-action="site-bindings:release"/);
+});

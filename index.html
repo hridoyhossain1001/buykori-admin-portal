@@ -630,7 +630,7 @@
               <p class="page-sub">Manage connected WordPress domains, release requests, and transfer workflows.</p>
             </div>
             <div class="header-actions">
-              <button class="btn btn-outline" data-admin-click="refreshSiteBindings()">Refresh Sites</button>
+              <button class="btn btn-outline" data-action="site-bindings:refresh">Refresh Sites</button>
             </div>
           </div>
 
@@ -662,13 +662,13 @@
               <div class="card-header">
                 <h2 class="card-title">Connected Websites</h2>
                 <div class="card-tools">
-                  <select id="bindingStatusFilter" data-admin-change="renderSiteBindings()">
+                  <select id="bindingStatusFilter" data-action="site-bindings:filter">
                     <option value="all">All statuses</option>
                     <option value="active">Active</option>
                     <option value="released">Released</option>
                     <option value="transferred">Transferred</option>
                   </select>
-                  <select id="bindingClientFilter" data-admin-change="renderSiteBindings()">
+                  <select id="bindingClientFilter" data-action="site-bindings:filter">
                     <option value="">All clients</option>
                   </select>
                 </div>
@@ -705,7 +705,7 @@
                     <label for="transferReason">Support Reason</label>
                     <textarea id="transferReason" rows="4" placeholder="Approved transfer request, billing/account merge, or verified owner request."></textarea>
                   </div>
-                  <button class="btn btn-primary" data-admin-click="transferSiteBinding()">Transfer Binding</button>
+                  <button class="btn btn-primary" data-action="site-bindings:transfer">Transfer Binding</button>
                   <p id="siteBindingMsg" class="form-msg"></p>
                 </div>
               </div>
