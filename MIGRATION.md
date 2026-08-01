@@ -77,10 +77,13 @@ Progress:
   and explicit API-error feedback. The lint ratchet is now 85 warnings.
 - Client modal navigation: migrated all five tabs, the dynamic View details
   shortcut, backdrop-only close and close button to named actions. Save, keys,
-  notes and delete controls remain intentionally isolated for later slices.
+  notes and delete controls were intentionally isolated for later slices.
 - Client modal Save/Edit: migrated the PATCH action with offline success and
   API-error coverage. Removing its legacy string reference lowered the lint
-  ratchet to 84 warnings; keys, notes and delete remain for later slices.
+  ratchet to 84 warnings; keys, notes and delete were left for later slices.
+- Client modal Keys: migrated Reveal, Copy and Rotate controls with offline
+  secret-lifecycle, confirmation, payload and clipboard coverage. The lint
+  ratchet is now 81 warnings; notes and delete remain for later slices.
 
 When the last inline handler is gone:
 

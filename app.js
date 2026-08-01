@@ -2431,6 +2431,18 @@ const ADMIN_ACTIONS = Object.freeze({
   "client-modal:save": {
     event: "click",
     run: () => saveClientEdit()
+  },
+  "client-modal:reveal-secret": {
+    event: "click",
+    run: ({ element }) => revealSecret(element.dataset.targetId)
+  },
+  "client-modal:copy": {
+    event: "click",
+    run: ({ element }) => copyText(element.dataset.targetId)
+  },
+  "client-modal:rotate-key": {
+    event: "click",
+    run: ({ element }) => rotateKey(element.dataset.keyType)
   }
 });
 
@@ -2466,8 +2478,8 @@ const ADMIN_ACTION_NAMES = new Set([
   "openNotificationJobDrawer", "prepareSiteBindingTransfer", "refreshAdminUsers",
   "refreshNotificationOps", "refreshRecoveryOps",
   "refreshSiteBindings", "registerExistingWhatsAppInstance", "releaseSiteBinding",
-  "renderSiteBindings", "retryNotificationJob", "revealSecret",
-  "rotateKey", "saveWhatsAppInstanceCapacity",
+  "renderSiteBindings", "retryNotificationJob",
+  "saveWhatsAppInstanceCapacity",
   "setNotificationOpsTab", "setPaymentHistoryFilter", "setTab",
   "toggleEventDetail",
   "toggleSidebar", "toggleTheme", "transferSiteBinding", "triggerAdminTestPayment",

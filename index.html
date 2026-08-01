@@ -1037,24 +1037,24 @@
           <label style="color:var(--text-main);font-weight:800;font-size:10px;text-transform:uppercase;display:block;margin-bottom:8px;letter-spacing:0.05em">API Key (Data Ingestion)</label>
           <div class="api-key-cell">
             <span id="keyApi" data-hidden="1">********************************</span>
-            <button class="copy-icon" data-admin-click="revealSecret('keyApi')" title="Reveal">Reveal</button>
-            <button class="copy-icon" data-admin-click="copyText('keyApi')" title="Copy">Copy</button>
+            <button type="button" class="copy-icon" data-action="client-modal:reveal-secret" data-target-id="keyApi" title="Reveal">Reveal</button>
+            <button type="button" class="copy-icon" data-action="client-modal:copy" data-target-id="keyApi" title="Copy">Copy</button>
           </div>
-          <button class="btn btn-outline btn-sm" style="margin-bottom:24px" data-admin-click="rotateKey('api_key')">Rotate API Key</button>
+          <button type="button" class="btn btn-outline btn-sm" style="margin-bottom:24px" data-action="client-modal:rotate-key" data-key-type="api_key">Rotate API Key</button>
           
           <label style="color:var(--text-main);font-weight:800;font-size:10px;text-transform:uppercase;display:block;margin-bottom:8px;letter-spacing:0.05em">Portal Key (Dashboard Access)</label>
           <div class="api-key-cell">
             <span id="keyPortal" data-hidden="1">********************************</span>
-            <button class="copy-icon" data-admin-click="revealSecret('keyPortal')" title="Reveal">Reveal</button>
-            <button class="copy-icon" data-admin-click="copyText('keyPortal')" title="Copy">Copy</button>
+            <button type="button" class="copy-icon" data-action="client-modal:reveal-secret" data-target-id="keyPortal" title="Reveal">Reveal</button>
+            <button type="button" class="copy-icon" data-action="client-modal:copy" data-target-id="keyPortal" title="Copy">Copy</button>
           </div>
-          <button class="btn btn-outline btn-sm" style="margin-bottom:24px" data-admin-click="rotateKey('portal_key')">Rotate Portal Key</button>
+          <button type="button" class="btn btn-outline btn-sm" style="margin-bottom:24px" data-action="client-modal:rotate-key" data-key-type="portal_key">Rotate Portal Key</button>
           
           <label style="color:var(--text-main);font-weight:800;font-size:10px;text-transform:uppercase;display:block;margin-bottom:8px;letter-spacing:0.05em">Access Token (Meta)</label>
           <div class="api-key-cell">
             <span id="keyToken" data-hidden="1">********************************</span>
-            <button class="copy-icon" data-admin-click="revealSecret('keyToken')" title="Reveal">Reveal</button>
-            <button class="copy-icon" data-admin-click="copyText('keyToken')" title="Copy">Copy</button>
+            <button type="button" class="copy-icon" data-action="client-modal:reveal-secret" data-target-id="keyToken" title="Reveal">Reveal</button>
+            <button type="button" class="copy-icon" data-action="client-modal:copy" data-target-id="keyToken" title="Copy">Copy</button>
           </div>
         </div>
         
