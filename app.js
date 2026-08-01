@@ -339,8 +339,8 @@ function renderAdminUsers() {
       <td><span class="status-badge ${user.isActive ? "status-active" : "status-inactive"}">${user.isActive ? "Active" : "Disabled"}</span></td>
       <td>${esc(user.lastLoginAt ? toDeviceDateTime(user.lastLoginAt) : "Never")}</td>
       <td><div class="team-actions">
-        <button class="btn btn-outline btn-sm" onclick="updateAdminUserAccess('${user.id}', {role:'${nextRole}'}, 'Change ${esc(user.username)} to ${nextRole}?')">Make ${nextRole}</button>
-        <button class="btn btn-outline btn-sm" onclick="updateAdminUserAccess('${user.id}', {is_active:${nextActive}}, '${nextActive ? "Enable" : "Disable"} ${esc(user.username)}?')">${nextActive ? "Enable" : "Disable"}</button>
+        <button class="btn btn-outline btn-sm" data-admin-click="updateAdminUserAccess('${user.id}', {role:'${nextRole}'}, 'Change ${esc(user.username)} to ${nextRole}?')">Make ${nextRole}</button>
+        <button class="btn btn-outline btn-sm" data-admin-click="updateAdminUserAccess('${user.id}', {is_active:${nextActive}}, '${nextActive ? "Enable" : "Disable"} ${esc(user.username)}?')">${nextActive ? "Enable" : "Disable"}</button>
       </div></td>
     </tr>`;
   }).join("") : `<tr><td colspan="5" class="empty">No admin users found.</td></tr>`;
@@ -525,7 +525,7 @@ function renderCourierQueueBanner(queue) {
       <strong>Courier queue ${esc(status)}</strong>
       <span>${esc(queueStatusText(queue))}</span>
     </div>
-    <button class="btn btn-outline btn-sm" onclick="setTab('courierQueue')">Open Queue</button>
+    <button class="btn btn-outline btn-sm" data-admin-click="setTab('courierQueue')">Open Queue</button>
   `;
 }
 
@@ -649,7 +649,7 @@ function renderIntegrationRows() {
       <td>${integrationBadge(integrationState(client, "ga4"), "ga4")}</td>
       <td><span class="text-success" style="font-weight:700">${fmt(health.periodEvents)}</span> <span style="font-size:10px;color:var(--text-subtle)">${esc(dashboardWindowShortLabel())}</span></td>
       <td><div class="status-badge ${statusClass(health.status)}" title="${esc(health.reasons.join(", "))}">${health.score !== undefined ? `${fmt(health.score)}%` : statusLabel(health.status, client.is_active)}</div></td>
-      <td><button class="action-btn" onclick="openClientModal(${client.id})" title="Manage client">...</button></td>
+      <td><button class="action-btn" data-admin-click="openClientModal(${client.id})" title="Manage client">...</button></td>
     </tr>`;
   }).join("") || `<tr><td colspan="8" class="empty">No clients yet. Use Add Client to get started.</td></tr>`;
 }
@@ -685,8 +685,8 @@ function renderClientRows() {
       <td><div class="status-badge ${statusClass(health.status)}" title="${esc(health.reasons.join(", "))}">${health.score !== undefined ? `${fmt(health.score)}%` : statusLabel(health.status, client.is_active)}</div></td>
       <td>
         <div class="client-directory-actions">
-          <button class="btn btn-outline btn-sm" onclick="openClientModal(${client.id})">Manage</button>
-          <button class="btn btn-sm ${client.is_active ? 'btn-outline' : 'btn-primary'}" onclick="toggleClient(${client.id}, ${!client.is_active})">${client.is_active ? "Deactivate" : "Activate"}</button>
+          <button class="btn btn-outline btn-sm" data-admin-click="openClientModal(${client.id})">Manage</button>
+          <button class="btn btn-sm ${client.is_active ? 'btn-outline' : 'btn-primary'}" data-admin-click="toggleClient(${client.id}, ${!client.is_active})">${client.is_active ? "Deactivate" : "Activate"}</button>
         </div>
       </td>
     </tr>`;
@@ -754,7 +754,7 @@ function renderPaymentHistory() {
   const pager = $("paymentHistoryPager");
   if (pager) {
     pager.hidden = filtered.length <= pageSize;
-    pager.innerHTML = filtered.length <= pageSize ? "" : `<button class="table-pager-button" onclick="changePaymentHistoryPage(-1)" ${state.paymentHistoryPage <= 1 ? "disabled" : ""} aria-label="Previous page">&#8592;</button><span>Page <strong>${state.paymentHistoryPage}</strong> of ${pageCount}</span><button class="table-pager-button" onclick="changePaymentHistoryPage(1)" ${state.paymentHistoryPage >= pageCount ? "disabled" : ""} aria-label="Next page">&#8594;</button>`;
+    pager.innerHTML = filtered.length <= pageSize ? "" : `<button class="table-pager-button" data-admin-click="changePaymentHistoryPage(-1)" ${state.paymentHistoryPage <= 1 ? "disabled" : ""} aria-label="Previous page">&#8592;</button><span>Page <strong>${state.paymentHistoryPage}</strong> of ${pageCount}</span><button class="table-pager-button" data-admin-click="changePaymentHistoryPage(1)" ${state.paymentHistoryPage >= pageCount ? "disabled" : ""} aria-label="Next page">&#8594;</button>`;
   }
 }
 
@@ -869,8 +869,8 @@ function renderSiteBindings() {
       </td>
       <td>
         <div class="queue-actions">
-          <button class="btn btn-outline btn-sm" onclick="prepareSiteBindingTransfer(${Number(binding.id)})" ${canTransfer ? "" : "disabled"}>Transfer</button>
-          <button class="btn btn-danger btn-sm" onclick="releaseSiteBinding(${Number(binding.id)})" ${canRelease ? "" : "disabled"}>Release</button>
+          <button class="btn btn-outline btn-sm" data-admin-click="prepareSiteBindingTransfer(${Number(binding.id)})" ${canTransfer ? "" : "disabled"}>Transfer</button>
+          <button class="btn btn-danger btn-sm" data-admin-click="releaseSiteBinding(${Number(binding.id)})" ${canRelease ? "" : "disabled"}>Release</button>
         </div>
       </td>
     </tr>`;
@@ -894,7 +894,7 @@ function renderHealthRows() {
     <td>${fmt(item.today_events)}</td>
     <td>${pct(item.success_rate)}</td>
     <td>${esc(toDeviceDateTime(item.last_event_at))}</td>
-    <td><button class="btn btn-outline btn-sm" onclick="openClientModal(${Number(item.client_id)})">Open client</button></td>
+    <td><button class="btn btn-outline btn-sm" data-admin-click="openClientModal(${Number(item.client_id)})">Open client</button></td>
   </tr>`).join("") || `<tr><td colspan="7" class="empty">Health data will appear when clients start sending events.</td></tr>`;
 }
 
@@ -911,7 +911,7 @@ function renderClientIntelligence() {
         <td><div class="status-badge ${followup.priority === "high" ? "status-critical" : followup.priority === "medium" ? "status-warning" : "status-healthy"}">${esc(followup.priority)}</div></td>
         <td>${esc(followup.reason)}</td>
         <td>${esc(followup.action)}</td>
-        <td><button class="btn btn-outline btn-sm" onclick="openClientModal(${Number(c.id)})">Open</button></td>
+        <td><button class="btn btn-outline btn-sm" data-admin-click="openClientModal(${Number(c.id)})">Open</button></td>
       </tr>`;
     }).join("") || `<tr><td colspan="5" class="empty">No trial follow-ups right now.</td></tr>`;
   }
@@ -928,7 +928,7 @@ function renderClientIntelligence() {
         <td>${doneCount(funnel)} / ${funnel.length}</td>
         <td>${followup ? esc(followup.reason) : "No action"}</td>
         <td>${fmt(row.support_note_count || 0)}</td>
-        <td><button class="btn btn-outline btn-sm" onclick="openClientModal(${Number(c.id)})">Open</button></td>
+        <td><button class="btn btn-outline btn-sm" data-admin-click="openClientModal(${Number(c.id)})">Open</button></td>
       </tr>`;
     }).join("") || `<tr><td colspan="6" class="empty">Client details will appear after intelligence data loads.</td></tr>`;
   }
@@ -1107,7 +1107,7 @@ function renderAlerts() {
     <div class="stream-content"><div class="stream-title">${esc(row.title)}</div><div class="stream-desc">${esc(row.desc)}</div></div>
     <div class="alert-rank ${row.cls}">${esc(row.rank)}</div>
     <div style="font-size:12px;color:var(--text-muted);font-weight:700">${esc(row.value)}</div>
-    ${row.action === "acknowledge-courier-statuses" ? `<button class="btn btn-outline btn-sm" onclick="acknowledgeUnknownCourierStatuses()">Acknowledge</button>` : row.action ? `<button class="btn btn-outline btn-sm alert-action" onclick="runAlertAction('${esc(row.action)}', ${Number(row.clientId || 0)})">${row.action === "open-client" ? "Open client" : row.action === "server" ? "Server status" : row.action === "courier" ? "Courier queue" : "Review clients"}</button>` : ""}
+    ${row.action === "acknowledge-courier-statuses" ? `<button class="btn btn-outline btn-sm" data-admin-click="acknowledgeUnknownCourierStatuses()">Acknowledge</button>` : row.action ? `<button class="btn btn-outline btn-sm alert-action" data-admin-click="runAlertAction('${esc(row.action)}', ${Number(row.clientId || 0)})">${row.action === "open-client" ? "Open client" : row.action === "server" ? "Server status" : row.action === "courier" ? "Courier queue" : "Review clients"}</button>` : ""}
   </div>`).join("") || `<div class="stream-item" style="align-items:center;border-bottom:none"><div class="stream-dot success"></div><div class="stream-content"><div class="stream-title">System Status</div><div class="stream-desc">All systems operational</div></div></div>`;
 }
 
@@ -1166,8 +1166,8 @@ function renderCourierQueue() {
         <td><div class="client-sub" style="max-width:260px;white-space:normal">${esc(job.last_error || "-")}</div></td>
         <td>
           <div class="queue-actions">
-            <button class="btn btn-outline btn-sm" onclick="openCourierJobDrawer(${Number(job.id)})">Details</button>
-            ${job.status === "dead" ? `<button class="btn btn-primary btn-sm" onclick="retryCourierBookingJob(${Number(job.id)})">Retry</button>` : ""}
+            <button class="btn btn-outline btn-sm" data-admin-click="openCourierJobDrawer(${Number(job.id)})">Details</button>
+            ${job.status === "dead" ? `<button class="btn btn-primary btn-sm" data-admin-click="retryCourierBookingJob(${Number(job.id)})">Retry</button>` : ""}
           </div>
         </td>
       </tr>
@@ -1197,7 +1197,7 @@ function renderRecoveryOps() {
           <td>
             <div class="queue-actions">
               ${item.page_url ? `<a class="btn btn-outline btn-sm" href="${safeHref(item.page_url)}" target="_blank" rel="noreferrer">Open</a>` : ""}
-              ${!locked ? `<button class="btn btn-outline btn-sm" onclick="updateRecoveryStatus(${Number(item.id)}, 'contacted')">Contacted</button><button class="btn btn-outline btn-sm" onclick="updateRecoveryStatus(${Number(item.id)}, 'ignored')">Ignore</button>` : ""}
+              ${!locked ? `<button class="btn btn-outline btn-sm" data-admin-click="updateRecoveryStatus(${Number(item.id)}, 'contacted')">Contacted</button><button class="btn btn-outline btn-sm" data-admin-click="updateRecoveryStatus(${Number(item.id)}, 'ignored')">Ignore</button>` : ""}
             </div>
           </td>
         </tr>
@@ -1286,7 +1286,7 @@ function renderNotificationOps() {
         <td><div class="client-name">${esc(item.trxId)}</div><div class="client-sub" style="max-width:280px;white-space:normal">${esc(item.note || "-")}</div></td>
         <td><div class="status-badge ${statusClass(item.status === "approved" ? "healthy" : item.status === "rejected" ? "critical" : "warning")}">${esc(item.status)}</div></td>
         <td>
-          ${item.intent && ["matched", "needs_review"].includes(item.status) ? `<button class="copy-icon" onclick="decideSmsPayment(${Number(item.receiptId)}, 'approve')">Approve</button><button class="copy-icon danger-link" onclick="decideSmsPayment(${Number(item.receiptId)}, 'reject')">Reject</button>` : `<span class="client-sub">${item.status === "approved" ? "Automatic" : item.intent ? "Complete" : "Link required"}</span>`}
+          ${item.intent && ["matched", "needs_review"].includes(item.status) ? `<button class="copy-icon" data-admin-click="decideSmsPayment(${Number(item.receiptId)}, 'approve')">Approve</button><button class="copy-icon danger-link" data-admin-click="decideSmsPayment(${Number(item.receiptId)}, 'reject')">Reject</button>` : `<span class="client-sub">${item.status === "approved" ? "Automatic" : item.intent ? "Complete" : "Link required"}</span>`}
         </td>
       </tr>
     `).join("") || `<tr><td colspan="6" class="empty">No SMS payments received.</td></tr>`;
@@ -1308,9 +1308,9 @@ function renderNotificationOps() {
         <td><div class="status-badge ${statusClass(ticket.status === "resolved" || ticket.status === "closed" ? "healthy" : ticket.status === "in_progress" ? "warning" : "critical")}">${esc(ticket.status)}</div></td>
         <td><div class="support-attachments">${(ticket.attachments || []).map(file => renderSupportAttachment(ticket, file)).join("") || `<span class="client-sub">None</span>`}</div></td>
         <td>
-          ${ticket.status === "open" ? `<button class="copy-icon" onclick="updateSupportTicket(${Number(ticket.id)}, 'in_progress')">Start</button>` : ""}
-          ${ticket.status !== "resolved" ? `<button class="copy-icon" onclick="updateSupportTicket(${Number(ticket.id)}, 'resolved')">Resolve</button>` : ""}
-          ${ticket.status === "resolved" ? `<button class="copy-icon" onclick="updateSupportTicket(${Number(ticket.id)}, 'open')">Reopen</button>` : ""}
+          ${ticket.status === "open" ? `<button class="copy-icon" data-admin-click="updateSupportTicket(${Number(ticket.id)}, 'in_progress')">Start</button>` : ""}
+          ${ticket.status !== "resolved" ? `<button class="copy-icon" data-admin-click="updateSupportTicket(${Number(ticket.id)}, 'resolved')">Resolve</button>` : ""}
+          ${ticket.status === "resolved" ? `<button class="copy-icon" data-admin-click="updateSupportTicket(${Number(ticket.id)}, 'open')">Reopen</button>` : ""}
         </td>
       </tr>
     `).join("") || `<tr><td colspan="6" class="empty">No client support tickets.</td></tr>`;
@@ -1327,8 +1327,8 @@ function renderNotificationOps() {
         <td>${fmt(job.attempt_count)} / ${fmt(job.max_attempts)}</td>
         <td>
           <div class="client-sub" style="max-width:300px;white-space:normal">${esc(job.error_message || job.message_preview || "-")}</div>
-          <button class="copy-icon" onclick="openNotificationJobDrawer(${Number(job.id)})">Details</button>
-          ${job.status === "failed" ? `<button class="copy-icon danger-link" onclick="retryNotificationJob(${Number(job.id)})">Retry now</button>` : ""}
+          <button class="copy-icon" data-admin-click="openNotificationJobDrawer(${Number(job.id)})">Details</button>
+          ${job.status === "failed" ? `<button class="copy-icon danger-link" data-admin-click="retryNotificationJob(${Number(job.id)})">Retry now</button>` : ""}
         </td>
         <td>${esc(toDeviceDateTime(job.next_attempt_at || job.sent_at))}</td>
       </tr>
@@ -1354,21 +1354,21 @@ function renderNotificationOps() {
           <div style="display:flex;gap:8px;align-items:center;flex-wrap:nowrap">
             <span class="client-name" style="white-space:nowrap">${fmt(inst.client_count)} assigned</span>
             <input id="waCapacity-${Number(inst.id)}" type="number" min="${Math.max(1, Number(inst.client_count || 0))}" max="1000" value="${Number(inst.client_capacity || 8)}" aria-label="Client capacity for ${esc(inst.instance_name)}" style="width:76px;padding:6px 8px;border:1px solid var(--border);border-radius:8px;background:var(--card-bg);color:var(--text-primary)">
-            <button class="copy-icon" onclick="saveWhatsAppInstanceCapacity(${Number(inst.id)})">Save</button>
+            <button class="copy-icon" data-admin-click="saveWhatsAppInstanceCapacity(${Number(inst.id)})">Save</button>
           </div>
           <div class="client-sub" style="margin-top:5px;color:${inst.is_full ? 'var(--danger)' : 'var(--success)'}">${inst.is_full ? "Full - increase capacity to add clients" : `${fmt(inst.available_slots)} slots available`}</div>
         </td>
         <td><div class="client-name">${fmt(inst.sent_24h)} sent / 24h</div><div class="client-sub">${fmt(inst.sent_7d)} sent, ${fmt(inst.failed_7d)} failed / 7d</div></td>
         <td>${esc(toDeviceDateTime(inst.last_sent_at || inst.last_health_check_at))}</td>
         <td>
-          <button class="copy-icon" onclick="editWhatsAppInstance(${Number(inst.id)})">Edit</button>
-          <button class="copy-icon" onclick="connectWhatsAppInstance(${Number(inst.id)})" title="${inst.status === 'active' ? 'Generate a fresh pairing code' : 'Reconnect this existing sender without deleting it'}">${inst.status === "active" ? "Pair Code" : "Reconnect"}</button>
-          <button class="copy-icon" onclick="checkWhatsAppInstanceState(${Number(inst.id)})">Check</button>
-          <button class="copy-icon" onclick="updateWhatsAppInstanceStatus(${Number(inst.id)}, 'active')">Activate</button>
-          <button class="copy-icon" onclick="updateWhatsAppInstanceStatus(${Number(inst.id)}, 'paused')">Pause</button>
-          <button class="copy-icon" onclick="updateWhatsAppInstanceStatus(${Number(inst.id)}, 'banned')">Banned</button>
-          <button class="copy-icon" onclick="logoutWhatsAppInstance(${Number(inst.id)})" ${inst.status === "active" ? "" : "disabled title=\"Sender is already disconnected\""}>Logout</button>
-          <button class="copy-icon danger-link" onclick="deleteWhatsAppInstance(${Number(inst.id)})" ${Number(inst.client_count || 0) === 0 ? "" : `disabled title=\"Assigned to ${Number(inst.client_count)} client(s)\"`}>Remove</button>
+          <button class="copy-icon" data-admin-click="editWhatsAppInstance(${Number(inst.id)})">Edit</button>
+          <button class="copy-icon" data-admin-click="connectWhatsAppInstance(${Number(inst.id)})" title="${inst.status === 'active' ? 'Generate a fresh pairing code' : 'Reconnect this existing sender without deleting it'}">${inst.status === "active" ? "Pair Code" : "Reconnect"}</button>
+          <button class="copy-icon" data-admin-click="checkWhatsAppInstanceState(${Number(inst.id)})">Check</button>
+          <button class="copy-icon" data-admin-click="updateWhatsAppInstanceStatus(${Number(inst.id)}, 'active')">Activate</button>
+          <button class="copy-icon" data-admin-click="updateWhatsAppInstanceStatus(${Number(inst.id)}, 'paused')">Pause</button>
+          <button class="copy-icon" data-admin-click="updateWhatsAppInstanceStatus(${Number(inst.id)}, 'banned')">Banned</button>
+          <button class="copy-icon" data-admin-click="logoutWhatsAppInstance(${Number(inst.id)})" ${inst.status === "active" ? "" : "disabled title=\"Sender is already disconnected\""}>Logout</button>
+          <button class="copy-icon danger-link" data-admin-click="deleteWhatsAppInstance(${Number(inst.id)})" ${Number(inst.client_count || 0) === 0 ? "" : `disabled title=\"Assigned to ${Number(inst.client_count)} client(s)\"`}>Remove</button>
         </td>
       </tr>
     `).join("") || `<tr><td colspan="7" class="empty">No WhatsApp senders configured.</td></tr>`;
@@ -1401,9 +1401,9 @@ function renderNotificationPager(elementId, key, pageData) {
   }
   pager.hidden = false;
   pager.innerHTML = `
-    <button class="table-pager-button" type="button" onclick="changeNotificationPage('${key}', -1)" ${pageData.page <= 1 ? "disabled" : ""} aria-label="Previous page">&#8592;</button>
+    <button class="table-pager-button" type="button" data-admin-click="changeNotificationPage('${key}', -1)" ${pageData.page <= 1 ? "disabled" : ""} aria-label="Previous page">&#8592;</button>
     <span>Page <strong>${pageData.page}</strong> of ${pageData.pageCount}</span>
-    <button class="table-pager-button" type="button" onclick="changeNotificationPage('${key}', 1)" ${pageData.page >= pageData.pageCount ? "disabled" : ""} aria-label="Next page">&#8594;</button>
+    <button class="table-pager-button" type="button" data-admin-click="changeNotificationPage('${key}', 1)" ${pageData.page >= pageData.pageCount ? "disabled" : ""} aria-label="Next page">&#8594;</button>
   `;
 }
 
@@ -2337,6 +2337,105 @@ function handleSearchInput() {
   }, 200);
 }
 
+// AP-03: CSP-safe replacement for legacy inline event attributes. Templates retain
+// declarative data-admin-* actions; this dispatcher accepts only literals and an
+// explicit function allowlist, without eval or new Function.
+const ADMIN_ACTION_NAMES = new Set([
+  "acknowledgeUnknownCourierStatuses", "addSupportNote", "changeEventsPage",
+  "changeNotificationPage", "changePaymentHistoryPage", "checkLatestPairingState",
+  "checkWhatsAppInstanceState", "closeAdminDecision", "closeClientModal",
+  "closeCourierJobDrawer", "closeNotificationJobDrawer", "confirmAdminDecision",
+  "connectWhatsAppInstance", "copyPairingCode", "copyText", "createAdminUser",
+  "createClient", "createWhatsAppInstance", "decideSmsPayment", "deleteClient",
+  "deleteWhatsAppInstance", "downloadReport", "editWhatsAppInstance",
+  "handleEventsFilterChange", "handleSearchInput", "loadAll", "loadEvents", "logout",
+  "logoutWhatsAppInstance", "openClientModal", "openCourierJobDrawer",
+  "openNotificationJobDrawer", "prepareSiteBindingTransfer", "refreshAdminUsers",
+  "refreshCourierQueue", "refreshNotificationOps", "refreshRecoveryOps",
+  "refreshSiteBindings", "registerExistingWhatsAppInstance", "releaseSiteBinding",
+  "renderSiteBindings", "retryCourierBookingJob", "retryNotificationJob", "revealSecret",
+  "rotateKey", "runAlertAction", "saveClientEdit", "saveWhatsAppInstanceCapacity",
+  "setDashboardWindow", "setNotificationOpsTab", "setPaymentHistoryFilter", "setTab",
+  "switchModalTab", "toggleClient", "toggleCourierQueueAutoRefresh", "toggleEventDetail",
+  "toggleSidebar", "toggleTheme", "transferSiteBinding", "triggerAdminTestPayment",
+  "updateAdminUserAccess", "updateRecoveryStatus", "updateSupportTicket",
+  "updateWhatsAppInstanceStatus"
+]);
+
+function splitAdminActionValues(source, delimiter = ",") {
+  const values = [];
+  let current = "";
+  let quote = "";
+  let escaped = false;
+  let depth = 0;
+  for (const char of source) {
+    if (escaped) { current += char; escaped = false; continue; }
+    if (char === "\\" && quote) { current += char; escaped = true; continue; }
+    if (quote) { current += char; if (char === quote) quote = ""; continue; }
+    if (char === "'" || char === '"') { quote = char; current += char; continue; }
+    if (char === "{" || char === "[" || char === "(") depth++;
+    if (char === "}" || char === "]" || char === ")") depth--;
+    if (char === delimiter && depth === 0) { values.push(current.trim()); current = ""; }
+    else current += char;
+  }
+  if (current.trim()) values.push(current.trim());
+  return values;
+}
+
+function parseAdminActionValue(raw, event, element) {
+  const value = raw.trim();
+  if (value === "event") return event;
+  if (value === "this.value") return element.value;
+  if (value === "true") return true;
+  if (value === "false") return false;
+  if (value === "null") return null;
+  if (/^-?\d+(?:\.\d+)?$/.test(value)) return Number(value);
+  if ((value.startsWith("'") && value.endsWith("'")) || (value.startsWith('"') && value.endsWith('"'))) {
+    return value.slice(1, -1).replace(/\\(['"\\])/g, "$1");
+  }
+  if (value.startsWith("{") && value.endsWith("}")) {
+    const result = {};
+    for (const entry of splitAdminActionValues(value.slice(1, -1))) {
+      const separator = entry.indexOf(":");
+      if (separator < 1) throw new Error("Invalid admin action object.");
+      const key = entry.slice(0, separator).trim().replace(/^['"]|['"]$/g, "");
+      result[key] = parseAdminActionValue(entry.slice(separator + 1), event, element);
+    }
+    return result;
+  }
+  throw new Error(`Unsupported admin action value: ${value}`);
+}
+
+function runAdminAction(expression, event, element) {
+  const guarded = expression.match(/^if\s*\(event\.target===this\)\s*(.+)$/);
+  if (guarded) {
+    if (event.target !== element) return;
+    expression = guarded[1];
+  }
+  for (const statement of splitAdminActionValues(expression, ";")) {
+    const call = statement.match(/^([A-Za-z_$][\w$]*)\s*\((.*)\)$/s);
+    if (!call || !ADMIN_ACTION_NAMES.has(call[1])) throw new Error(`Blocked unknown admin action: ${statement}`);
+    const action = window[call[1]];
+    if (typeof action !== "function") throw new Error(`Admin action is unavailable: ${call[1]}`);
+    const args = call[2].trim()
+      ? splitAdminActionValues(call[2]).map(value => parseAdminActionValue(value, event, element))
+      : [];
+    action(...args);
+  }
+}
+
+for (const [eventName, attribute] of Object.entries({
+  click: "data-admin-click", change: "data-admin-change",
+  input: "data-admin-input", submit: "data-admin-submit"
+})) {
+  document.addEventListener(eventName, event => {
+    const element = event.target?.closest?.(`[${attribute}]`);
+    if (!element) return;
+    try { runAdminAction(element.getAttribute(attribute) || "", event, element); }
+    catch (error) { console.error("Admin action failed", error); }
+  });
+}
+
 document.querySelectorAll(".nav-item[data-tab]").forEach(button => button.addEventListener("click", () => setTab(button.dataset.tab)));
 $("adminLoginForm")?.addEventListener("submit", event => {
   event.preventDefault();
@@ -2626,7 +2725,7 @@ function renderClientModalIntel(clientId) {
   const quickHtml = `
     <div class="client360-quick-head">
       <div><strong>Setup Readiness</strong><span>${fmt(score.score)}% health, ${doneCount(funnel)} / ${funnel.length} onboarding</span></div>
-      <button type="button" class="btn btn-outline btn-sm" onclick="switchModalTab('intel')">View details</button>
+      <button type="button" class="btn btn-outline btn-sm" data-admin-click="switchModalTab('intel')">View details</button>
     </div>
     <div class="client360-quick-items">
       ${quickItems.map(([label, ok, bad]) => `<div class="client360-quick-item ${ok ? "ready" : "attention"}"><span>${esc(label)}</span><strong>${ok ? "Ready" : esc(bad)}</strong></div>`).join("")}
@@ -3012,7 +3111,7 @@ function renderEvents() {
     const sampleNotice = event.sampleNotice || "These JSON blocks are reconstructed from stored EventLog fields.";
     
     const mainRow = `
-      <tr onclick="toggleEventDetail('${event.id}')" class="event-row ${event.status === "Failed" ? "event-row-failed" : ""}">
+      <tr data-admin-click="toggleEventDetail('${event.id}')" class="event-row ${event.status === "Failed" ? "event-row-failed" : ""}">
         <td class="code-text" style="white-space:nowrap;">${esc(displayTime)}</td>
         <td><div class="client-name" style="font-size:12.5px;">${esc(event.client_name)}</div><div class="client-sub">ID ${event.client_id}</div></td>
         <td><span style="color:#818cf8;font-weight:700">${esc(event.name)}</span></td>
