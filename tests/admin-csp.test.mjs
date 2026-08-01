@@ -9,6 +9,7 @@ test("admin markup and runtime templates contain no inline event handlers", asyn
   const sources = `${await read("index.html")}\n${await read("app.js")}`;
   assert.doesNotMatch(sources, /\son(?:click|change|input|submit)\s*=/i);
   assert.doesNotMatch(sources, /\.on(?:click|change|input|submit)\s*=/i);
+  assert.doesNotMatch(sources, /getAttribute\(["']on(?:click|change|input|submit)["']\)/i);
   assert.match(sources, /data-admin-click=/);
   assert.match(sources, /const ADMIN_ACTION_NAMES = new Set/);
   assert.doesNotMatch(sources, /\beval\s*\(|\bnew Function\s*\(/);
@@ -83,4 +84,23 @@ test("courier queue and drawer use named actions", async () => {
     assert.doesNotMatch(source, /\.onclick\s*=/);
     assert.match(source, /data-action="courier:|dataset\.jobId/);
   }
+});
+
+test("clients directory uses named actions", async () => {
+  const indexHtml = await read("index.html");
+  const appJs = await read("app.js");
+  const sectionStart = indexHtml.indexOf('<section id="clients"');
+  const sectionEnd = indexHtml.indexOf('<section id="siteBindings"', sectionStart);
+  const markup = indexHtml.slice(sectionStart, sectionEnd);
+  const renderStart = appJs.indexOf("function renderClientRows(");
+  const renderEnd = appJs.indexOf("\nfunction ", renderStart + 1);
+  const renderSource = appJs.slice(renderStart, renderEnd);
+
+  assert.ok(sectionStart >= 0 && sectionEnd > sectionStart, "clients section must be present");
+  assert.ok(renderStart >= 0 && renderEnd > renderStart, "renderClientRows must be present");
+  assert.doesNotMatch(markup, /data-admin-(?:click|change|input|submit)=/);
+  assert.doesNotMatch(renderSource, /data-admin-(?:click|change|input|submit)=/);
+  assert.match(markup, /data-action="clients:open-create"/);
+  assert.match(renderSource, /data-action="clients:open-client"/);
+  assert.match(renderSource, /data-action="clients:toggle-active"/);
 });

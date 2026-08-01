@@ -40,8 +40,8 @@ honest answer to the AP-02 question that manual review could not settle — a
 
 Drive the baseline down and lock it in:
 
-The initial count was 94. The Dashboard and Courier Queue action migrations
-lowered the current lock to 88. Next:
+The initial count was 94. The completed action-migration slices lowered the
+current lock to 87. Next:
 
 1. Fix warnings in small PRs, lowering `--max-warnings` each time.
 2. At zero for a given rule, promote it from `warn` to `error`.
@@ -67,7 +67,11 @@ Progress:
   `data-admin-*` expression bridge.
 - Courier Queue: migrated refresh, auto-refresh, job details, retry and drawer
   close behavior. The direct `retryButton.onclick` assignment is gone, and the
-  lint ratchet is now 88 warnings.
+  lint ratchet moved to 88 warnings.
+- Clients directory: migrated Add Client navigation, Manage and
+  Activate/Deactivate. Its offline flow also caught and removed a stale
+  `getAttribute("onclick")` dependency in modal tab selection. The lint ratchet
+  is now 87 warnings.
 
 When the last inline handler is gone:
 

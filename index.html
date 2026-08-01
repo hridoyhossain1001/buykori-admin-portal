@@ -610,7 +610,7 @@
               <h1 class="page-title">Clients</h1>
               <p class="page-sub">See each client, connected store, plan usage, integrations, and current health.</p>
             </div>
-            <button class="btn btn-primary" data-admin-click="setTab('create')">Add Client</button>
+            <button class="btn btn-primary" data-action="clients:open-create">Add Client</button>
           </div>
           <div class="card">
             <div class="card-header"><h2 class="card-title">Client Directory</h2></div>
@@ -939,11 +939,11 @@
       <div class="modal-body">
         <div id="client360QuickSummary" class="client360-quick"></div>
         <div class="tabs">
-          <button class="tab-btn active" data-admin-click="switchModalTab('edit')">Client</button>
-          <button class="tab-btn" data-admin-click="switchModalTab('keys')">Keys</button>
-          <button class="tab-btn" data-admin-click="switchModalTab('instructions')">API Setup</button>
-          <button class="tab-btn" data-admin-click="switchModalTab('intel')">360 & Notes</button>
-          <button class="tab-btn" data-admin-click="switchModalTab('danger')">Danger Zone</button>
+          <button class="tab-btn active" data-modal-tab="edit" data-admin-click="switchModalTab('edit')">Client</button>
+          <button class="tab-btn" data-modal-tab="keys" data-admin-click="switchModalTab('keys')">Keys</button>
+          <button class="tab-btn" data-modal-tab="instructions" data-admin-click="switchModalTab('instructions')">API Setup</button>
+          <button class="tab-btn" data-modal-tab="intel" data-admin-click="switchModalTab('intel')">360 & Notes</button>
+          <button class="tab-btn" data-modal-tab="danger" data-admin-click="switchModalTab('danger')">Danger Zone</button>
         </div>
         
         <div id="tab-edit" class="tab-content active form-card" style="padding:0">

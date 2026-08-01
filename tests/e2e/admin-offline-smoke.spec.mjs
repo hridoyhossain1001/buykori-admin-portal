@@ -18,6 +18,25 @@ const NAV_TABS = [
   "team",
 ];
 
+const OFFLINE_CLIENT = {
+  id: 7,
+  name: "Offline Fixture Client",
+  domain: "offline-fixture.example",
+  display_domain: "offline-fixture.example",
+  pixel_id: "fixture-pixel-7",
+  is_active: true,
+  plan_tier: "free",
+  billing_status: "free",
+  monthly_limit: 1_000,
+  orders_quota: 100,
+  orders_used: 0,
+  event_total: 0,
+  created_at: "2026-08-01T07:00:00Z",
+  enable_facebook: false,
+  enable_tiktok: false,
+  enable_ga4: false,
+};
+
 const fixtures = new Map([
   [
     "/api/v1/admin/api/session",
@@ -45,8 +64,10 @@ const fixtures = new Map([
       window_ended_at: null,
     },
   ],
-  ["/api/v1/admin/api/clients", { clients: [] }],
+  ["/api/v1/admin/api/clients", { clients: [OFFLINE_CLIENT] }],
   ["/api/v1/admin/clients/health", { clients: [] }],
+  ["/api/v1/admin/api/clients/7", { client: OFFLINE_CLIENT }],
+  ["/api/v1/admin/api/clients/7/support-notes", { notes: [] }],
   [
     "/api/v1/admin/api/courier-booking-queue",
     {
@@ -97,6 +118,7 @@ test("owner can navigate the admin shell with the production API offline", async
   const unexpectedApiCalls = [];
   const summaryWindows = [];
   let courierQueueRequests = 0;
+  const clientPatches = [];
 
   page.on("pageerror", error => browserErrors.push(`pageerror: ${error.message}`));
   page.on("console", message => {
@@ -112,6 +134,12 @@ test("owner can navigate the admin shell with the production API offline", async
     }
     if (requestUrl.pathname === "/api/v1/admin/api/courier-booking-queue") {
       courierQueueRequests += 1;
+    }
+    if (
+      requestUrl.pathname === "/api/v1/admin/api/clients/7" &&
+      route.request().method() === "PATCH"
+    ) {
+      clientPatches.push(route.request().postDataJSON());
     }
 
     if (fixture === undefined) {
@@ -182,6 +210,24 @@ test("owner can navigate the admin shell with the production API offline", async
   await page.locator("#adminDecisionCancel").click();
   await expect(page.locator("#adminDecisionOverlay")).toBeHidden();
 
+  await page.locator('.nav-item[data-tab="clients"]').click();
+  await expect(
+    page.locator("#clients [data-admin-click], #clients [data-admin-change]")
+  ).toHaveCount(0);
+  await page.locator('[data-action="clients:open-create"]').click();
+  await expect(page.locator("#create")).toHaveClass(/active/);
+
+  await page.locator('.nav-item[data-tab="clients"]').click();
+  await page.locator('#clientRows [data-action="clients:open-client"]').click();
+  await expect(page.locator("#modalOverlay")).toBeVisible();
+  await expect(page.locator("#editName")).toHaveValue("Offline Fixture Client");
+  await page.locator("#modalOverlay .modal-close").click();
+  await expect(page.locator("#modalOverlay")).toBeHidden();
+
+  await page.locator('#clientRows [data-action="clients:toggle-active"]').click();
+  await expect.poll(() => clientPatches.length).toBe(1);
+  expect(clientPatches).toEqual([{ is_active: false }]);
+
   const themeToggle = page.locator("#themeToggle");
   const wasDark = await page
     .locator("html")
@@ -192,7 +238,7 @@ test("owner can navigate the admin shell with the production API offline", async
     .toBe(!wasDark);
 
   await page.locator('.nav-item[data-tab="clients"]').click();
-  await page.locator("[data-admin-click=\"setTab('create')\"]").click();
+  await page.locator('[data-action="clients:open-create"]').click();
   await expect(page.locator("#create")).toHaveClass(/active/);
 
   await page.locator('.nav-item[data-tab="dashboard"]').click();
