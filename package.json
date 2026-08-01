@@ -1,0 +1,26 @@
+{
+  "name": "buykori-admin-portal",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Static admin frontend for admin.buykori.app",
+  "scripts": {
+    "lint": "eslint . --max-warnings=94",
+    "lint:fix": "eslint . --fix",
+    "typecheck": "tsc --noEmit",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "dev": "serve -l 5050 ."
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.13.0",
+    "eslint": "^9.13.0",
+    "eslint-plugin-no-unsanitized": "^4.1.2",
+    "globals": "^15.11.0",
+    "prettier": "^3.3.3",
+    "serve": "^14.2.4",
+    "typescript": "^5.6.3"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
