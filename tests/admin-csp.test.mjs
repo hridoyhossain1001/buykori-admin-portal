@@ -142,3 +142,18 @@ test("client modal navigation, close and save controls use named actions", async
   assert.doesNotMatch(intelSource, /data-admin-click="switchModalTab\(/);
   assert.match(intelSource, /data-action="client-modal:switch-tab"[^>]+data-modal-tab="intel"/);
 });
+
+test("client modal key controls use named actions", async () => {
+  const indexHtml = await read("index.html");
+  const keysStart = indexHtml.indexOf('<div id="tab-keys"');
+  const keysEnd = indexHtml.indexOf('<div id="tab-instructions"', keysStart);
+  const markup = indexHtml.slice(keysStart, keysEnd);
+
+  assert.ok(keysStart >= 0 && keysEnd > keysStart, "client keys tab must be present");
+  assert.doesNotMatch(markup, /data-admin-(?:click|change|input|submit)=/);
+  assert.equal((markup.match(/data-action="client-modal:reveal-secret"/g) || []).length, 3);
+  assert.equal((markup.match(/data-action="client-modal:copy"/g) || []).length, 3);
+  assert.equal((markup.match(/data-action="client-modal:rotate-key"/g) || []).length, 2);
+  assert.match(markup, /data-key-type="api_key"/);
+  assert.match(markup, /data-key-type="portal_key"/);
+});

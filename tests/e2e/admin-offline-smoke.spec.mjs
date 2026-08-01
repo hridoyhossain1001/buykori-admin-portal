@@ -120,6 +120,11 @@ test("owner can navigate the admin shell with the production API offline", async
   let courierQueueRequests = 0;
   const clientPatches = [];
   const clientCreates = [];
+  const keyRotations = [];
+
+  await page.context().grantPermissions(["clipboard-read", "clipboard-write"], {
+    origin: "http://127.0.0.1:5050",
+  });
 
   page.on("pageerror", error => browserErrors.push(`pageerror: ${error.message}`));
   page.on("console", message => {
@@ -154,6 +159,23 @@ test("owner can navigate the admin shell with the production API offline", async
         });
         return;
       }
+    }
+    if (
+      requestUrl.pathname === "/api/v1/admin/api/clients/7/keys/rotate" &&
+      route.request().method() === "POST"
+    ) {
+      const payload = route.request().postDataJSON();
+      keyRotations.push(payload);
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        headers: {
+          "access-control-allow-origin": "http://127.0.0.1:5050",
+          "access-control-allow-credentials": "true",
+        },
+        body: JSON.stringify({ new_value: `rotated-offline-${payload.key_type}` }),
+      });
+      return;
     }
     if (
       requestUrl.pathname === "/api/v1/admin/api/clients" &&
@@ -283,6 +305,58 @@ test("owner can navigate the admin shell with the production API offline", async
     "console: Failed to load resource: the server responded with a status of 422 (Unprocessable Entity)",
   ]);
   browserErrors.length = 0;
+
+  const keysTab = page.locator(
+    '#modalOverlay [data-action="client-modal:switch-tab"][data-modal-tab="keys"]'
+  );
+  await keysTab.click();
+  await expect(page.locator("#tab-keys [data-admin-click]")).toHaveCount(0);
+  await page
+    .locator('#tab-keys [data-action="client-modal:reveal-secret"][data-target-id="keyApi"]')
+    .click();
+  await expect(page.locator("#keyApi")).toHaveText("Rotate to view a new value");
+  await expect(page.locator("#bk-toast")).toHaveText(
+    "Existing secrets are not loaded into the browser. Rotate to reveal a new value once."
+  );
+  await page
+    .locator('#tab-keys [data-action="client-modal:copy"][data-target-id="keyApi"]')
+    .click();
+  await expect(page.locator("#bk-toast")).toHaveText(
+    "Rotate this key to generate a new revealable value."
+  );
+
+  await page
+    .locator('#tab-keys [data-action="client-modal:rotate-key"][data-key-type="api_key"]')
+    .click();
+  await expect(page.locator("#adminDecisionOverlay")).toBeVisible();
+  await expect(page.locator("#adminDecisionTitle")).toHaveText("Rotate Key");
+  await page.locator("#adminDecisionConfirm").click();
+  await expect(page.locator("#adminDecisionOverlay")).toBeHidden();
+  await expect.poll(() => keyRotations.length).toBe(1);
+  expect(keyRotations[0]).toEqual({ key_type: "api_key" });
+  await page
+    .locator('#tab-keys [data-action="client-modal:reveal-secret"][data-target-id="keyApi"]')
+    .click();
+  await expect(page.locator("#keyApi")).toHaveText("rotated-offline-api_key");
+  await page
+    .locator('#tab-keys [data-action="client-modal:copy"][data-target-id="keyApi"]')
+    .click();
+  await expect(page.locator("#bk-toast")).toHaveText("Copied to Clipboard!");
+  await expect
+    .poll(() => page.evaluate(() => navigator.clipboard.readText()))
+    .toBe("rotated-offline-api_key");
+
+  await page
+    .locator('#tab-keys [data-action="client-modal:rotate-key"][data-key-type="portal_key"]')
+    .click();
+  await page.locator("#adminDecisionConfirm").click();
+  await expect.poll(() => keyRotations.length).toBe(2);
+  expect(keyRotations[1]).toEqual({ key_type: "portal_key" });
+  await page
+    .locator('#tab-keys [data-action="client-modal:reveal-secret"][data-target-id="keyPortal"]')
+    .click();
+  await expect(page.locator("#keyPortal")).toHaveText("rotated-offline-portal_key");
+
   for (const tab of ["keys", "instructions", "intel", "danger", "edit"]) {
     const tabButton = page.locator(
       `#modalOverlay [data-action="client-modal:switch-tab"][data-modal-tab="${tab}"]`
