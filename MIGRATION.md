@@ -102,6 +102,8 @@ Progress:
 - Notification operations: migrated payment review, support tickets, delivery
   jobs, drawer controls and the complete WhatsApp sender lifecycle. The lint
   ratchet is 54 warnings.
+- Site bindings: migrated refresh, filters, transfer preparation, release and
+  transfer submission. The lint ratchet is 51 warnings.
 
 When the last inline handler is gone:
 

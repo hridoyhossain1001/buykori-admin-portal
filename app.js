@@ -869,8 +869,8 @@ function renderSiteBindings() {
       </td>
       <td>
         <div class="queue-actions">
-          <button class="btn btn-outline btn-sm" data-admin-click="prepareSiteBindingTransfer(${Number(binding.id)})" ${canTransfer ? "" : "disabled"}>Transfer</button>
-          <button class="btn btn-danger btn-sm" data-admin-click="releaseSiteBinding(${Number(binding.id)})" ${canRelease ? "" : "disabled"}>Release</button>
+          <button class="btn btn-outline btn-sm" data-action="site-bindings:prepare-transfer" data-binding-id="${Number(binding.id)}" ${canTransfer ? "" : "disabled"}>Transfer</button>
+          <button class="btn btn-danger btn-sm" data-action="site-bindings:release" data-binding-id="${Number(binding.id)}" ${canRelease ? "" : "disabled"}>Release</button>
         </div>
       </td>
     </tr>`;
@@ -2604,6 +2604,26 @@ const ADMIN_ACTIONS = Object.freeze({
   "whatsapp:delete": {
     event: "click",
     run: ({ element }) => deleteWhatsAppInstance(Number(element.dataset.instanceId))
+  },
+  "site-bindings:refresh": {
+    event: "click",
+    run: () => refreshSiteBindings()
+  },
+  "site-bindings:filter": {
+    event: "change",
+    run: () => renderSiteBindings()
+  },
+  "site-bindings:prepare-transfer": {
+    event: "click",
+    run: ({ element }) => prepareSiteBindingTransfer(Number(element.dataset.bindingId))
+  },
+  "site-bindings:release": {
+    event: "click",
+    run: ({ element }) => releaseSiteBinding(Number(element.dataset.bindingId))
+  },
+  "site-bindings:transfer": {
+    event: "click",
+    run: () => transferSiteBinding()
   }
 });
 
@@ -2631,11 +2651,8 @@ const ADMIN_ACTION_NAMES = new Set([
   "changeEventsPage",
   "createAdminUser",
   "handleEventsFilterChange", "loadEvents",
-  "prepareSiteBindingTransfer", "refreshAdminUsers",
-  "refreshSiteBindings", "releaseSiteBinding",
-  "renderSiteBindings",
+  "refreshAdminUsers",
   "toggleEventDetail",
-  "transferSiteBinding",
   "updateAdminUserAccess"
 ]);
 

@@ -164,6 +164,7 @@ test("owner can navigate the admin shell with the production API offline", async
   const summaryRefreshes = [];
   let courierQueueRequests = 0;
   let recoveryRequests = 0;
+  let siteBindingRequests = 0;
   const recoveryPatches = [];
   const clientPatches = [];
   const clientCreates = [];
@@ -194,6 +195,9 @@ test("owner can navigate the admin shell with the production API offline", async
     }
     if (requestUrl.pathname === "/api/v1/admin/api/incomplete-checkouts") {
       recoveryRequests += 1;
+    }
+    if (requestUrl.pathname === "/api/v1/admin/api/site-bindings") {
+      siteBindingRequests += 1;
     }
     if (
       requestUrl.pathname === "/api/v1/admin/api/incomplete-checkouts/91" &&
@@ -459,6 +463,14 @@ test("owner can navigate the admin shell with the production API offline", async
     .locator('#notificationDrawerOverlay .modal-close[data-action="notification:close-drawer"]')
     .click();
   await expect(page.locator("#notificationDrawerOverlay")).toBeHidden();
+
+  await page.locator('.nav-item[data-tab="siteBindings"]').click();
+  await expect(
+    page.locator("#siteBindings [data-admin-click], #siteBindings [data-admin-change]")
+  ).toHaveCount(0);
+  const siteBindingRequestsBeforeRefresh = siteBindingRequests;
+  await page.locator('#siteBindings [data-action="site-bindings:refresh"]').click();
+  await expect.poll(() => siteBindingRequests).toBeGreaterThan(siteBindingRequestsBeforeRefresh);
 
   await page.locator('.nav-item[data-tab="clients"]').click();
   await expect(
