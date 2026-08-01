@@ -104,6 +104,8 @@ Progress:
   ratchet is 54 warnings.
 - Site bindings: migrated refresh, filters, transfer preparation, release and
   transfer submission. The lint ratchet is 51 warnings.
+- Event explorer: migrated search, filters, refresh, pagination and expandable
+  event rows. The lint ratchet is 48 warnings.
 
 When the last inline handler is gone:
 

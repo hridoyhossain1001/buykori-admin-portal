@@ -2624,6 +2624,26 @@ const ADMIN_ACTIONS = Object.freeze({
   "site-bindings:transfer": {
     event: "click",
     run: () => transferSiteBinding()
+  },
+  "events:search": {
+    event: "input",
+    run: () => handleEventsFilterChange()
+  },
+  "events:filter": {
+    event: "change",
+    run: () => handleEventsFilterChange()
+  },
+  "events:refresh": {
+    event: "click",
+    run: () => loadEvents()
+  },
+  "events:change-page": {
+    event: "click",
+    run: ({ element }) => changeEventsPage(Number(element.dataset.pageDelta))
+  },
+  "events:toggle-detail": {
+    event: "click",
+    run: ({ element }) => toggleEventDetail(element.dataset.eventId)
   }
 });
 
@@ -2648,11 +2668,8 @@ document.addEventListener("submit", dispatchNamedAdminAction);
 // declarative data-admin-* actions; this dispatcher accepts only literals and an
 // explicit function allowlist, without eval or new Function.
 const ADMIN_ACTION_NAMES = new Set([
-  "changeEventsPage",
   "createAdminUser",
-  "handleEventsFilterChange", "loadEvents",
   "refreshAdminUsers",
-  "toggleEventDetail",
   "updateAdminUserAccess"
 ]);
 
@@ -3415,7 +3432,7 @@ function renderEvents() {
     const sampleNotice = event.sampleNotice || "These JSON blocks are reconstructed from stored EventLog fields.";
     
     const mainRow = `
-      <tr data-admin-click="toggleEventDetail('${event.id}')" class="event-row ${event.status === "Failed" ? "event-row-failed" : ""}">
+      <tr data-action="events:toggle-detail" data-event-id="${esc(event.id)}" class="event-row ${event.status === "Failed" ? "event-row-failed" : ""}">
         <td class="code-text" style="white-space:nowrap;">${esc(displayTime)}</td>
         <td><div class="client-name" style="font-size:12.5px;">${esc(event.client_name)}</div><div class="client-sub">ID ${event.client_id}</div></td>
         <td><span style="color:#818cf8;font-weight:700">${esc(event.name)}</span></td>

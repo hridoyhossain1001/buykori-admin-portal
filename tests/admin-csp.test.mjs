@@ -286,3 +286,20 @@ test("site binding controls use named actions", async () => {
   assert.match(appJs, /data-action="site-bindings:prepare-transfer"/);
   assert.match(appJs, /data-action="site-bindings:release"/);
 });
+
+test("event explorer controls and rows use named actions", async () => {
+  const indexHtml = await read("index.html");
+  const appJs = await read("app.js");
+  const sectionStart = indexHtml.indexOf('<section id="events"');
+  const sectionEnd = indexHtml.indexOf('<section id="clientIntel"', sectionStart);
+  const markup = indexHtml.slice(sectionStart, sectionEnd);
+
+  assert.ok(sectionStart >= 0 && sectionEnd > sectionStart, "events section must be present");
+  assert.doesNotMatch(markup, /data-admin-(?:click|change|input|submit)=/);
+  assert.match(markup, /data-action="events:search"/);
+  assert.equal((markup.match(/data-action="events:filter"/g) || []).length, 3);
+  assert.equal((markup.match(/data-action="events:change-page"/g) || []).length, 2);
+  assert.match(markup, /data-action="events:refresh"/);
+  assert.doesNotMatch(appJs, /data-admin-click="toggleEventDetail\(/);
+  assert.match(appJs, /data-action="events:toggle-detail"[^>]+data-event-id=/);
+});
