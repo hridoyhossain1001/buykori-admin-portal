@@ -154,7 +154,21 @@ const fixtures = new Map([
   ["/api/v1/admin/api/support-tickets", { tickets: [], openCount: 0 }],
   ["/api/v1/admin/api/payment-reviews", { payments: [] }],
   ["/api/v1/admin/api/events", { events: [], totalCount: 0 }],
-  ["/api/v1/admin/api/admin-users", { users: [] }],
+  [
+    "/api/v1/admin/api/admin-users",
+    {
+      users: [
+        {
+          id: "owner-1",
+          username: "offline-owner",
+          displayName: "Offline Owner",
+          role: "owner",
+          isActive: true,
+          lastLoginAt: "2026-08-01T08:00:00Z",
+        },
+      ],
+    },
+  ],
 ]);
 
 test("owner can navigate the admin shell with the production API offline", async ({ page }) => {
@@ -166,6 +180,9 @@ test("owner can navigate the admin shell with the production API offline", async
   let recoveryRequests = 0;
   let siteBindingRequests = 0;
   let eventRequests = 0;
+  let adminUserRequests = 0;
+  const adminUserCreates = [];
+  const adminUserPatches = [];
   const recoveryPatches = [];
   const clientPatches = [];
   const clientCreates = [];
@@ -202,6 +219,44 @@ test("owner can navigate the admin shell with the production API offline", async
     }
     if (requestUrl.pathname === "/api/v1/admin/api/events") {
       eventRequests += 1;
+    }
+    if (
+      requestUrl.pathname === "/api/v1/admin/api/admin-users" &&
+      route.request().method() === "GET"
+    ) {
+      adminUserRequests += 1;
+    }
+    if (
+      requestUrl.pathname === "/api/v1/admin/api/admin-users" &&
+      route.request().method() === "POST"
+    ) {
+      adminUserCreates.push(route.request().postDataJSON());
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        headers: {
+          "access-control-allow-origin": "http://127.0.0.1:5050",
+          "access-control-allow-credentials": "true",
+        },
+        body: JSON.stringify({ success: true }),
+      });
+      return;
+    }
+    if (
+      requestUrl.pathname === "/api/v1/admin/api/admin-users/owner-1" &&
+      route.request().method() === "PATCH"
+    ) {
+      adminUserPatches.push(route.request().postDataJSON());
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        headers: {
+          "access-control-allow-origin": "http://127.0.0.1:5050",
+          "access-control-allow-credentials": "true",
+        },
+        body: JSON.stringify({ success: true }),
+      });
+      return;
     }
     if (
       requestUrl.pathname === "/api/v1/admin/api/incomplete-checkouts/91" &&
@@ -726,6 +781,31 @@ test("owner can navigate the admin shell with the production API offline", async
   );
   expect(expectedRejectionIndex).toBeGreaterThanOrEqual(0);
   browserErrors.splice(expectedRejectionIndex, 1);
+
+  await page.locator('.nav-item[data-tab="team"]').click();
+  await expect(page.locator("#team [data-admin-click], #team [data-admin-submit]")).toHaveCount(0);
+  const adminUserRequestsBeforeRefresh = adminUserRequests;
+  await page.locator('#team [data-action="team:refresh"]').click();
+  await expect.poll(() => adminUserRequests).toBeGreaterThan(adminUserRequestsBeforeRefresh);
+
+  await page.locator("#teamUsername").fill("offline-admin");
+  await page.locator("#teamDisplayName").fill("Offline Admin");
+  await page.locator("#teamPassword").fill("offline-password-123");
+  await page
+    .locator('#team form[data-action="team:create"]')
+    .evaluate(form => form.requestSubmit());
+  await expect.poll(() => adminUserCreates.length).toBe(1);
+  expect(adminUserCreates[0]).toEqual({
+    username: "offline-admin",
+    display_name: "Offline Admin",
+    password: "offline-password-123",
+    role: "admin",
+  });
+  await expect(page.locator("#teamFormMessage")).toHaveText("Administrator created.");
+
+  page.once("dialog", dialog => dialog.accept());
+  await page.locator('#teamRows [data-action="team:update-role"]').click();
+  await expect.poll(() => adminUserPatches).toEqual([{ role: "admin" }]);
 
   const themeToggle = page.locator('#themeToggle[data-action="shell:toggle-theme"]');
   const wasDark = await page
