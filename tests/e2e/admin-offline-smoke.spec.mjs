@@ -127,7 +127,29 @@ const fixtures = new Map([
       total: 1,
     },
   ],
-  ["/api/v1/admin/notification-jobs", { total: 0, items: [] }],
+  [
+    "/api/v1/admin/notification-jobs",
+    {
+      total: 1,
+      items: [
+        {
+          id: 73,
+          client_id: 7,
+          channel: "whatsapp",
+          whatsapp_instance_id: 4,
+          event_type: "order_created",
+          status: "sent",
+          attempt_count: 1,
+          max_attempts: 3,
+          failover_count: 0,
+          created_at: "2026-08-01T08:45:00Z",
+          sent_at: "2026-08-01T08:46:00Z",
+          message_preview: "Offline notification fixture",
+          delivery_transitions: [],
+        },
+      ],
+    },
+  ],
   ["/api/v1/admin/whatsapp-instances", []],
   ["/api/v1/admin/api/support-tickets", { tickets: [], openCount: 0 }],
   ["/api/v1/admin/api/payment-reviews", { payments: [] }],
@@ -421,6 +443,22 @@ test("owner can navigate the admin shell with the production API offline", async
   await expect(page.locator("#adminDecisionOverlay")).toBeVisible();
   await page.locator('#adminDecisionConfirm[data-action="admin-decision:confirm"]').click();
   await expect.poll(() => recoveryPatches).toEqual([{ status: "contacted" }]);
+
+  await page.locator('.nav-item[data-tab="notificationOps"]').click();
+  await expect(
+    page.locator(
+      "#notificationOps [data-admin-click], #notificationOps [data-admin-change], #notificationDrawerOverlay [data-admin-click]"
+    )
+  ).toHaveCount(0);
+  await page.locator('#notificationTabJobs[data-action="notification:set-tab"]').click();
+  await expect(page.locator('[data-notification-panel="jobs"]')).toBeVisible();
+  await page.locator('#notificationRows [data-action="notification:open-job"]').click();
+  await expect(page.locator("#notificationDrawerOverlay")).toBeVisible();
+  await expect(page.locator("#notificationDrawerTitle")).toHaveText("Notification Job #73");
+  await page
+    .locator('#notificationDrawerOverlay .modal-close[data-action="notification:close-drawer"]')
+    .click();
+  await expect(page.locator("#notificationDrawerOverlay")).toBeHidden();
 
   await page.locator('.nav-item[data-tab="clients"]').click();
   await expect(

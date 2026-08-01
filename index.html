@@ -448,14 +448,14 @@
               <p class="page-sub">Monitor Telegram-first client alerts, delivery jobs, and support requests.</p>
             </div>
             <div class="header-actions">
-              <select id="notificationStatusFilter" data-admin-change="refreshNotificationOps({ silent: true })">
+              <select id="notificationStatusFilter" data-action="notification:filter">
                 <option value="">All Statuses</option>
                 <option value="pending">Pending</option>
                 <option value="processing">Processing</option>
                 <option value="sent">Sent</option>
                 <option value="failed">Failed</option>
               </select>
-              <button class="btn btn-outline" data-admin-click="refreshNotificationOps()">Refresh</button>
+              <button class="btn btn-outline" data-action="notification:refresh">Refresh</button>
             </div>
           </div>
           <div class="metrics-grid">
@@ -482,8 +482,8 @@
                 <div class="field"><label>Client Capacity</label><input id="waInstanceCapacity" type="number" min="1" max="1000" value="8"><span class="client-sub">Maximum clients assigned to this sender.</span></div>
               </div>
               <div style="margin-top:12px;display:flex;gap:12px;align-items:center;flex-wrap:wrap">
-                <button class="btn btn-primary" data-admin-click="createWhatsAppInstance()">Connect Sender</button>
-                <button class="btn btn-outline" data-admin-click="registerExistingWhatsAppInstance()">Register Existing</button>
+                <button class="btn btn-primary" data-action="whatsapp:create">Connect Sender</button>
+                <button class="btn btn-outline" data-action="whatsapp:register">Register Existing</button>
                 <span id="waInstanceMsg" class="notice" style="margin:0"></span>
               </div>
               <div id="waPairingPanel" style="display:none;margin-top:16px;padding:16px;border:1px solid var(--border);border-radius:14px;background:rgba(255,255,255,0.05)">
@@ -501,8 +501,8 @@
                   </div>
                 </div>
                 <div style="display:flex;gap:8px;flex-wrap:wrap">
-                  <button class="copy-icon" data-admin-click="copyPairingCode()">Copy Code</button>
-                  <button class="copy-icon" data-admin-click="checkLatestPairingState()">Check Connection</button>
+                  <button class="copy-icon" data-action="whatsapp:copy-pairing-code">Copy Code</button>
+                  <button class="copy-icon" data-action="whatsapp:check-latest-pairing">Check Connection</button>
                 </div>
                 <details id="waQrRawDetails" style="display:none;margin-top:12px">
                   <summary class="client-sub">Technical QR value</summary>
@@ -514,9 +514,9 @@
             <div id="whatsappInstancePager" class="table-pager" aria-label="WhatsApp sender pages"></div>
           </div>
           <div class="ops-tabs" role="tablist" aria-label="Notification operation views">
-            <button id="notificationTabPayments" class="ops-tab active" type="button" role="tab" aria-selected="true" data-admin-click="setNotificationOpsTab('payments')">Payments <span id="notificationPaymentsTabCount" class="ops-tab-count">0</span></button>
-            <button id="notificationTabJobs" class="ops-tab" type="button" role="tab" aria-selected="false" data-admin-click="setNotificationOpsTab('jobs')">Delivery Jobs <span id="notificationJobsTabCount" class="ops-tab-count">0</span></button>
-            <button id="notificationTabSupport" class="ops-tab" type="button" role="tab" aria-selected="false" data-admin-click="setNotificationOpsTab('support')">Support <span id="notificationSupportTabCount" class="ops-tab-count">0</span></button>
+            <button id="notificationTabPayments" class="ops-tab active" type="button" role="tab" aria-selected="true" data-action="notification:set-tab" data-tab-target="payments">Payments <span id="notificationPaymentsTabCount" class="ops-tab-count">0</span></button>
+            <button id="notificationTabJobs" class="ops-tab" type="button" role="tab" aria-selected="false" data-action="notification:set-tab" data-tab-target="jobs">Delivery Jobs <span id="notificationJobsTabCount" class="ops-tab-count">0</span></button>
+            <button id="notificationTabSupport" class="ops-tab" type="button" role="tab" aria-selected="false" data-action="notification:set-tab" data-tab-target="support">Support <span id="notificationSupportTabCount" class="ops-tab-count">0</span></button>
           </div>
           <div class="notification-panel active" data-notification-panel="payments" role="tabpanel">
           <div class="card notification-list-card">
@@ -548,13 +548,13 @@
               <p class="page-sub">See paid plans, payment exceptions, and overpayment refund requests in one place.</p>
             </div>
             <div class="header-actions">
-              <select id="paymentHistoryFilter" data-admin-change="setPaymentHistoryFilter(this.value)">
+              <select id="paymentHistoryFilter" data-action="notification:set-payment-filter">
                 <option value="all">All payments</option>
                 <option value="paid">Paid</option>
                 <option value="review">Needs attention</option>
                 <option value="refund">Refund requests</option>
               </select>
-              <button class="btn btn-outline" data-admin-click="refreshNotificationOps()">Refresh</button>
+              <button class="btn btn-outline" data-action="notification:refresh">Refresh</button>
             </div>
           </div>
           <div class="metrics-grid payment-metrics-grid">
@@ -583,7 +583,7 @@
                 <option value="bkash">bKash (৳10)</option>
                 <option value="nagad">Nagad (৳10)</option>
               </select>
-              <button class="btn" data-admin-click="triggerAdminTestPayment()" style="background:#f59e0b; color:#ffffff; font-weight:700; border:none; padding:9px 16px; border-radius:8px; cursor:pointer;">
+              <button class="btn" data-action="notification:test-payment" style="background:#f59e0b; color:#ffffff; font-weight:700; border:none; padding:9px 16px; border-radius:8px; cursor:pointer;">
                 ⚡ Start BDT 10 SMS Test
               </button>
             </div>
@@ -592,7 +592,7 @@
           <div class="card payment-history-card">
             <div class="card-header payment-history-heading">
               <div><h2 class="card-title">Payment History</h2><p class="card-subtitle">The latest 200 SMS payment receipts received by Buykori.</p></div>
-              <button class="view-all" data-admin-click="setTab('notificationOps'); setNotificationOpsTab('payments')">Open review queue</button>
+              <button class="view-all" data-action="notification:open-review-queue">Open review queue</button>
             </div>
             <div class="table-wrap">
               <table class="payment-history-table">
@@ -1145,14 +1145,14 @@
     </aside>
   </div>
 
-  <div id="notificationDrawerOverlay" class="drawer-overlay" data-admin-click="if(event.target===this) closeNotificationJobDrawer()">
+  <div id="notificationDrawerOverlay" class="drawer-overlay" data-action="notification:close-drawer" data-self-only="true">
     <aside class="queue-drawer" role="dialog" aria-modal="true" aria-labelledby="notificationDrawerTitle">
       <div class="drawer-header">
         <div><div class="drawer-kicker">WhatsApp Delivery</div><h2 id="notificationDrawerTitle">Notification Job</h2></div>
-        <button class="modal-close" data-admin-click="closeNotificationJobDrawer()" aria-label="Close">&times;</button>
+        <button class="modal-close" data-action="notification:close-drawer" aria-label="Close">&times;</button>
       </div>
       <div id="notificationDrawerBody" class="drawer-body"></div>
-      <div class="drawer-footer"><button class="btn btn-outline" data-admin-click="closeNotificationJobDrawer()">Close</button></div>
+      <div class="drawer-footer"><button class="btn btn-outline" data-action="notification:close-drawer">Close</button></div>
     </aside>
   </div>
 

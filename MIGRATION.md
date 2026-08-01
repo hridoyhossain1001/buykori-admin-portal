@@ -99,6 +99,9 @@ Progress:
 - Recovery and client lookup: migrated recovery filters, refresh and status
   decisions plus client intelligence/health refresh and open controls. The lint
   ratchet is 73 warnings.
+- Notification operations: migrated payment review, support tickets, delivery
+  jobs, drawer controls and the complete WhatsApp sender lifecycle. The lint
+  ratchet is 54 warnings.
 
 When the last inline handler is gone:
 

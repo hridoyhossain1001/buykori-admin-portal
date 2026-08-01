@@ -754,7 +754,7 @@ function renderPaymentHistory() {
   const pager = $("paymentHistoryPager");
   if (pager) {
     pager.hidden = filtered.length <= pageSize;
-    pager.innerHTML = filtered.length <= pageSize ? "" : `<button class="table-pager-button" data-admin-click="changePaymentHistoryPage(-1)" ${state.paymentHistoryPage <= 1 ? "disabled" : ""} aria-label="Previous page">&#8592;</button><span>Page <strong>${state.paymentHistoryPage}</strong> of ${pageCount}</span><button class="table-pager-button" data-admin-click="changePaymentHistoryPage(1)" ${state.paymentHistoryPage >= pageCount ? "disabled" : ""} aria-label="Next page">&#8594;</button>`;
+    pager.innerHTML = filtered.length <= pageSize ? "" : `<button class="table-pager-button" data-action="notification:change-payment-page" data-page-delta="-1" ${state.paymentHistoryPage <= 1 ? "disabled" : ""} aria-label="Previous page">&#8592;</button><span>Page <strong>${state.paymentHistoryPage}</strong> of ${pageCount}</span><button class="table-pager-button" data-action="notification:change-payment-page" data-page-delta="1" ${state.paymentHistoryPage >= pageCount ? "disabled" : ""} aria-label="Next page">&#8594;</button>`;
   }
 }
 
@@ -1286,7 +1286,7 @@ function renderNotificationOps() {
         <td><div class="client-name">${esc(item.trxId)}</div><div class="client-sub" style="max-width:280px;white-space:normal">${esc(item.note || "-")}</div></td>
         <td><div class="status-badge ${statusClass(item.status === "approved" ? "healthy" : item.status === "rejected" ? "critical" : "warning")}">${esc(item.status)}</div></td>
         <td>
-          ${item.intent && ["matched", "needs_review"].includes(item.status) ? `<button class="copy-icon" data-admin-click="decideSmsPayment(${Number(item.receiptId)}, 'approve')">Approve</button><button class="copy-icon danger-link" data-admin-click="decideSmsPayment(${Number(item.receiptId)}, 'reject')">Reject</button>` : `<span class="client-sub">${item.status === "approved" ? "Automatic" : item.intent ? "Complete" : "Link required"}</span>`}
+          ${item.intent && ["matched", "needs_review"].includes(item.status) ? `<button class="copy-icon" data-action="notification:decide-payment" data-receipt-id="${Number(item.receiptId)}" data-decision="approve">Approve</button><button class="copy-icon danger-link" data-action="notification:decide-payment" data-receipt-id="${Number(item.receiptId)}" data-decision="reject">Reject</button>` : `<span class="client-sub">${item.status === "approved" ? "Automatic" : item.intent ? "Complete" : "Link required"}</span>`}
         </td>
       </tr>
     `).join("") || `<tr><td colspan="6" class="empty">No SMS payments received.</td></tr>`;
@@ -1308,9 +1308,9 @@ function renderNotificationOps() {
         <td><div class="status-badge ${statusClass(ticket.status === "resolved" || ticket.status === "closed" ? "healthy" : ticket.status === "in_progress" ? "warning" : "critical")}">${esc(ticket.status)}</div></td>
         <td><div class="support-attachments">${(ticket.attachments || []).map(file => renderSupportAttachment(ticket, file)).join("") || `<span class="client-sub">None</span>`}</div></td>
         <td>
-          ${ticket.status === "open" ? `<button class="copy-icon" data-admin-click="updateSupportTicket(${Number(ticket.id)}, 'in_progress')">Start</button>` : ""}
-          ${ticket.status !== "resolved" ? `<button class="copy-icon" data-admin-click="updateSupportTicket(${Number(ticket.id)}, 'resolved')">Resolve</button>` : ""}
-          ${ticket.status === "resolved" ? `<button class="copy-icon" data-admin-click="updateSupportTicket(${Number(ticket.id)}, 'open')">Reopen</button>` : ""}
+          ${ticket.status === "open" ? `<button class="copy-icon" data-action="notification:update-support" data-ticket-id="${Number(ticket.id)}" data-status="in_progress">Start</button>` : ""}
+          ${ticket.status !== "resolved" ? `<button class="copy-icon" data-action="notification:update-support" data-ticket-id="${Number(ticket.id)}" data-status="resolved">Resolve</button>` : ""}
+          ${ticket.status === "resolved" ? `<button class="copy-icon" data-action="notification:update-support" data-ticket-id="${Number(ticket.id)}" data-status="open">Reopen</button>` : ""}
         </td>
       </tr>
     `).join("") || `<tr><td colspan="6" class="empty">No client support tickets.</td></tr>`;
@@ -1327,8 +1327,8 @@ function renderNotificationOps() {
         <td>${fmt(job.attempt_count)} / ${fmt(job.max_attempts)}</td>
         <td>
           <div class="client-sub" style="max-width:300px;white-space:normal">${esc(job.error_message || job.message_preview || "-")}</div>
-          <button class="copy-icon" data-admin-click="openNotificationJobDrawer(${Number(job.id)})">Details</button>
-          ${job.status === "failed" ? `<button class="copy-icon danger-link" data-admin-click="retryNotificationJob(${Number(job.id)})">Retry now</button>` : ""}
+          <button class="copy-icon" data-action="notification:open-job" data-job-id="${Number(job.id)}">Details</button>
+          ${job.status === "failed" ? `<button class="copy-icon danger-link" data-action="notification:retry-job" data-job-id="${Number(job.id)}">Retry now</button>` : ""}
         </td>
         <td>${esc(toDeviceDateTime(job.next_attempt_at || job.sent_at))}</td>
       </tr>
@@ -1354,21 +1354,21 @@ function renderNotificationOps() {
           <div style="display:flex;gap:8px;align-items:center;flex-wrap:nowrap">
             <span class="client-name" style="white-space:nowrap">${fmt(inst.client_count)} assigned</span>
             <input id="waCapacity-${Number(inst.id)}" type="number" min="${Math.max(1, Number(inst.client_count || 0))}" max="1000" value="${Number(inst.client_capacity || 8)}" aria-label="Client capacity for ${esc(inst.instance_name)}" style="width:76px;padding:6px 8px;border:1px solid var(--border);border-radius:8px;background:var(--card-bg);color:var(--text-primary)">
-            <button class="copy-icon" data-admin-click="saveWhatsAppInstanceCapacity(${Number(inst.id)})">Save</button>
+            <button class="copy-icon" data-action="whatsapp:save-capacity" data-instance-id="${Number(inst.id)}">Save</button>
           </div>
           <div class="client-sub" style="margin-top:5px;color:${inst.is_full ? 'var(--danger)' : 'var(--success)'}">${inst.is_full ? "Full - increase capacity to add clients" : `${fmt(inst.available_slots)} slots available`}</div>
         </td>
         <td><div class="client-name">${fmt(inst.sent_24h)} sent / 24h</div><div class="client-sub">${fmt(inst.sent_7d)} sent, ${fmt(inst.failed_7d)} failed / 7d</div></td>
         <td>${esc(toDeviceDateTime(inst.last_sent_at || inst.last_health_check_at))}</td>
         <td>
-          <button class="copy-icon" data-admin-click="editWhatsAppInstance(${Number(inst.id)})">Edit</button>
-          <button class="copy-icon" data-admin-click="connectWhatsAppInstance(${Number(inst.id)})" title="${inst.status === 'active' ? 'Generate a fresh pairing code' : 'Reconnect this existing sender without deleting it'}">${inst.status === "active" ? "Pair Code" : "Reconnect"}</button>
-          <button class="copy-icon" data-admin-click="checkWhatsAppInstanceState(${Number(inst.id)})">Check</button>
-          <button class="copy-icon" data-admin-click="updateWhatsAppInstanceStatus(${Number(inst.id)}, 'active')">Activate</button>
-          <button class="copy-icon" data-admin-click="updateWhatsAppInstanceStatus(${Number(inst.id)}, 'paused')">Pause</button>
-          <button class="copy-icon" data-admin-click="updateWhatsAppInstanceStatus(${Number(inst.id)}, 'banned')">Banned</button>
-          <button class="copy-icon" data-admin-click="logoutWhatsAppInstance(${Number(inst.id)})" ${inst.status === "active" ? "" : "disabled title=\"Sender is already disconnected\""}>Logout</button>
-          <button class="copy-icon danger-link" data-admin-click="deleteWhatsAppInstance(${Number(inst.id)})" ${Number(inst.client_count || 0) === 0 ? "" : `disabled title=\"Assigned to ${Number(inst.client_count)} client(s)\"`}>Remove</button>
+          <button class="copy-icon" data-action="whatsapp:edit" data-instance-id="${Number(inst.id)}">Edit</button>
+          <button class="copy-icon" data-action="whatsapp:connect" data-instance-id="${Number(inst.id)}" title="${inst.status === 'active' ? 'Generate a fresh pairing code' : 'Reconnect this existing sender without deleting it'}">${inst.status === "active" ? "Pair Code" : "Reconnect"}</button>
+          <button class="copy-icon" data-action="whatsapp:check-state" data-instance-id="${Number(inst.id)}">Check</button>
+          <button class="copy-icon" data-action="whatsapp:update-status" data-instance-id="${Number(inst.id)}" data-status="active">Activate</button>
+          <button class="copy-icon" data-action="whatsapp:update-status" data-instance-id="${Number(inst.id)}" data-status="paused">Pause</button>
+          <button class="copy-icon" data-action="whatsapp:update-status" data-instance-id="${Number(inst.id)}" data-status="banned">Banned</button>
+          <button class="copy-icon" data-action="whatsapp:logout" data-instance-id="${Number(inst.id)}" ${inst.status === "active" ? "" : "disabled title=\"Sender is already disconnected\""}>Logout</button>
+          <button class="copy-icon danger-link" data-action="whatsapp:delete" data-instance-id="${Number(inst.id)}" ${Number(inst.client_count || 0) === 0 ? "" : `disabled title=\"Assigned to ${Number(inst.client_count)} client(s)\"`}>Remove</button>
         </td>
       </tr>
     `).join("") || `<tr><td colspan="7" class="empty">No WhatsApp senders configured.</td></tr>`;
@@ -1401,9 +1401,9 @@ function renderNotificationPager(elementId, key, pageData) {
   }
   pager.hidden = false;
   pager.innerHTML = `
-    <button class="table-pager-button" type="button" data-admin-click="changeNotificationPage('${key}', -1)" ${pageData.page <= 1 ? "disabled" : ""} aria-label="Previous page">&#8592;</button>
+    <button class="table-pager-button" type="button" data-action="notification:change-page" data-page-key="${esc(key)}" data-page-delta="-1" ${pageData.page <= 1 ? "disabled" : ""} aria-label="Previous page">&#8592;</button>
     <span>Page <strong>${pageData.page}</strong> of ${pageData.pageCount}</span>
-    <button class="table-pager-button" type="button" data-admin-click="changeNotificationPage('${key}', 1)" ${pageData.page >= pageData.pageCount ? "disabled" : ""} aria-label="Next page">&#8594;</button>
+    <button class="table-pager-button" type="button" data-action="notification:change-page" data-page-key="${esc(key)}" data-page-delta="1" ${pageData.page >= pageData.pageCount ? "disabled" : ""} aria-label="Next page">&#8594;</button>
   `;
 }
 
@@ -2502,6 +2502,108 @@ const ADMIN_ACTIONS = Object.freeze({
   "client-lookup:open": {
     event: "click",
     run: ({ element }) => openClientModal(Number(element.dataset.clientId))
+  },
+  "notification:filter": {
+    event: "change",
+    run: () => refreshNotificationOps({ silent: true })
+  },
+  "notification:refresh": {
+    event: "click",
+    run: () => refreshNotificationOps()
+  },
+  "notification:set-tab": {
+    event: "click",
+    run: ({ element }) => setNotificationOpsTab(element.dataset.tabTarget)
+  },
+  "notification:set-payment-filter": {
+    event: "change",
+    run: ({ element }) => setPaymentHistoryFilter(element.value)
+  },
+  "notification:change-payment-page": {
+    event: "click",
+    run: ({ element }) => changePaymentHistoryPage(Number(element.dataset.pageDelta))
+  },
+  "notification:test-payment": {
+    event: "click",
+    run: () => triggerAdminTestPayment()
+  },
+  "notification:open-review-queue": {
+    event: "click",
+    run: () => {
+      setTab("notificationOps");
+      setNotificationOpsTab("payments");
+    }
+  },
+  "notification:decide-payment": {
+    event: "click",
+    run: ({ element }) => decideSmsPayment(Number(element.dataset.receiptId), element.dataset.decision)
+  },
+  "notification:update-support": {
+    event: "click",
+    run: ({ element }) => updateSupportTicket(Number(element.dataset.ticketId), element.dataset.status)
+  },
+  "notification:open-job": {
+    event: "click",
+    run: ({ element }) => openNotificationJobDrawer(Number(element.dataset.jobId))
+  },
+  "notification:retry-job": {
+    event: "click",
+    run: ({ element }) => retryNotificationJob(Number(element.dataset.jobId))
+  },
+  "notification:change-page": {
+    event: "click",
+    run: ({ element }) => changeNotificationPage(element.dataset.pageKey, Number(element.dataset.pageDelta))
+  },
+  "notification:close-drawer": {
+    event: "click",
+    run: ({ event, element }) => {
+      if (element.dataset.selfOnly === "true" && event.target !== element) return;
+      closeNotificationJobDrawer();
+    }
+  },
+  "whatsapp:create": {
+    event: "click",
+    run: () => createWhatsAppInstance()
+  },
+  "whatsapp:register": {
+    event: "click",
+    run: () => registerExistingWhatsAppInstance()
+  },
+  "whatsapp:copy-pairing-code": {
+    event: "click",
+    run: () => copyPairingCode()
+  },
+  "whatsapp:check-latest-pairing": {
+    event: "click",
+    run: () => checkLatestPairingState()
+  },
+  "whatsapp:save-capacity": {
+    event: "click",
+    run: ({ element }) => saveWhatsAppInstanceCapacity(Number(element.dataset.instanceId))
+  },
+  "whatsapp:edit": {
+    event: "click",
+    run: ({ element }) => editWhatsAppInstance(Number(element.dataset.instanceId))
+  },
+  "whatsapp:connect": {
+    event: "click",
+    run: ({ element }) => connectWhatsAppInstance(Number(element.dataset.instanceId))
+  },
+  "whatsapp:check-state": {
+    event: "click",
+    run: ({ element }) => checkWhatsAppInstanceState(Number(element.dataset.instanceId))
+  },
+  "whatsapp:update-status": {
+    event: "click",
+    run: ({ element }) => updateWhatsAppInstanceStatus(Number(element.dataset.instanceId), element.dataset.status)
+  },
+  "whatsapp:logout": {
+    event: "click",
+    run: ({ element }) => logoutWhatsAppInstance(Number(element.dataset.instanceId))
+  },
+  "whatsapp:delete": {
+    event: "click",
+    run: ({ element }) => deleteWhatsAppInstance(Number(element.dataset.instanceId))
   }
 });
 
@@ -2527,24 +2629,14 @@ document.addEventListener("submit", dispatchNamedAdminAction);
 // explicit function allowlist, without eval or new Function.
 const ADMIN_ACTION_NAMES = new Set([
   "changeEventsPage",
-  "changeNotificationPage", "changePaymentHistoryPage", "checkLatestPairingState",
-  "checkWhatsAppInstanceState",
-  "closeNotificationJobDrawer",
-  "connectWhatsAppInstance", "copyPairingCode", "createAdminUser",
-  "createWhatsAppInstance", "decideSmsPayment",
-  "deleteWhatsAppInstance", "editWhatsAppInstance",
+  "createAdminUser",
   "handleEventsFilterChange", "loadEvents",
-  "logoutWhatsAppInstance",
-  "openNotificationJobDrawer", "prepareSiteBindingTransfer", "refreshAdminUsers",
-  "refreshNotificationOps",
-  "refreshSiteBindings", "registerExistingWhatsAppInstance", "releaseSiteBinding",
-  "renderSiteBindings", "retryNotificationJob",
-  "saveWhatsAppInstanceCapacity",
-  "setNotificationOpsTab", "setPaymentHistoryFilter", "setTab",
+  "prepareSiteBindingTransfer", "refreshAdminUsers",
+  "refreshSiteBindings", "releaseSiteBinding",
+  "renderSiteBindings",
   "toggleEventDetail",
-  "transferSiteBinding", "triggerAdminTestPayment",
-  "updateAdminUserAccess", "updateSupportTicket",
-  "updateWhatsAppInstanceStatus"
+  "transferSiteBinding",
+  "updateAdminUserAccess"
 ]);
 
 function splitAdminActionValues(source, delimiter = ",") {
