@@ -1,0 +1,36 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  check:
+    name: Lint, typecheck, format
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      # `npm ci` requires a lockfile. There is none yet because this is the
+      # first package.json in the repo. Once the first `npm install` is
+      # committed as package-lock.json, switch this line to `npm ci`.
+      - name: Install dependencies
+        run: npm install
+
+      # Rules are all "warn" in step 1, so this reports without failing.
+      # Swap in `--max-warnings=<baseline>` once the baseline is known, then
+      # ratchet that number down. That is what stops NEW problems landing.
+      - name: Lint
+        run: npm run lint
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Format check
+        run: npm run format:check

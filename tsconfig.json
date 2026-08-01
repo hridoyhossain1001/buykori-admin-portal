@@ -1,0 +1,26 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+
+    "allowJs": true,
+
+    // checkJs is OFF in step 1. Turning it on today would produce thousands of
+    // errors in app.js and block every PR. The migration path is per-file:
+    // add `// @ts-check` to the top of one file, fix it, move on. Only once
+    // every file carries that comment does checkJs:true become a no-op flip.
+    "checkJs": false,
+
+    "noEmit": true,
+
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitOverride": true,
+    "forceConsistentCasingInFileNames": true,
+    "skipLibCheck": true
+  },
+  "include": ["*.js", "*.ts", "platforms/**/*.js", "platforms/**/*.ts"],
+  "exclude": ["node_modules", "dist", ".vercel"]
+}
