@@ -57,8 +57,8 @@
     </div>
   </div>
 
-  <button class="hamburger" id="hamburger" data-admin-click="toggleSidebar()" aria-label="Open menu"><span></span><span></span><span></span></button>
-  <div class="sidebar-overlay" id="sidebarOverlay" data-admin-click="toggleSidebar()"></div>
+  <button class="hamburger" id="hamburger" data-action="shell:toggle-sidebar" aria-label="Open menu"><span></span><span></span><span></span></button>
+  <div class="sidebar-overlay" id="sidebarOverlay" data-action="shell:toggle-sidebar"></div>
 
   <div id="app" class="shell">
     <aside class="sidebar" id="sidebar">
@@ -143,11 +143,11 @@
       </div>
 
       <div class="sidebar-bottom">
-        <button class="nav-item" data-admin-click="loadAll({ refreshDashboard: true })">
+        <button class="nav-item" data-action="shell:refresh">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M21 12a9 9 0 11-2.64-6.36M21 3v6h-6"/></svg>
           Refresh
         </button>
-        <button class="nav-item" data-admin-click="logout()">
+        <button class="nav-item" data-action="shell:logout">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/></svg>
           Log out
         </button>
@@ -158,12 +158,12 @@
       <header class="topbar">
         <div class="search-box">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
-          <input id="searchInput" placeholder="Search clients, events, IPs..." data-admin-input="handleSearchInput()">
+          <input id="searchInput" placeholder="Search clients, events, IPs..." data-action="shell:search">
           <span class="kbd">CTRL K</span>
         </div>
         <div class="topbar-right">
           <div class="env-badge">PRODUCTION</div>
-          <button class="theme-toggle-btn" id="themeToggle" data-admin-click="toggleTheme()" title="Toggle Theme" aria-label="Toggle Theme">
+          <button class="theme-toggle-btn" id="themeToggle" data-action="shell:toggle-theme" title="Toggle Theme" aria-label="Toggle Theme">
             <span class="theme-icon-light">☀️ <span class="theme-btn-text">LIGHT</span></span>
             <span class="theme-icon-dark">🌙 <span class="theme-btn-text">DARK</span></span>
           </button>

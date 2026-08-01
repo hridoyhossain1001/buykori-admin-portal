@@ -116,6 +116,7 @@ test("owner can navigate the admin shell with the production API offline", async
   const browserErrors = [];
   const unexpectedApiCalls = [];
   const summaryWindows = [];
+  const summaryRefreshes = [];
   let courierQueueRequests = 0;
   const clientPatches = [];
   const clientCreates = [];
@@ -139,6 +140,7 @@ test("owner can navigate the admin shell with the production API offline", async
 
     if (requestUrl.pathname === "/api/v1/admin/api/summary") {
       summaryWindows.push(requestUrl.searchParams.get("window"));
+      summaryRefreshes.push(requestUrl.searchParams.get("refresh"));
     }
     if (requestUrl.pathname === "/api/v1/admin/api/courier-booking-queue") {
       courierQueueRequests += 1;
@@ -292,6 +294,21 @@ test("owner can navigate the admin shell with the production API offline", async
   await expect(page.locator("#login")).toBeHidden();
   await expect(page.locator("#teamNavGroup")).toBeVisible();
 
+  await expect(
+    page.locator(
+      '#hamburger[data-action="shell:toggle-sidebar"], #sidebarOverlay[data-action="shell:toggle-sidebar"]'
+    )
+  ).toHaveCount(2);
+  await page.setViewportSize({ width: 800, height: 900 });
+  await page.locator('#hamburger[data-action="shell:toggle-sidebar"]').click();
+  await expect(page.locator("#sidebar")).toHaveClass(/open/);
+  await page.locator('#sidebarOverlay[data-action="shell:toggle-sidebar"]').click();
+  await expect(page.locator("#sidebar")).not.toHaveClass(/open/);
+  await page.setViewportSize({ width: 1280, height: 900 });
+
+  await page.locator('[data-action="shell:refresh"]').click();
+  await expect.poll(() => summaryRefreshes.includes("1")).toBe(true);
+
   const renderedTabs = await page
     .locator(".nav-item[data-tab]")
     .evaluateAll(nodes => nodes.map(node => node.dataset.tab));
@@ -349,6 +366,10 @@ test("owner can navigate the admin shell with the production API offline", async
   await expect(
     page.locator("#clients [data-admin-click], #clients [data-admin-change]")
   ).toHaveCount(0);
+  await page.locator('#searchInput[data-action="shell:search"]').fill("missing-client-query");
+  await expect(page.locator("#clientRows")).toContainText("No clients match this search");
+  await page.locator('#searchInput[data-action="shell:search"]').fill("");
+  await expect(page.locator("#clientRows")).toContainText("Offline Fixture Client");
   await page.locator('[data-action="clients:open-create"]').click();
   await expect(page.locator("#create")).toHaveClass(/active/);
 
@@ -581,7 +602,7 @@ test("owner can navigate the admin shell with the production API offline", async
   expect(expectedRejectionIndex).toBeGreaterThanOrEqual(0);
   browserErrors.splice(expectedRejectionIndex, 1);
 
-  const themeToggle = page.locator("#themeToggle");
+  const themeToggle = page.locator('#themeToggle[data-action="shell:toggle-theme"]');
   const wasDark = await page
     .locator("html")
     .evaluate(element => element.classList.contains("dark"));
