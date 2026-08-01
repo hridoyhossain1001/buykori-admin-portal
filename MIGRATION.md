@@ -96,6 +96,9 @@ Progress:
   lint ratchet is now 77 warnings.
 - Shared shell: migrated sidebar open/close, forced refresh, logout dispatch,
   debounced global search and theme toggle. The lint ratchet is 74 warnings.
+- Recovery and client lookup: migrated recovery filters, refresh and status
+  decisions plus client intelligence/health refresh and open controls. The lint
+  ratchet is 73 warnings.
 
 When the last inline handler is gone:
 
