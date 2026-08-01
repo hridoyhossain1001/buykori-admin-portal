@@ -9,10 +9,12 @@
     "typecheck": "tsc --noEmit",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
+    "test:smoke": "playwright test",
     "dev": "serve -l 5050 ."
   },
   "devDependencies": {
     "@eslint/js": "^9.13.0",
+    "@playwright/test": "^1.62.1",
     "eslint": "^9.13.0",
     "eslint-plugin-no-unsanitized": "^4.1.2",
     "globals": "^15.11.0",

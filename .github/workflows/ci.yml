@@ -9,7 +9,7 @@ jobs:
   check:
     name: Lint, typecheck, format and CSP
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
 
     steps:
       - uses: actions/checkout@v4
@@ -38,3 +38,9 @@ jobs:
 
       - name: Test enforced CSP migration
         run: node --test tests/admin-csp.test.mjs
+
+      - name: Install smoke-test browser
+        run: npx playwright install --with-deps chromium
+
+      - name: Run offline admin smoke test
+        run: npm run test:smoke
