@@ -40,8 +40,8 @@ honest answer to the AP-02 question that manual review could not settle — a
 
 Drive the baseline down and lock it in:
 
-The initial count was 94. The Dashboard action migration lowered the current
-lock to 90. Next:
+The initial count was 94. The Dashboard and Courier Queue action migrations
+lowered the current lock to 88. Next:
 
 1. Fix warnings in small PRs, lowering `--max-warnings` each time.
 2. At zero for a given rule, promote it from `warn` to `error`.
@@ -64,7 +64,10 @@ Progress:
 
 - Dashboard: migrated to named `data-action` entries and an explicit dispatch
   table. Its static and runtime templates no longer use the temporary
-  `data-admin-*` expression bridge. The lint ratchet is now 90 warnings.
+  `data-admin-*` expression bridge.
+- Courier Queue: migrated refresh, auto-refresh, job details, retry and drawer
+  close behavior. The direct `retryButton.onclick` assignment is gone, and the
+  lint ratchet is now 88 warnings.
 
 When the last inline handler is gone:
 
