@@ -140,7 +140,20 @@ test("owner can navigate the admin shell with the production API offline", async
       requestUrl.pathname === "/api/v1/admin/api/clients/7" &&
       route.request().method() === "PATCH"
     ) {
-      clientPatches.push(route.request().postDataJSON());
+      const payload = route.request().postDataJSON();
+      clientPatches.push(payload);
+      if (payload.name === "Rejected Edit") {
+        await route.fulfill({
+          status: 422,
+          contentType: "application/json",
+          headers: {
+            "access-control-allow-origin": "http://127.0.0.1:5050",
+            "access-control-allow-credentials": "true",
+          },
+          body: JSON.stringify({ detail: "Offline edit rejection" }),
+        });
+        return;
+      }
     }
     if (
       requestUrl.pathname === "/api/v1/admin/api/clients" &&
@@ -243,9 +256,33 @@ test("owner can navigate the admin shell with the production API offline", async
   await expect(page.locator("#editName")).toHaveValue("Offline Fixture Client");
   await expect(
     page.locator(
-      '#modalOverlay [data-admin-click*="switchModalTab"], #modalOverlay [data-admin-click*="closeClientModal"]'
+      '#modalOverlay [data-admin-click*="switchModalTab"], #modalOverlay [data-admin-click*="closeClientModal"], #modalOverlay [data-admin-click*="saveClientEdit"]'
     )
   ).toHaveCount(0);
+  await page.locator("#editName").fill("Updated Offline Client");
+  await page.locator("#editDomain").fill("updated-offline.example");
+  await page.locator('[data-action="client-modal:save"]').click();
+  await expect(page.locator("#editMsg")).toHaveText("Saved successfully!");
+  await expect.poll(() => clientPatches.length).toBe(1);
+  expect(clientPatches[0]).toEqual(
+    expect.objectContaining({
+      name: "Updated Offline Client",
+      domain: "updated-offline.example",
+      is_active: true,
+      plan_tier: "free",
+      billing_status: "free",
+    })
+  );
+
+  await page.locator("#editName").fill("Rejected Edit");
+  await page.locator('[data-action="client-modal:save"]').click();
+  await expect(page.locator("#editMsg")).toHaveText("Offline edit rejection");
+  await expect.poll(() => clientPatches.length).toBe(2);
+  await expect.poll(() => browserErrors.length).toBe(1);
+  expect(browserErrors).toEqual([
+    "console: Failed to load resource: the server responded with a status of 422 (Unprocessable Entity)",
+  ]);
+  browserErrors.length = 0;
   for (const tab of ["keys", "instructions", "intel", "danger", "edit"]) {
     const tabButton = page.locator(
       `#modalOverlay [data-action="client-modal:switch-tab"][data-modal-tab="${tab}"]`
@@ -265,8 +302,8 @@ test("owner can navigate the admin shell with the production API offline", async
   await expect(page.locator("#modalOverlay")).toBeHidden();
 
   await page.locator('#clientRows [data-action="clients:toggle-active"]').click();
-  await expect.poll(() => clientPatches.length).toBe(1);
-  expect(clientPatches).toEqual([{ is_active: false }]);
+  await expect.poll(() => clientPatches.length).toBe(3);
+  expect(clientPatches[2]).toEqual({ is_active: false });
 
   await page.locator('[data-action="clients:open-create"]').click();
   const createSubmit = page.locator("#createClientSubmit");
