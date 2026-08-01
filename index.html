@@ -187,14 +187,14 @@
             <div class="header-actions">
               <label class="dashboard-window-control">
                 <svg style="width:16px;height:16px" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3M16 7V3M5 11h14M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-                <select id="dashboardWindow" data-admin-change="setDashboardWindow(this.value)" aria-label="Dashboard timeframe">
+                <select id="dashboardWindow" data-action="dashboard:set-window" aria-label="Dashboard timeframe">
                   <option value="24h">Last 24 Hours</option>
                   <option value="7d">Last 7 Days</option>
                   <option value="30d">Last 30 Days</option>
                 </select>
               </label>
               <span id="dashboardFreshness" class="dashboard-freshness">Waiting for data</span>
-              <button class="btn btn-primary" data-admin-click="downloadReport()">
+              <button class="btn btn-primary" data-action="dashboard:download-report">
                 <svg style="width:16px;height:16px" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1M12 4v12M8 8l4-4 4 4"/></svg>
                 Export Report
               </button>
@@ -248,7 +248,7 @@
                 <div class="card-header">
                   <h2 class="card-title">Active Client Integrations</h2>
                   <div class="card-tools">
-                    <button class="view-all" data-admin-click="setTab('clients')">View all</button>
+                    <button class="view-all" data-action="dashboard:open-tab" data-tab-target="clients">View all</button>
                   </div>
                 </div>
                 <div class="table-wrap">
@@ -287,7 +287,7 @@
               <div class="card">
                 <div class="card-header">
                   <h2 class="card-title">Courier Booking Queue</h2>
-                  <button class="view-all" data-admin-click="setTab('courierQueue')">Open</button>
+                  <button class="view-all" data-action="dashboard:open-tab" data-tab-target="courierQueue">Open</button>
                 </div>
                 <div class="queue-summary">
                   <div>

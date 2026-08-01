@@ -525,7 +525,7 @@ function renderCourierQueueBanner(queue) {
       <strong>Courier queue ${esc(status)}</strong>
       <span>${esc(queueStatusText(queue))}</span>
     </div>
-    <button class="btn btn-outline btn-sm" data-admin-click="setTab('courierQueue')">Open Queue</button>
+    <button class="btn btn-outline btn-sm" data-action="dashboard:open-tab" data-tab-target="courierQueue">Open Queue</button>
   `;
 }
 
@@ -649,7 +649,7 @@ function renderIntegrationRows() {
       <td>${integrationBadge(integrationState(client, "ga4"), "ga4")}</td>
       <td><span class="text-success" style="font-weight:700">${fmt(health.periodEvents)}</span> <span style="font-size:10px;color:var(--text-subtle)">${esc(dashboardWindowShortLabel())}</span></td>
       <td><div class="status-badge ${statusClass(health.status)}" title="${esc(health.reasons.join(", "))}">${health.score !== undefined ? `${fmt(health.score)}%` : statusLabel(health.status, client.is_active)}</div></td>
-      <td><button class="action-btn" data-admin-click="openClientModal(${client.id})" title="Manage client">...</button></td>
+      <td><button class="action-btn" data-action="dashboard:open-client" data-client-id="${Number(client.id)}" title="Manage client">...</button></td>
     </tr>`;
   }).join("") || `<tr><td colspan="8" class="empty">No clients yet. Use Add Client to get started.</td></tr>`;
 }
@@ -1107,7 +1107,7 @@ function renderAlerts() {
     <div class="stream-content"><div class="stream-title">${esc(row.title)}</div><div class="stream-desc">${esc(row.desc)}</div></div>
     <div class="alert-rank ${row.cls}">${esc(row.rank)}</div>
     <div style="font-size:12px;color:var(--text-muted);font-weight:700">${esc(row.value)}</div>
-    ${row.action === "acknowledge-courier-statuses" ? `<button class="btn btn-outline btn-sm" data-admin-click="acknowledgeUnknownCourierStatuses()">Acknowledge</button>` : row.action ? `<button class="btn btn-outline btn-sm alert-action" data-admin-click="runAlertAction('${esc(row.action)}', ${Number(row.clientId || 0)})">${row.action === "open-client" ? "Open client" : row.action === "server" ? "Server status" : row.action === "courier" ? "Courier queue" : "Review clients"}</button>` : ""}
+    ${row.action === "acknowledge-courier-statuses" ? `<button class="btn btn-outline btn-sm" data-action="dashboard:acknowledge-courier-statuses">Acknowledge</button>` : row.action ? `<button class="btn btn-outline btn-sm alert-action" data-action="dashboard:run-alert" data-alert-action="${esc(row.action)}" data-client-id="${Number(row.clientId || 0)}">${row.action === "open-client" ? "Open client" : row.action === "server" ? "Server status" : row.action === "courier" ? "Courier queue" : "Review clients"}</button>` : ""}
   </div>`).join("") || `<div class="stream-item" style="align-items:center;border-bottom:none"><div class="stream-dot success"></div><div class="stream-content"><div class="stream-title">System Status</div><div class="stream-desc">All systems operational</div></div></div>`;
 }
 
@@ -2337,25 +2337,70 @@ function handleSearchInput() {
   }, 200);
 }
 
+// Step 3 migration: named actions keep JavaScript expressions out of markup.
+// Each tab moves here independently while unmigrated tabs continue to use the
+// temporary data-admin-* bridge below.
+const ADMIN_ACTIONS = Object.freeze({
+  "dashboard:set-window": {
+    event: "change",
+    run: ({ element }) => setDashboardWindow(element.value)
+  },
+  "dashboard:download-report": {
+    event: "click",
+    run: () => downloadReport()
+  },
+  "dashboard:open-tab": {
+    event: "click",
+    run: ({ element }) => setTab(element.dataset.tabTarget)
+  },
+  "dashboard:open-client": {
+    event: "click",
+    run: ({ element }) => openClientModal(Number(element.dataset.clientId))
+  },
+  "dashboard:run-alert": {
+    event: "click",
+    run: ({ element }) => runAlertAction(element.dataset.alertAction, Number(element.dataset.clientId || 0))
+  },
+  "dashboard:acknowledge-courier-statuses": {
+    event: "click",
+    run: () => acknowledgeUnknownCourierStatuses()
+  }
+});
+
+function dispatchNamedAdminAction(event) {
+  const element = event.target?.closest?.("[data-action]");
+  if (!element) return;
+  const action = ADMIN_ACTIONS[element.dataset.action];
+  if (!action || action.event !== event.type) return;
+  try {
+    Promise.resolve(action.run({ event, element })).catch(error => console.error("Admin action failed", error));
+  } catch (error) {
+    console.error("Admin action failed", error);
+  }
+}
+
+document.addEventListener("click", dispatchNamedAdminAction);
+document.addEventListener("change", dispatchNamedAdminAction);
+
 // AP-03: CSP-safe replacement for legacy inline event attributes. Templates retain
 // declarative data-admin-* actions; this dispatcher accepts only literals and an
 // explicit function allowlist, without eval or new Function.
 const ADMIN_ACTION_NAMES = new Set([
-  "acknowledgeUnknownCourierStatuses", "addSupportNote", "changeEventsPage",
+  "addSupportNote", "changeEventsPage",
   "changeNotificationPage", "changePaymentHistoryPage", "checkLatestPairingState",
   "checkWhatsAppInstanceState", "closeAdminDecision", "closeClientModal",
   "closeCourierJobDrawer", "closeNotificationJobDrawer", "confirmAdminDecision",
   "connectWhatsAppInstance", "copyPairingCode", "copyText", "createAdminUser",
   "createClient", "createWhatsAppInstance", "decideSmsPayment", "deleteClient",
-  "deleteWhatsAppInstance", "downloadReport", "editWhatsAppInstance",
+  "deleteWhatsAppInstance", "editWhatsAppInstance",
   "handleEventsFilterChange", "handleSearchInput", "loadAll", "loadEvents", "logout",
   "logoutWhatsAppInstance", "openClientModal", "openCourierJobDrawer",
   "openNotificationJobDrawer", "prepareSiteBindingTransfer", "refreshAdminUsers",
   "refreshCourierQueue", "refreshNotificationOps", "refreshRecoveryOps",
   "refreshSiteBindings", "registerExistingWhatsAppInstance", "releaseSiteBinding",
   "renderSiteBindings", "retryCourierBookingJob", "retryNotificationJob", "revealSecret",
-  "rotateKey", "runAlertAction", "saveClientEdit", "saveWhatsAppInstanceCapacity",
-  "setDashboardWindow", "setNotificationOpsTab", "setPaymentHistoryFilter", "setTab",
+  "rotateKey", "saveClientEdit", "saveWhatsAppInstanceCapacity",
+  "setNotificationOpsTab", "setPaymentHistoryFilter", "setTab",
   "switchModalTab", "toggleClient", "toggleCourierQueueAutoRefresh", "toggleEventDetail",
   "toggleSidebar", "toggleTheme", "transferSiteBinding", "triggerAdminTestPayment",
   "updateAdminUserAccess", "updateRecoveryStatus", "updateSupportTicket",

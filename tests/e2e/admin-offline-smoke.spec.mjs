@@ -132,11 +132,23 @@ test("owner can navigate the admin shell with the production API offline", async
   await expect(page.locator("#create")).toHaveClass(/active/);
 
   await page.locator('.nav-item[data-tab="dashboard"]').click();
+  await expect(
+    page.locator("#dashboard [data-admin-click], #dashboard [data-admin-change]")
+  ).toHaveCount(0);
+  await page.locator('[data-action="dashboard:open-tab"][data-tab-target="clients"]').click();
+  await expect(page.locator("#clients")).toHaveClass(/active/);
+
+  await page.locator('.nav-item[data-tab="dashboard"]').click();
   const dashboardWindow = page.locator("#dashboardWindow");
   await dashboardWindow.selectOption("7d");
   await expect(dashboardWindow).toHaveValue("7d");
   await expect(dashboardWindow).toBeEnabled();
   expect(summaryWindows).toContain("7d");
+
+  const downloadPromise = page.waitForEvent("download");
+  await page.locator('[data-action="dashboard:download-report"]').click();
+  const download = await downloadPromise;
+  expect(download.suggestedFilename()).toBe("buykori-admin-7d-report.csv");
 
   expect(unexpectedApiCalls).toEqual([]);
   expect(browserErrors).toEqual([]);
