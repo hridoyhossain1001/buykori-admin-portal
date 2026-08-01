@@ -25,3 +25,33 @@ test("production CSP blocks script attributes and is enforced", async () => {
     false
   );
 });
+
+test("dashboard uses named actions instead of expression attributes", async () => {
+  const indexHtml = await read("index.html");
+  const appJs = await read("app.js");
+  const dashboardStart = indexHtml.indexOf('<section id="dashboard"');
+  const dashboardEnd = indexHtml.indexOf('<section id="courierQueue"', dashboardStart);
+  const dashboardMarkup = indexHtml.slice(dashboardStart, dashboardEnd);
+
+  assert.ok(
+    dashboardStart >= 0 && dashboardEnd > dashboardStart,
+    "dashboard section must be present"
+  );
+  assert.doesNotMatch(dashboardMarkup, /data-admin-(?:click|change|input|submit)=/);
+  assert.match(dashboardMarkup, /data-action="dashboard:set-window"/);
+  assert.match(dashboardMarkup, /data-action="dashboard:download-report"/);
+  assert.match(dashboardMarkup, /data-action="dashboard:open-tab"/);
+
+  for (const functionName of [
+    "renderCourierQueueBanner",
+    "renderIntegrationRows",
+    "renderAlerts",
+  ]) {
+    const start = appJs.indexOf(`function ${functionName}`);
+    const end = appJs.indexOf("\nfunction ", start + 1);
+    const source = appJs.slice(start, end);
+    assert.ok(start >= 0 && end > start, `${functionName} must be present`);
+    assert.doesNotMatch(source, /data-admin-(?:click|change|input|submit)=/);
+    assert.match(source, /data-action="dashboard:/);
+  }
+});

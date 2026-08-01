@@ -40,30 +40,35 @@ honest answer to the AP-02 question that manual review could not settle — a
 
 Drive the baseline down and lock it in:
 
-The initial count is now locked at 94. Next:
+The initial count was 94. The Dashboard action migration lowered the current
+lock to 90. Next:
 
 1. Fix warnings in small PRs, lowering `--max-warnings` each time.
 2. At zero for a given rule, promote it from `warn` to `error`.
 
 Priority order: `no-unsanitized/property` → `no-undef` → `no-unused-vars`.
 
-### Step 3 — Kill the inline handlers
+### Step 3 — Kill the inline handlers (in progress)
 
-This is the true blocker for everything after it, and the reason the admin CSP
-still needs `script-src-attr 'unsafe-inline'`.
-
-Handlers like `onclick="setTab('courierQueue')"` require `app.js` top-level
-functions to be global. That in turn forces classic-script loading, which
-forbids bundling, modules and per-file imports.
+Native event attributes are gone and the enforced CSP now uses
+`script-src-attr 'none'`. The temporary `data-admin-*` bridge still stores
+JavaScript-like expressions and resolves their functions through `window`, so
+classic-script loading is still required and modules remain blocked.
 
 Approach: event delegation. One listener at the container, `data-action` and
 `data-arg` attributes on the elements, a dispatch table in JS. Convert one tab
 at a time; each conversion is independently shippable and independently
 revertable.
 
+Progress:
+
+- Dashboard: migrated to named `data-action` entries and an explicit dispatch
+  table. Its static and runtime templates no longer use the temporary
+  `data-admin-*` expression bridge. The lint ratchet is now 90 warnings.
+
 When the last inline handler is gone:
 
-- `script-src-attr 'none'` can move from report-only to enforced
+- the temporary expression parser and global-function allowlist can be deleted
 - `sourceType` can become `"module"`
 - Vite becomes possible
 
