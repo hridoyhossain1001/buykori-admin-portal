@@ -211,3 +211,20 @@ test("shared admin shell uses named actions", async () => {
     assert.match(markup, new RegExp(`data-action="shell:${action}"`));
   }
 });
+
+test("recovery and client lookup sections use named actions", async () => {
+  const indexHtml = await read("index.html");
+  const appJs = await read("app.js");
+  const recoveryStart = indexHtml.indexOf('<section id="recoveryOps"');
+  const recoveryEnd = indexHtml.indexOf('<section id="notificationOps"', recoveryStart);
+  const recoveryMarkup = indexHtml.slice(recoveryStart, recoveryEnd);
+
+  assert.ok(recoveryStart >= 0 && recoveryEnd > recoveryStart, "recovery section must be present");
+  assert.doesNotMatch(recoveryMarkup, /data-admin-(?:click|change|input|submit)=/);
+  assert.equal((recoveryMarkup.match(/data-action="recovery:filter"/g) || []).length, 2);
+  assert.match(recoveryMarkup, /data-action="recovery:refresh"/);
+  assert.doesNotMatch(appJs, /data-admin-click="(?:updateRecoveryStatus|openClientModal)\(/);
+  assert.match(appJs, /data-action="recovery:update-status"/);
+  assert.equal((indexHtml.match(/data-action="client-lookup:refresh"/g) || []).length, 2);
+  assert.equal((appJs.match(/data-action="client-lookup:open"/g) || []).length, 3);
+});

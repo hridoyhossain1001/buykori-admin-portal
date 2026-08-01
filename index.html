@@ -410,8 +410,8 @@
               <p class="page-sub">Monitor incomplete checkout leads, linked orders, and client recovery workloads.</p>
             </div>
             <div class="header-actions">
-              <select id="recoveryClientFilter" data-admin-change="refreshRecoveryOps({ silent: true })"><option value="">All Clients</option></select>
-              <select id="recoveryStatusFilter" data-admin-change="refreshRecoveryOps({ silent: true })">
+              <select id="recoveryClientFilter" data-action="recovery:filter"><option value="">All Clients</option></select>
+              <select id="recoveryStatusFilter" data-action="recovery:filter">
                 <option value="">All Statuses</option>
                 <option value="active">Active</option>
                 <option value="incomplete">Incomplete</option>
@@ -420,7 +420,7 @@
                 <option value="ignored">Ignored</option>
                 <option value="expired">Expired</option>
               </select>
-              <button class="btn btn-outline" data-admin-click="refreshRecoveryOps()">Refresh</button>
+              <button class="btn btn-outline" data-action="recovery:refresh">Refresh</button>
             </div>
           </div>
           <div class="metrics-grid">
@@ -801,7 +801,7 @@
         <section id="clientIntel" class="section">
           <div class="page-header">
             <div><h1 class="page-title">Client Details</h1><p class="page-sub">Client health, trial follow-ups, onboarding progress, and support notes.</p></div>
-            <button class="btn btn-outline" data-admin-click="loadAll()">Refresh Details</button>
+            <button class="btn btn-outline" data-action="client-lookup:refresh">Refresh Details</button>
           </div>
           <div class="client-intelligence-layout">
             <div class="card client-intel-card">
@@ -818,7 +818,7 @@
         <section id="opsMonitor" class="section">
           <div class="page-header">
             <div><h1 class="page-title">Server Status</h1><p class="page-sub">Server, database, Redis, and worker queue health.</p></div>
-            <button class="btn btn-outline" data-admin-click="loadAll()">Refresh Status</button>
+            <button class="btn btn-outline" data-action="client-lookup:refresh">Refresh Status</button>
           </div>
           <div class="metrics-grid">
             <div class="metric-card"><div class="metric-header"><div class="m-icon bg-blue">S</div><span class="m-title">Server</span></div><div class="metric-value" id="serverHealthStatus">-</div><div class="trend">overall status</div></div>

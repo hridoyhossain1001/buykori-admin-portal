@@ -894,7 +894,7 @@ function renderHealthRows() {
     <td>${fmt(item.today_events)}</td>
     <td>${pct(item.success_rate)}</td>
     <td>${esc(toDeviceDateTime(item.last_event_at))}</td>
-    <td><button class="btn btn-outline btn-sm" data-admin-click="openClientModal(${Number(item.client_id)})">Open client</button></td>
+    <td><button class="btn btn-outline btn-sm" data-action="client-lookup:open" data-client-id="${Number(item.client_id)}">Open client</button></td>
   </tr>`).join("") || `<tr><td colspan="7" class="empty">Health data will appear when clients start sending events.</td></tr>`;
 }
 
@@ -911,7 +911,7 @@ function renderClientIntelligence() {
         <td><div class="status-badge ${followup.priority === "high" ? "status-critical" : followup.priority === "medium" ? "status-warning" : "status-healthy"}">${esc(followup.priority)}</div></td>
         <td>${esc(followup.reason)}</td>
         <td>${esc(followup.action)}</td>
-        <td><button class="btn btn-outline btn-sm" data-admin-click="openClientModal(${Number(c.id)})">Open</button></td>
+        <td><button class="btn btn-outline btn-sm" data-action="client-lookup:open" data-client-id="${Number(c.id)}">Open</button></td>
       </tr>`;
     }).join("") || `<tr><td colspan="5" class="empty">No trial follow-ups right now.</td></tr>`;
   }
@@ -928,7 +928,7 @@ function renderClientIntelligence() {
         <td>${doneCount(funnel)} / ${funnel.length}</td>
         <td>${followup ? esc(followup.reason) : "No action"}</td>
         <td>${fmt(row.support_note_count || 0)}</td>
-        <td><button class="btn btn-outline btn-sm" data-admin-click="openClientModal(${Number(c.id)})">Open</button></td>
+        <td><button class="btn btn-outline btn-sm" data-action="client-lookup:open" data-client-id="${Number(c.id)}">Open</button></td>
       </tr>`;
     }).join("") || `<tr><td colspan="6" class="empty">Client details will appear after intelligence data loads.</td></tr>`;
   }
@@ -1197,7 +1197,7 @@ function renderRecoveryOps() {
           <td>
             <div class="queue-actions">
               ${item.page_url ? `<a class="btn btn-outline btn-sm" href="${safeHref(item.page_url)}" target="_blank" rel="noreferrer">Open</a>` : ""}
-              ${!locked ? `<button class="btn btn-outline btn-sm" data-admin-click="updateRecoveryStatus(${Number(item.id)}, 'contacted')">Contacted</button><button class="btn btn-outline btn-sm" data-admin-click="updateRecoveryStatus(${Number(item.id)}, 'ignored')">Ignore</button>` : ""}
+              ${!locked ? `<button class="btn btn-outline btn-sm" data-action="recovery:update-status" data-checkout-id="${Number(item.id)}" data-status="contacted">Contacted</button><button class="btn btn-outline btn-sm" data-action="recovery:update-status" data-checkout-id="${Number(item.id)}" data-status="ignored">Ignore</button>` : ""}
             </div>
           </td>
         </tr>
@@ -2482,6 +2482,26 @@ const ADMIN_ACTIONS = Object.freeze({
   "shell:toggle-theme": {
     event: "click",
     run: () => toggleTheme()
+  },
+  "recovery:filter": {
+    event: "change",
+    run: () => refreshRecoveryOps({ silent: true })
+  },
+  "recovery:refresh": {
+    event: "click",
+    run: () => refreshRecoveryOps()
+  },
+  "recovery:update-status": {
+    event: "click",
+    run: ({ element }) => updateRecoveryStatus(Number(element.dataset.checkoutId), element.dataset.status)
+  },
+  "client-lookup:refresh": {
+    event: "click",
+    run: () => loadAll()
+  },
+  "client-lookup:open": {
+    event: "click",
+    run: ({ element }) => openClientModal(Number(element.dataset.clientId))
   }
 });
 
@@ -2513,17 +2533,17 @@ const ADMIN_ACTION_NAMES = new Set([
   "connectWhatsAppInstance", "copyPairingCode", "createAdminUser",
   "createWhatsAppInstance", "decideSmsPayment",
   "deleteWhatsAppInstance", "editWhatsAppInstance",
-  "handleEventsFilterChange", "loadAll", "loadEvents",
-  "logoutWhatsAppInstance", "openClientModal",
+  "handleEventsFilterChange", "loadEvents",
+  "logoutWhatsAppInstance",
   "openNotificationJobDrawer", "prepareSiteBindingTransfer", "refreshAdminUsers",
-  "refreshNotificationOps", "refreshRecoveryOps",
+  "refreshNotificationOps",
   "refreshSiteBindings", "registerExistingWhatsAppInstance", "releaseSiteBinding",
   "renderSiteBindings", "retryNotificationJob",
   "saveWhatsAppInstanceCapacity",
   "setNotificationOpsTab", "setPaymentHistoryFilter", "setTab",
   "toggleEventDetail",
   "transferSiteBinding", "triggerAdminTestPayment",
-  "updateAdminUserAccess", "updateRecoveryStatus", "updateSupportTicket",
+  "updateAdminUserAccess", "updateSupportTicket",
   "updateWhatsAppInstanceStatus"
 ]);
 

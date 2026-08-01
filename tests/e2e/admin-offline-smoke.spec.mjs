@@ -103,7 +103,30 @@ const fixtures = new Map([
   ["/api/v1/admin/api/client-intelligence", { clients: [], trial_followups: [] }],
   ["/api/v1/admin/api/server-health", {}],
   ["/api/v1/admin/api/site-bindings", { bindings: [] }],
-  ["/api/v1/admin/api/incomplete-checkouts", { counts: {}, items: [], top_clients: [], total: 0 }],
+  [
+    "/api/v1/admin/api/incomplete-checkouts",
+    {
+      counts: { incomplete: 1, contacted: 0, recovered: 0 },
+      items: [
+        {
+          id: 91,
+          client_id: 7,
+          client_name: "Offline Fixture Client",
+          customer_name: "Recovery Fixture",
+          phone_masked: "01*******00",
+          product_summary: "Fixture product",
+          product_count: 1,
+          amount: 500,
+          currency: "BDT",
+          status: "incomplete",
+          order_id: null,
+          last_activity_at: "2026-08-01T08:30:00Z",
+        },
+      ],
+      top_clients: [{ client_name: "Offline Fixture Client", count: 1 }],
+      total: 1,
+    },
+  ],
   ["/api/v1/admin/notification-jobs", { total: 0, items: [] }],
   ["/api/v1/admin/whatsapp-instances", []],
   ["/api/v1/admin/api/support-tickets", { tickets: [], openCount: 0 }],
@@ -118,6 +141,8 @@ test("owner can navigate the admin shell with the production API offline", async
   const summaryWindows = [];
   const summaryRefreshes = [];
   let courierQueueRequests = 0;
+  let recoveryRequests = 0;
+  const recoveryPatches = [];
   const clientPatches = [];
   const clientCreates = [];
   const keyRotations = [];
@@ -144,6 +169,25 @@ test("owner can navigate the admin shell with the production API offline", async
     }
     if (requestUrl.pathname === "/api/v1/admin/api/courier-booking-queue") {
       courierQueueRequests += 1;
+    }
+    if (requestUrl.pathname === "/api/v1/admin/api/incomplete-checkouts") {
+      recoveryRequests += 1;
+    }
+    if (
+      requestUrl.pathname === "/api/v1/admin/api/incomplete-checkouts/91" &&
+      route.request().method() === "PATCH"
+    ) {
+      recoveryPatches.push(route.request().postDataJSON());
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        headers: {
+          "access-control-allow-origin": "http://127.0.0.1:5050",
+          "access-control-allow-credentials": "true",
+        },
+        body: JSON.stringify({ success: true }),
+      });
+      return;
     }
     if (
       requestUrl.pathname === "/api/v1/admin/api/clients/7" &&
@@ -361,6 +405,22 @@ test("owner can navigate the admin shell with the production API offline", async
   await page.locator('#courierQueueRows [data-action="courier:retry-job"]').click();
   await page.locator('#adminDecisionCancel[data-action="admin-decision:close"]').click();
   await expect(page.locator("#adminDecisionOverlay")).toBeHidden();
+
+  await page.locator('.nav-item[data-tab="recoveryOps"]').click();
+  await expect(
+    page.locator("#recoveryOps [data-admin-click], #recoveryOps [data-admin-change]")
+  ).toHaveCount(0);
+  const recoveryRequestsBeforeFilter = recoveryRequests;
+  await page
+    .locator('#recoveryStatusFilter[data-action="recovery:filter"]')
+    .selectOption("incomplete");
+  await expect.poll(() => recoveryRequests).toBeGreaterThan(recoveryRequestsBeforeFilter);
+  await page
+    .locator('#recoveryRows [data-action="recovery:update-status"][data-status="contacted"]')
+    .click();
+  await expect(page.locator("#adminDecisionOverlay")).toBeVisible();
+  await page.locator('#adminDecisionConfirm[data-action="admin-decision:confirm"]').click();
+  await expect.poll(() => recoveryPatches).toEqual([{ status: "contacted" }]);
 
   await page.locator('.nav-item[data-tab="clients"]').click();
   await expect(
