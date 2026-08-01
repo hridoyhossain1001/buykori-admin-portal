@@ -930,20 +930,20 @@
   </div>
 
   <!-- Client Management Modal -->
-  <div id="modalOverlay" class="modal-overlay" data-admin-click="if(event.target===this) closeClientModal()">
+  <div id="modalOverlay" class="modal-overlay" data-action="client-modal:close" data-self-only="true">
     <div class="modal">
       <div class="modal-header">
         <div class="modal-title" id="modalTitle">Manage Client</div>
-        <button class="modal-close" data-admin-click="closeClientModal()">&times;</button>
+        <button class="modal-close" data-action="client-modal:close">&times;</button>
       </div>
       <div class="modal-body">
         <div id="client360QuickSummary" class="client360-quick"></div>
         <div class="tabs">
-          <button class="tab-btn active" data-modal-tab="edit" data-admin-click="switchModalTab('edit')">Client</button>
-          <button class="tab-btn" data-modal-tab="keys" data-admin-click="switchModalTab('keys')">Keys</button>
-          <button class="tab-btn" data-modal-tab="instructions" data-admin-click="switchModalTab('instructions')">API Setup</button>
-          <button class="tab-btn" data-modal-tab="intel" data-admin-click="switchModalTab('intel')">360 & Notes</button>
-          <button class="tab-btn" data-modal-tab="danger" data-admin-click="switchModalTab('danger')">Danger Zone</button>
+          <button class="tab-btn active" data-action="client-modal:switch-tab" data-modal-tab="edit">Client</button>
+          <button class="tab-btn" data-action="client-modal:switch-tab" data-modal-tab="keys">Keys</button>
+          <button class="tab-btn" data-action="client-modal:switch-tab" data-modal-tab="instructions">API Setup</button>
+          <button class="tab-btn" data-action="client-modal:switch-tab" data-modal-tab="intel">360 & Notes</button>
+          <button class="tab-btn" data-action="client-modal:switch-tab" data-modal-tab="danger">Danger Zone</button>
         </div>
         
         <div id="tab-edit" class="tab-content active form-card" style="padding:0">
