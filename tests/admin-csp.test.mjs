@@ -181,3 +181,19 @@ test("client modal is fully migrated from expression actions", async () => {
   assert.equal((markup.match(/data-action="client-modal:copy"/g) || []).length, 6);
   assert.equal((markup.match(/data-action="client-modal:delete"/g) || []).length, 1);
 });
+
+test("admin decision modal uses named actions", async () => {
+  const indexHtml = await read("index.html");
+  const decisionStart = indexHtml.indexOf('<div id="adminDecisionOverlay"');
+  const decisionEnd = indexHtml.indexOf('<div id="queueDrawerOverlay"', decisionStart);
+  const markup = indexHtml.slice(decisionStart, decisionEnd);
+
+  assert.ok(
+    decisionStart >= 0 && decisionEnd > decisionStart,
+    "admin decision modal must be present"
+  );
+  assert.doesNotMatch(markup, /data-admin-(?:click|change|input|submit)=/);
+  assert.equal((markup.match(/data-action="admin-decision:close"/g) || []).length, 3);
+  assert.equal((markup.match(/data-action="admin-decision:confirm"/g) || []).length, 1);
+  assert.match(markup, /id="adminDecisionOverlay"[^>]+data-self-only="true"/);
+});

@@ -329,7 +329,20 @@ test("owner can navigate the admin shell with the production API offline", async
 
   await page.locator('#courierQueueRows [data-action="courier:retry-job"]').click();
   await expect(page.locator("#adminDecisionOverlay")).toBeVisible();
-  await page.locator("#adminDecisionCancel").click();
+  await expect(page.locator("#adminDecisionOverlay [data-admin-click]")).toHaveCount(0);
+  await page.locator("#adminDecisionOverlay .decision-modal").click({ position: { x: 10, y: 10 } });
+  await expect(page.locator("#adminDecisionOverlay")).toBeVisible();
+  await page.locator("#adminDecisionOverlay").click({ position: { x: 5, y: 5 } });
+  await expect(page.locator("#adminDecisionOverlay")).toBeHidden();
+
+  await page.locator('#courierQueueRows [data-action="courier:retry-job"]').click();
+  await page
+    .locator('#adminDecisionOverlay .modal-close[data-action="admin-decision:close"]')
+    .click();
+  await expect(page.locator("#adminDecisionOverlay")).toBeHidden();
+
+  await page.locator('#courierQueueRows [data-action="courier:retry-job"]').click();
+  await page.locator('#adminDecisionCancel[data-action="admin-decision:close"]').click();
   await expect(page.locator("#adminDecisionOverlay")).toBeHidden();
 
   await page.locator('.nav-item[data-tab="clients"]').click();
@@ -397,7 +410,7 @@ test("owner can navigate the admin shell with the production API offline", async
     .click();
   await expect(page.locator("#adminDecisionOverlay")).toBeVisible();
   await expect(page.locator("#adminDecisionTitle")).toHaveText("Rotate Key");
-  await page.locator("#adminDecisionConfirm").click();
+  await page.locator('#adminDecisionConfirm[data-action="admin-decision:confirm"]').click();
   await expect(page.locator("#adminDecisionOverlay")).toBeHidden();
   await expect.poll(() => keyRotations.length).toBe(1);
   expect(keyRotations[0]).toEqual({ key_type: "api_key" });
@@ -416,7 +429,7 @@ test("owner can navigate the admin shell with the production API offline", async
   await page
     .locator('#tab-keys [data-action="client-modal:rotate-key"][data-key-type="portal_key"]')
     .click();
-  await page.locator("#adminDecisionConfirm").click();
+  await page.locator('#adminDecisionConfirm[data-action="admin-decision:confirm"]').click();
   await expect.poll(() => keyRotations.length).toBe(2);
   expect(keyRotations[1]).toEqual({ key_type: "portal_key" });
   await page
@@ -500,13 +513,13 @@ test("owner can navigate the admin shell with the production API offline", async
   await expect(page.locator("#adminDecisionMessage")).toContainText(
     'Delete "Offline Fixture Client"?'
   );
-  await page.locator("#adminDecisionCancel").click();
+  await page.locator('#adminDecisionCancel[data-action="admin-decision:close"]').click();
   await expect(page.locator("#adminDecisionOverlay")).toBeHidden();
   expect(deleteAttempts).toBe(0);
   await expect(page.locator("#modalOverlay")).toBeVisible();
 
   await deleteClientButton.click();
-  await page.locator("#adminDecisionConfirm").click();
+  await page.locator('#adminDecisionConfirm[data-action="admin-decision:confirm"]').click();
   await expect.poll(() => deleteAttempts).toBe(1);
   await expect(page.locator("#bk-toast")).toHaveText("Offline delete rejection");
   await expect(page.locator("#modalOverlay")).toBeVisible();
@@ -518,7 +531,7 @@ test("owner can navigate the admin shell with the production API offline", async
   browserErrors.length = 0;
 
   await deleteClientButton.click();
-  await page.locator("#adminDecisionConfirm").click();
+  await page.locator('#adminDecisionConfirm[data-action="admin-decision:confirm"]').click();
   await expect.poll(() => deleteAttempts).toBe(2);
   await expect(page.locator("#modalOverlay")).toBeHidden();
   await expect(page.locator("#bk-toast")).toHaveText("Client deleted");

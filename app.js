@@ -2451,6 +2451,17 @@ const ADMIN_ACTIONS = Object.freeze({
   "client-modal:delete": {
     event: "click",
     run: ({ element }) => deleteClient(element)
+  },
+  "admin-decision:close": {
+    event: "click",
+    run: ({ event, element }) => {
+      if (element.dataset.selfOnly === "true" && event.target !== element) return;
+      closeAdminDecision(false);
+    }
+  },
+  "admin-decision:confirm": {
+    event: "click",
+    run: () => confirmAdminDecision()
   }
 });
 
@@ -2476,8 +2487,8 @@ document.addEventListener("submit", dispatchNamedAdminAction);
 const ADMIN_ACTION_NAMES = new Set([
   "changeEventsPage",
   "changeNotificationPage", "changePaymentHistoryPage", "checkLatestPairingState",
-  "checkWhatsAppInstanceState", "closeAdminDecision",
-  "closeNotificationJobDrawer", "confirmAdminDecision",
+  "checkWhatsAppInstanceState",
+  "closeNotificationJobDrawer",
   "connectWhatsAppInstance", "copyPairingCode", "createAdminUser",
   "createWhatsAppInstance", "decideSmsPayment",
   "deleteWhatsAppInstance", "editWhatsAppInstance",

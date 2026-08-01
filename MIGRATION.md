@@ -91,6 +91,9 @@ Progress:
   the confirmed Danger Zone delete flow, including cancel, failure and success
   coverage. The entire Client modal is now free of `data-admin-*` expressions,
   and the lint ratchet is 78 warnings.
+- Admin Decision modal: migrated backdrop-only close, close button, Cancel and
+  Confirm while preserving its shared promise and required-input behavior. The
+  lint ratchet is now 77 warnings.
 
 When the last inline handler is gone:
 
