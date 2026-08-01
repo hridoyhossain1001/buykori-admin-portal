@@ -1166,8 +1166,8 @@ function renderCourierQueue() {
         <td><div class="client-sub" style="max-width:260px;white-space:normal">${esc(job.last_error || "-")}</div></td>
         <td>
           <div class="queue-actions">
-            <button class="btn btn-outline btn-sm" data-admin-click="openCourierJobDrawer(${Number(job.id)})">Details</button>
-            ${job.status === "dead" ? `<button class="btn btn-primary btn-sm" data-admin-click="retryCourierBookingJob(${Number(job.id)})">Retry</button>` : ""}
+            <button class="btn btn-outline btn-sm" data-action="courier:open-job" data-job-id="${Number(job.id)}">Details</button>
+            ${job.status === "dead" ? `<button class="btn btn-primary btn-sm" data-action="courier:retry-job" data-job-id="${Number(job.id)}">Retry</button>` : ""}
           </div>
         </td>
       </tr>
@@ -1871,7 +1871,7 @@ function renderCourierJobDrawer(jobId) {
   if (title) title.textContent = `Courier Job #${job.id}`;
   if (retryButton) {
     retryButton.style.display = job.status === "dead" ? "inline-flex" : "none";
-    retryButton.onclick = () => retryCourierBookingJob(job.id);
+    retryButton.dataset.jobId = String(job.id);
   }
   if (body) {
     body.innerHTML = `
@@ -2364,6 +2364,29 @@ const ADMIN_ACTIONS = Object.freeze({
   "dashboard:acknowledge-courier-statuses": {
     event: "click",
     run: () => acknowledgeUnknownCourierStatuses()
+  },
+  "courier:toggle-auto-refresh": {
+    event: "click",
+    run: () => toggleCourierQueueAutoRefresh()
+  },
+  "courier:refresh": {
+    event: "click",
+    run: () => refreshCourierQueue()
+  },
+  "courier:open-job": {
+    event: "click",
+    run: ({ element }) => openCourierJobDrawer(Number(element.dataset.jobId))
+  },
+  "courier:retry-job": {
+    event: "click",
+    run: ({ element }) => retryCourierBookingJob(Number(element.dataset.jobId))
+  },
+  "courier:close-drawer": {
+    event: "click",
+    run: ({ event, element }) => {
+      if (element.dataset.selfOnly === "true" && event.target !== element) return;
+      closeCourierJobDrawer();
+    }
   }
 });
 
@@ -2389,19 +2412,19 @@ const ADMIN_ACTION_NAMES = new Set([
   "addSupportNote", "changeEventsPage",
   "changeNotificationPage", "changePaymentHistoryPage", "checkLatestPairingState",
   "checkWhatsAppInstanceState", "closeAdminDecision", "closeClientModal",
-  "closeCourierJobDrawer", "closeNotificationJobDrawer", "confirmAdminDecision",
+  "closeNotificationJobDrawer", "confirmAdminDecision",
   "connectWhatsAppInstance", "copyPairingCode", "copyText", "createAdminUser",
   "createClient", "createWhatsAppInstance", "decideSmsPayment", "deleteClient",
   "deleteWhatsAppInstance", "editWhatsAppInstance",
   "handleEventsFilterChange", "handleSearchInput", "loadAll", "loadEvents", "logout",
-  "logoutWhatsAppInstance", "openClientModal", "openCourierJobDrawer",
+  "logoutWhatsAppInstance", "openClientModal",
   "openNotificationJobDrawer", "prepareSiteBindingTransfer", "refreshAdminUsers",
-  "refreshCourierQueue", "refreshNotificationOps", "refreshRecoveryOps",
+  "refreshNotificationOps", "refreshRecoveryOps",
   "refreshSiteBindings", "registerExistingWhatsAppInstance", "releaseSiteBinding",
-  "renderSiteBindings", "retryCourierBookingJob", "retryNotificationJob", "revealSecret",
+  "renderSiteBindings", "retryNotificationJob", "revealSecret",
   "rotateKey", "saveClientEdit", "saveWhatsAppInstanceCapacity",
   "setNotificationOpsTab", "setPaymentHistoryFilter", "setTab",
-  "switchModalTab", "toggleClient", "toggleCourierQueueAutoRefresh", "toggleEventDetail",
+  "switchModalTab", "toggleClient", "toggleEventDetail",
   "toggleSidebar", "toggleTheme", "transferSiteBinding", "triggerAdminTestPayment",
   "updateAdminUserAccess", "updateRecoveryStatus", "updateSupportTicket",
   "updateWhatsAppInstanceStatus"

@@ -47,7 +47,39 @@ const fixtures = new Map([
   ],
   ["/api/v1/admin/api/clients", { clients: [] }],
   ["/api/v1/admin/clients/health", { clients: [] }],
-  ["/api/v1/admin/api/courier-booking-queue", { counts: {}, jobs: [] }],
+  [
+    "/api/v1/admin/api/courier-booking-queue",
+    {
+      counts: {
+        alert_status: "critical",
+        queued: 0,
+        processing: 0,
+        dead: 1,
+        sent: 0,
+        oldest_queued_age_seconds: 0,
+        oldest_processing_age_seconds: 0,
+        alerts: [{ severity: "critical", code: "dead_letter_jobs", count: 1 }],
+      },
+      jobs: [
+        {
+          id: 42,
+          client_id: 7,
+          order_id: "OFFLINE-ORDER-42",
+          courier_order_id: 420,
+          provider: "steadfast",
+          status: "dead",
+          attempts: 3,
+          max_attempts: 3,
+          created_at: "2026-08-01T08:00:00Z",
+          next_attempt_at: null,
+          locked_at: null,
+          locked_by: null,
+          sent_at: null,
+          last_error: "Offline fixture provider failure",
+        },
+      ],
+    },
+  ],
   ["/api/v1/admin/api/client-intelligence", { clients: [], trial_followups: [] }],
   ["/api/v1/admin/api/server-health", {}],
   ["/api/v1/admin/api/site-bindings", { bindings: [] }],
@@ -64,6 +96,7 @@ test("owner can navigate the admin shell with the production API offline", async
   const browserErrors = [];
   const unexpectedApiCalls = [];
   const summaryWindows = [];
+  let courierQueueRequests = 0;
 
   page.on("pageerror", error => browserErrors.push(`pageerror: ${error.message}`));
   page.on("console", message => {
@@ -76,6 +109,9 @@ test("owner can navigate the admin shell with the production API offline", async
 
     if (requestUrl.pathname === "/api/v1/admin/api/summary") {
       summaryWindows.push(requestUrl.searchParams.get("window"));
+    }
+    if (requestUrl.pathname === "/api/v1/admin/api/courier-booking-queue") {
+      courierQueueRequests += 1;
     }
 
     if (fixture === undefined) {
@@ -117,6 +153,34 @@ test("owner can navigate the admin shell with the production API offline", async
     await expect(navButton).toHaveClass(/active/);
     await expect(page.locator(`#${tab}`)).toHaveClass(/active/);
   }
+
+  await page.locator('.nav-item[data-tab="courierQueue"]').click();
+  await expect(
+    page.locator(
+      "#courierQueue [data-admin-click], #courierQueue [data-admin-change], #queueDrawerOverlay[data-admin-click], #queueDrawerOverlay [data-admin-click]"
+    )
+  ).toHaveCount(0);
+
+  const requestsBeforeRefresh = courierQueueRequests;
+  await page.locator('#courierQueue .header-actions [data-action="courier:refresh"]').click();
+  await expect.poll(() => courierQueueRequests).toBeGreaterThan(requestsBeforeRefresh);
+
+  const autoRefreshToggle = page.locator("#courierQueueAutoRefreshToggle");
+  await autoRefreshToggle.click();
+  await expect(autoRefreshToggle).toHaveText("Auto Refresh Off");
+
+  await page.locator('#courierQueueRows [data-action="courier:open-job"]').click();
+  await expect(page.locator("#queueDrawerOverlay")).toBeVisible();
+  await expect(page.locator("#queueDrawerTitle")).toHaveText("Courier Job #42");
+  await page
+    .locator('#queueDrawerOverlay .modal-close[data-action="courier:close-drawer"]')
+    .click();
+  await expect(page.locator("#queueDrawerOverlay")).toBeHidden();
+
+  await page.locator('#courierQueueRows [data-action="courier:retry-job"]').click();
+  await expect(page.locator("#adminDecisionOverlay")).toBeVisible();
+  await page.locator("#adminDecisionCancel").click();
+  await expect(page.locator("#adminDecisionOverlay")).toBeHidden();
 
   const themeToggle = page.locator("#themeToggle");
   const wasDark = await page

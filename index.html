@@ -335,8 +335,8 @@
             </div>
             <div class="header-actions">
               <span id="courierQueueRefreshStatus" class="refresh-status">Not refreshed yet</span>
-              <button id="courierQueueAutoRefreshToggle" class="btn btn-primary btn-sm" data-admin-click="toggleCourierQueueAutoRefresh()">Auto Refresh On</button>
-              <button class="btn btn-outline" data-admin-click="refreshCourierQueue()">Refresh Queue</button>
+              <button id="courierQueueAutoRefreshToggle" class="btn btn-primary btn-sm" data-action="courier:toggle-auto-refresh">Auto Refresh On</button>
+              <button class="btn btn-outline" data-action="courier:refresh">Refresh Queue</button>
             </div>
           </div>
 
@@ -369,7 +369,7 @@
                 <h2 class="card-title">Recent Courier Booking Jobs</h2>
                 <div class="card-tools">
                   <div id="courierQueueStatus" class="status-badge status-healthy">HEALTHY</div>
-                  <button class="view-all" data-admin-click="refreshCourierQueue()">Refresh</button>
+                  <button class="view-all" data-action="courier:refresh">Refresh</button>
                 </div>
               </div>
               <div class="table-wrap">
@@ -1128,19 +1128,19 @@
     </div>
   </div>
 
-  <div id="queueDrawerOverlay" class="drawer-overlay" data-admin-click="if(event.target===this) closeCourierJobDrawer()">
+  <div id="queueDrawerOverlay" class="drawer-overlay" data-action="courier:close-drawer" data-self-only="true">
     <aside class="queue-drawer" role="dialog" aria-modal="true" aria-labelledby="queueDrawerTitle">
       <div class="drawer-header">
         <div>
           <div class="drawer-kicker">Courier Queue</div>
           <h2 id="queueDrawerTitle">Courier Job</h2>
         </div>
-        <button class="modal-close" data-admin-click="closeCourierJobDrawer()" aria-label="Close">&times;</button>
+        <button class="modal-close" data-action="courier:close-drawer" aria-label="Close">&times;</button>
       </div>
       <div id="queueDrawerBody" class="drawer-body"></div>
       <div class="drawer-footer">
-        <button class="btn btn-outline" data-admin-click="closeCourierJobDrawer()">Close</button>
-        <button id="queueDrawerRetry" class="btn btn-primary" style="display:none">Retry Job</button>
+        <button class="btn btn-outline" data-action="courier:close-drawer">Close</button>
+        <button id="queueDrawerRetry" class="btn btn-primary" data-action="courier:retry-job" style="display:none">Retry Job</button>
       </div>
     </aside>
   </div>

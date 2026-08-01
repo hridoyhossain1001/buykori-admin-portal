@@ -8,6 +8,7 @@ const read = path => readFile(new URL(path, root), "utf8");
 test("admin markup and runtime templates contain no inline event handlers", async () => {
   const sources = `${await read("index.html")}\n${await read("app.js")}`;
   assert.doesNotMatch(sources, /\son(?:click|change|input|submit)\s*=/i);
+  assert.doesNotMatch(sources, /\.on(?:click|change|input|submit)\s*=/i);
   assert.match(sources, /data-admin-click=/);
   assert.match(sources, /const ADMIN_ACTION_NAMES = new Set/);
   assert.doesNotMatch(sources, /\beval\s*\(|\bnew Function\s*\(/);
@@ -47,11 +48,39 @@ test("dashboard uses named actions instead of expression attributes", async () =
     "renderIntegrationRows",
     "renderAlerts",
   ]) {
-    const start = appJs.indexOf(`function ${functionName}`);
+    const start = appJs.indexOf(`function ${functionName}(`);
     const end = appJs.indexOf("\nfunction ", start + 1);
     const source = appJs.slice(start, end);
     assert.ok(start >= 0 && end > start, `${functionName} must be present`);
     assert.doesNotMatch(source, /data-admin-(?:click|change|input|submit)=/);
     assert.match(source, /data-action="dashboard:/);
+  }
+});
+
+test("courier queue and drawer use named actions", async () => {
+  const indexHtml = await read("index.html");
+  const appJs = await read("app.js");
+  const sectionStart = indexHtml.indexOf('<section id="courierQueue"');
+  const sectionEnd = indexHtml.indexOf('<section id="recoveryOps"', sectionStart);
+  const drawerStart = indexHtml.indexOf('<div id="queueDrawerOverlay"');
+  const drawerEnd = indexHtml.indexOf('<div id="notificationDrawerOverlay"', drawerStart);
+  const markup = `${indexHtml.slice(sectionStart, sectionEnd)}\n${indexHtml.slice(drawerStart, drawerEnd)}`;
+
+  assert.ok(sectionStart >= 0 && sectionEnd > sectionStart, "courier section must be present");
+  assert.ok(drawerStart >= 0 && drawerEnd > drawerStart, "courier drawer must be present");
+  assert.doesNotMatch(markup, /data-admin-(?:click|change|input|submit)=/);
+  assert.match(markup, /data-action="courier:toggle-auto-refresh"/);
+  assert.match(markup, /data-action="courier:refresh"/);
+  assert.match(markup, /data-action="courier:close-drawer"/);
+  assert.match(markup, /data-action="courier:retry-job"/);
+
+  for (const functionName of ["renderCourierQueue", "renderCourierJobDrawer"]) {
+    const start = appJs.indexOf(`function ${functionName}(`);
+    const end = appJs.indexOf("\nfunction ", start + 1);
+    const source = appJs.slice(start, end);
+    assert.ok(start >= 0 && end > start, `${functionName} must be present`);
+    assert.doesNotMatch(source, /data-admin-(?:click|change|input|submit)=/);
+    assert.doesNotMatch(source, /\.onclick\s*=/);
+    assert.match(source, /data-action="courier:|dataset\.jobId/);
   }
 });
