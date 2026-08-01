@@ -83,7 +83,10 @@ Progress:
   ratchet to 84 warnings; keys, notes and delete were left for later slices.
 - Client modal Keys: migrated Reveal, Copy and Rotate controls with offline
   secret-lifecycle, confirmation, payload and clipboard coverage. The lint
-  ratchet is now 81 warnings; notes and delete remain for later slices.
+  ratchet reached 81 warnings; notes and delete were left for later slices.
+- Client modal Support Notes: migrated Add Note with empty-input protection,
+  double-submit blocking, refreshed-list coverage and readable API errors. The
+  lint ratchet is now 80 warnings; delete remains for the final modal slice.
 
 When the last inline handler is gone:
 

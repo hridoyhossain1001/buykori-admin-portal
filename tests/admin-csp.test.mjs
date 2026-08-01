@@ -157,3 +157,15 @@ test("client modal key controls use named actions", async () => {
   assert.match(markup, /data-key-type="api_key"/);
   assert.match(markup, /data-key-type="portal_key"/);
 });
+
+test("client modal support note control uses a named action", async () => {
+  const indexHtml = await read("index.html");
+  const intelStart = indexHtml.indexOf('<div id="tab-intel"');
+  const intelEnd = indexHtml.indexOf('<div id="tab-danger"', intelStart);
+  const markup = indexHtml.slice(intelStart, intelEnd);
+
+  assert.ok(intelStart >= 0 && intelEnd > intelStart, "client intel tab must be present");
+  assert.doesNotMatch(markup, /data-admin-(?:click|change|input|submit)=/);
+  assert.equal((markup.match(/data-action="client-modal:add-note"/g) || []).length, 1);
+  assert.match(markup, /id="supportNoteInput"/);
+});

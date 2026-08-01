@@ -67,7 +67,6 @@ const fixtures = new Map([
   ["/api/v1/admin/api/clients", { clients: [OFFLINE_CLIENT] }],
   ["/api/v1/admin/clients/health", { clients: [] }],
   ["/api/v1/admin/api/clients/7", { client: OFFLINE_CLIENT }],
-  ["/api/v1/admin/api/clients/7/support-notes", { notes: [] }],
   [
     "/api/v1/admin/api/courier-booking-queue",
     {
@@ -121,6 +120,8 @@ test("owner can navigate the admin shell with the production API offline", async
   const clientPatches = [];
   const clientCreates = [];
   const keyRotations = [];
+  const supportNotePosts = [];
+  let supportNotes = [];
 
   await page.context().grantPermissions(["clipboard-read", "clipboard-write"], {
     origin: "http://127.0.0.1:5050",
@@ -174,6 +175,43 @@ test("owner can navigate the admin shell with the production API offline", async
           "access-control-allow-credentials": "true",
         },
         body: JSON.stringify({ new_value: `rotated-offline-${payload.key_type}` }),
+      });
+      return;
+    }
+    if (requestUrl.pathname === "/api/v1/admin/api/clients/7/support-notes") {
+      if (route.request().method() === "POST") {
+        const payload = route.request().postDataJSON();
+        supportNotePosts.push(payload);
+        if (payload.note === "Rejected note") {
+          await route.fulfill({
+            status: 422,
+            contentType: "application/json",
+            headers: {
+              "access-control-allow-origin": "http://127.0.0.1:5050",
+              "access-control-allow-credentials": "true",
+            },
+            body: JSON.stringify({ detail: "Offline note rejection" }),
+          });
+          return;
+        }
+        supportNotes = [
+          {
+            id: supportNotes.length + 1,
+            note: payload.note,
+            created_at: "2026-08-01T09:00:00Z",
+            created_by: "offline-owner",
+          },
+          ...supportNotes,
+        ];
+      }
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        headers: {
+          "access-control-allow-origin": "http://127.0.0.1:5050",
+          "access-control-allow-credentials": "true",
+        },
+        body: JSON.stringify({ notes: supportNotes }),
       });
       return;
     }
@@ -356,6 +394,38 @@ test("owner can navigate the admin shell with the production API offline", async
     .locator('#tab-keys [data-action="client-modal:reveal-secret"][data-target-id="keyPortal"]')
     .click();
   await expect(page.locator("#keyPortal")).toHaveText("rotated-offline-portal_key");
+
+  const intelTab = page.locator(
+    '#modalOverlay [data-action="client-modal:switch-tab"][data-modal-tab="intel"]'
+  );
+  const addNote = page.locator('#tab-intel [data-action="client-modal:add-note"]');
+  await intelTab.click();
+  await expect(page.locator("#tab-intel [data-admin-click]")).toHaveCount(0);
+  await expect(page.locator("#supportNotesList")).toContainText("No support notes yet.");
+  await addNote.click();
+  expect(supportNotePosts).toEqual([]);
+
+  await page.locator("#supportNoteInput").fill("  Offline support note  ");
+  await addNote.click();
+  await expect.poll(() => supportNotePosts.length).toBe(1);
+  expect(supportNotePosts[0]).toEqual({ note: "Offline support note" });
+  await expect(page.locator("#supportNoteInput")).toHaveValue("");
+  await expect(page.locator("#supportNotesList")).toContainText("Offline support note");
+  await expect(page.locator("#supportNotesList")).toContainText("offline-owner");
+  await expect(page.locator("#bk-toast")).toHaveText("Support note added.");
+  await expect(addNote).toBeEnabled();
+
+  await page.locator("#supportNoteInput").fill("Rejected note");
+  await addNote.click();
+  await expect.poll(() => supportNotePosts.length).toBe(2);
+  await expect(page.locator("#bk-toast")).toHaveText("Offline note rejection");
+  await expect(page.locator("#supportNoteInput")).toHaveValue("Rejected note");
+  await expect(addNote).toBeEnabled();
+  await expect.poll(() => browserErrors.length).toBe(1);
+  expect(browserErrors).toEqual([
+    "console: Failed to load resource: the server responded with a status of 422 (Unprocessable Entity)",
+  ]);
+  browserErrors.length = 0;
 
   for (const tab of ["keys", "instructions", "intel", "danger", "edit"]) {
     const tabButton = page.locator(
