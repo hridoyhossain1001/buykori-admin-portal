@@ -2416,6 +2416,17 @@ const ADMIN_ACTIONS = Object.freeze({
       event.preventDefault();
       return createClient();
     }
+  },
+  "client-modal:switch-tab": {
+    event: "click",
+    run: ({ element }) => switchModalTab(element.dataset.modalTab)
+  },
+  "client-modal:close": {
+    event: "click",
+    run: ({ event, element }) => {
+      if (element.dataset.selfOnly === "true" && event.target !== element) return;
+      closeClientModal();
+    }
   }
 });
 
@@ -2441,7 +2452,7 @@ document.addEventListener("submit", dispatchNamedAdminAction);
 const ADMIN_ACTION_NAMES = new Set([
   "addSupportNote", "changeEventsPage",
   "changeNotificationPage", "changePaymentHistoryPage", "checkLatestPairingState",
-  "checkWhatsAppInstanceState", "closeAdminDecision", "closeClientModal",
+  "checkWhatsAppInstanceState", "closeAdminDecision",
   "closeNotificationJobDrawer", "confirmAdminDecision",
   "connectWhatsAppInstance", "copyPairingCode", "copyText", "createAdminUser",
   "createWhatsAppInstance", "decideSmsPayment", "deleteClient",
@@ -2454,7 +2465,7 @@ const ADMIN_ACTION_NAMES = new Set([
   "renderSiteBindings", "retryNotificationJob", "revealSecret",
   "rotateKey", "saveClientEdit", "saveWhatsAppInstanceCapacity",
   "setNotificationOpsTab", "setPaymentHistoryFilter", "setTab",
-  "switchModalTab", "toggleEventDetail",
+  "toggleEventDetail",
   "toggleSidebar", "toggleTheme", "transferSiteBinding", "triggerAdminTestPayment",
   "updateAdminUserAccess", "updateRecoveryStatus", "updateSupportTicket",
   "updateWhatsAppInstanceStatus"
@@ -2823,7 +2834,7 @@ function renderClientModalIntel(clientId) {
   const quickHtml = `
     <div class="client360-quick-head">
       <div><strong>Setup Readiness</strong><span>${fmt(score.score)}% health, ${doneCount(funnel)} / ${funnel.length} onboarding</span></div>
-      <button type="button" class="btn btn-outline btn-sm" data-admin-click="switchModalTab('intel')">View details</button>
+      <button type="button" class="btn btn-outline btn-sm" data-action="client-modal:switch-tab" data-modal-tab="intel">View details</button>
     </div>
     <div class="client360-quick-items">
       ${quickItems.map(([label, ok, bad]) => `<div class="client360-quick-item ${ok ? "ready" : "attention"}"><span>${esc(label)}</span><strong>${ok ? "Ready" : esc(bad)}</strong></div>`).join("")}

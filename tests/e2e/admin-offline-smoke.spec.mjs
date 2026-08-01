@@ -241,7 +241,27 @@ test("owner can navigate the admin shell with the production API offline", async
   await page.locator('#clientRows [data-action="clients:open-client"]').click();
   await expect(page.locator("#modalOverlay")).toBeVisible();
   await expect(page.locator("#editName")).toHaveValue("Offline Fixture Client");
-  await page.locator("#modalOverlay .modal-close").click();
+  await expect(
+    page.locator(
+      '#modalOverlay [data-admin-click*="switchModalTab"], #modalOverlay [data-admin-click*="closeClientModal"]'
+    )
+  ).toHaveCount(0);
+  for (const tab of ["keys", "instructions", "intel", "danger", "edit"]) {
+    const tabButton = page.locator(
+      `#modalOverlay [data-action="client-modal:switch-tab"][data-modal-tab="${tab}"]`
+    );
+    await tabButton.click();
+    await expect(tabButton).toHaveClass(/active/);
+    await expect(page.locator(`#tab-${tab}`)).toHaveClass(/active/);
+  }
+  await page.locator("#modalOverlay .modal").click({ position: { x: 10, y: 10 } });
+  await expect(page.locator("#modalOverlay")).toBeVisible();
+  await page.locator("#modalOverlay").click({ position: { x: 5, y: 5 } });
+  await expect(page.locator("#modalOverlay")).toBeHidden();
+
+  await page.locator('#clientRows [data-action="clients:open-client"]').click();
+  await expect(page.locator("#modalOverlay")).toBeVisible();
+  await page.locator('#modalOverlay .modal-close[data-action="client-modal:close"]').click();
   await expect(page.locator("#modalOverlay")).toBeHidden();
 
   await page.locator('#clientRows [data-action="clients:toggle-active"]').click();

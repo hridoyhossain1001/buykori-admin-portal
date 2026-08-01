@@ -118,3 +118,26 @@ test("client creation uses a named submit action", async () => {
   assert.match(markup, /id="newDomain"[^>]+required/);
   assert.match(markup, /id="createClientSubmit"[^>]+type="submit"/);
 });
+
+test("client modal navigation and close controls use named actions", async () => {
+  const indexHtml = await read("index.html");
+  const appJs = await read("app.js");
+  const modalStart = indexHtml.indexOf('<div id="modalOverlay"');
+  const modalEnd = indexHtml.indexOf('<div id="adminDecisionOverlay"', modalStart);
+  const markup = indexHtml.slice(modalStart, modalEnd);
+  const intelStart = appJs.indexOf("function renderClientModalIntel(");
+  const intelEnd = appJs.indexOf("\nfunction ", intelStart + 1);
+  const intelSource = appJs.slice(intelStart, intelEnd);
+
+  assert.ok(modalStart >= 0 && modalEnd > modalStart, "client modal must be present");
+  assert.ok(intelStart >= 0 && intelEnd > intelStart, "renderClientModalIntel must be present");
+  assert.doesNotMatch(
+    markup,
+    /data-admin-click="(?:if\(event\.target===this\) closeClientModal\(\)|closeClientModal\(\)|switchModalTab\()/
+  );
+  assert.equal((markup.match(/data-action="client-modal:switch-tab"/g) || []).length, 5);
+  assert.equal((markup.match(/data-action="client-modal:close"/g) || []).length, 2);
+  assert.match(markup, /id="modalOverlay"[^>]+data-self-only="true"/);
+  assert.doesNotMatch(intelSource, /data-admin-click="switchModalTab\(/);
+  assert.match(intelSource, /data-action="client-modal:switch-tab"[^>]+data-modal-tab="intel"/);
+});

@@ -75,6 +75,9 @@ Progress:
 - Create Client: migrated to a named submit action with required-field
   validation, double-submit protection, trimmed payloads, secret-field reset
   and explicit API-error feedback. The lint ratchet is now 85 warnings.
+- Client modal navigation: migrated all five tabs, the dynamic View details
+  shortcut, backdrop-only close and close button to named actions. Save, keys,
+  notes and delete controls remain intentionally isolated for later slices.
 
 When the last inline handler is gone:
 
