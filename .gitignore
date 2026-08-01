@@ -3,4 +3,6 @@
 node_modules
 dist
 .eslintcache
+playwright-report
+test-results
 .DS_Store
