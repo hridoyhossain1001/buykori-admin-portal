@@ -169,3 +169,15 @@ test("client modal support note control uses a named action", async () => {
   assert.equal((markup.match(/data-action="client-modal:add-note"/g) || []).length, 1);
   assert.match(markup, /id="supportNoteInput"/);
 });
+
+test("client modal is fully migrated from expression actions", async () => {
+  const indexHtml = await read("index.html");
+  const modalStart = indexHtml.indexOf('<div id="modalOverlay"');
+  const modalEnd = indexHtml.indexOf('<div id="adminDecisionOverlay"', modalStart);
+  const markup = indexHtml.slice(modalStart, modalEnd);
+
+  assert.ok(modalStart >= 0 && modalEnd > modalStart, "client modal must be present");
+  assert.doesNotMatch(markup, /data-admin-(?:click|change|input|submit)=/);
+  assert.equal((markup.match(/data-action="client-modal:copy"/g) || []).length, 6);
+  assert.equal((markup.match(/data-action="client-modal:delete"/g) || []).length, 1);
+});

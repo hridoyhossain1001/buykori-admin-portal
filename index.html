@@ -1064,18 +1064,18 @@
           <label style="color:var(--text-main);font-weight:800;font-size:10px;text-transform:uppercase;display:block;margin-bottom:8px;letter-spacing:0.05em">API Endpoint</label>
           <div class="api-key-cell">
             <span id="instrEndpoint">https://api.buykori.app/api/v1/events</span>
-              <button class="copy-icon" data-admin-click="copyText('instrEndpoint')" title="Copy">Copy</button>
+              <button type="button" class="copy-icon" data-action="client-modal:copy" data-target-id="instrEndpoint" title="Copy">Copy</button>
           </div>
           
           <label style="color:var(--text-main);font-weight:800;font-size:10px;text-transform:uppercase;display:block;margin-bottom:8px;letter-spacing:0.05em">cURL Example</label>
           <div class="instr-box" id="instrCurl"></div>
-          <button class="btn btn-outline btn-sm" data-admin-click="copyText('instrCurl')">Copy Example</button>
+          <button type="button" class="btn btn-outline btn-sm" data-action="client-modal:copy" data-target-id="instrCurl">Copy Example</button>
           
           <div style="margin-top:24px">
             <label style="color:var(--text-main);font-weight:800;font-size:10px;text-transform:uppercase;display:block;margin-bottom:8px;letter-spacing:0.05em">Client Portal Link</label>
             <div class="api-key-cell">
               <span id="instrPortal">https://client.buykori.app</span>
-              <button class="copy-icon" data-admin-click="copyText('instrPortal')" title="Copy">Copy</button>
+              <button type="button" class="copy-icon" data-action="client-modal:copy" data-target-id="instrPortal" title="Copy">Copy</button>
             </div>
             <p style="font-size:11px;color:var(--text-muted)">The client will need their Portal Key to login.</p>
           </div>
@@ -1098,7 +1098,7 @@
           <div style="padding:20px;border:1px solid rgba(239,68,68,0.25);border-radius:12px;background:rgba(239,68,68,0.05)">
             <h3 style="color:var(--danger);margin-bottom:8px;font-size:15px;font-weight:800">Delete Client</h3>
             <p style="color:var(--text-muted);margin-bottom:16px;font-size:13px">Once you delete a client, there is no going back. All events, logs, and authentication keys will be permanently destroyed.</p>
-            <button class="btn btn-danger" data-admin-click="deleteClient()">I understand, delete this client</button>
+            <button type="button" class="btn btn-danger" data-action="client-modal:delete">I understand, delete this client</button>
           </div>
         </div>
         

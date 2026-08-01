@@ -2447,6 +2447,10 @@ const ADMIN_ACTIONS = Object.freeze({
   "client-modal:add-note": {
     event: "click",
     run: ({ element }) => addSupportNote(element)
+  },
+  "client-modal:delete": {
+    event: "click",
+    run: ({ element }) => deleteClient(element)
   }
 });
 
@@ -2474,8 +2478,8 @@ const ADMIN_ACTION_NAMES = new Set([
   "changeNotificationPage", "changePaymentHistoryPage", "checkLatestPairingState",
   "checkWhatsAppInstanceState", "closeAdminDecision",
   "closeNotificationJobDrawer", "confirmAdminDecision",
-  "connectWhatsAppInstance", "copyPairingCode", "copyText", "createAdminUser",
-  "createWhatsAppInstance", "decideSmsPayment", "deleteClient",
+  "connectWhatsAppInstance", "copyPairingCode", "createAdminUser",
+  "createWhatsAppInstance", "decideSmsPayment",
   "deleteWhatsAppInstance", "editWhatsAppInstance",
   "handleEventsFilterChange", "handleSearchInput", "loadAll", "loadEvents", "logout",
   "logoutWhatsAppInstance", "openClientModal",
@@ -3047,7 +3051,7 @@ async function rotateKey(keyType) {
   }
 }
 
-async function deleteClient() {
+async function deleteClient(button) {
   if (!currentClientId) return;
   const name = $("editName").value;
   const confirmed = await askAdminDecision({
@@ -3058,14 +3062,16 @@ async function deleteClient() {
     confirmClass: "btn-danger"
   });
   if (!confirmed) return;
-  
+  button.disabled = true;
   try {
     await api(`/admin/api/clients/${currentClientId}`, { method: "DELETE" });
     closeClientModal();
     showToast("Client deleted");
     loadAll();
-  } catch (e) {
-    showToast("Failed to delete client.");
+  } catch (error) {
+    showToast(readableApiError(error, "Failed to delete client."));
+  } finally {
+    button.disabled = false;
   }
 }
 

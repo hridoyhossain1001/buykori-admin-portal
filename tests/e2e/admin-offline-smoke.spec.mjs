@@ -122,6 +122,7 @@ test("owner can navigate the admin shell with the production API offline", async
   const keyRotations = [];
   const supportNotePosts = [];
   let supportNotes = [];
+  let deleteAttempts = 0;
 
   await page.context().grantPermissions(["clipboard-read", "clipboard-write"], {
     origin: "http://127.0.0.1:5050",
@@ -160,6 +161,34 @@ test("owner can navigate the admin shell with the production API offline", async
         });
         return;
       }
+    }
+    if (
+      requestUrl.pathname === "/api/v1/admin/api/clients/7" &&
+      route.request().method() === "DELETE"
+    ) {
+      deleteAttempts += 1;
+      if (deleteAttempts === 1) {
+        await route.fulfill({
+          status: 422,
+          contentType: "application/json",
+          headers: {
+            "access-control-allow-origin": "http://127.0.0.1:5050",
+            "access-control-allow-credentials": "true",
+          },
+          body: JSON.stringify({ detail: "Offline delete rejection" }),
+        });
+        return;
+      }
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        headers: {
+          "access-control-allow-origin": "http://127.0.0.1:5050",
+          "access-control-allow-credentials": "true",
+        },
+        body: JSON.stringify({ success: true }),
+      });
+      return;
     }
     if (
       requestUrl.pathname === "/api/v1/admin/api/clients/7/keys/rotate" &&
@@ -395,6 +424,18 @@ test("owner can navigate the admin shell with the production API offline", async
     .click();
   await expect(page.locator("#keyPortal")).toHaveText("rotated-offline-portal_key");
 
+  const instructionsTab = page.locator(
+    '#modalOverlay [data-action="client-modal:switch-tab"][data-modal-tab="instructions"]'
+  );
+  await instructionsTab.click();
+  await expect(page.locator("#tab-instructions [data-admin-click]")).toHaveCount(0);
+  await page
+    .locator('#tab-instructions [data-action="client-modal:copy"][data-target-id="instrEndpoint"]')
+    .click();
+  await expect
+    .poll(() => page.evaluate(() => navigator.clipboard.readText()))
+    .toBe("https://api.buykori.app/api/v1/events");
+
   const intelTab = page.locator(
     '#modalOverlay [data-action="client-modal:switch-tab"][data-modal-tab="intel"]'
   );
@@ -444,6 +485,43 @@ test("owner can navigate the admin shell with the production API offline", async
   await expect(page.locator("#modalOverlay")).toBeVisible();
   await page.locator('#modalOverlay .modal-close[data-action="client-modal:close"]').click();
   await expect(page.locator("#modalOverlay")).toBeHidden();
+
+  await page.locator('#clientRows [data-action="clients:open-client"]').click();
+  await expect(page.locator("#modalOverlay")).toBeVisible();
+  await expect(page.locator("#editName")).toHaveValue("Offline Fixture Client");
+  await expect(page.locator("#modalOverlay [data-admin-click]")).toHaveCount(0);
+  await page
+    .locator('#modalOverlay [data-action="client-modal:switch-tab"][data-modal-tab="danger"]')
+    .click();
+  const deleteClientButton = page.locator('#tab-danger [data-action="client-modal:delete"]');
+  await deleteClientButton.click();
+  await expect(page.locator("#adminDecisionOverlay")).toBeVisible();
+  await expect(page.locator("#adminDecisionTitle")).toHaveText("Delete Client");
+  await expect(page.locator("#adminDecisionMessage")).toContainText(
+    'Delete "Offline Fixture Client"?'
+  );
+  await page.locator("#adminDecisionCancel").click();
+  await expect(page.locator("#adminDecisionOverlay")).toBeHidden();
+  expect(deleteAttempts).toBe(0);
+  await expect(page.locator("#modalOverlay")).toBeVisible();
+
+  await deleteClientButton.click();
+  await page.locator("#adminDecisionConfirm").click();
+  await expect.poll(() => deleteAttempts).toBe(1);
+  await expect(page.locator("#bk-toast")).toHaveText("Offline delete rejection");
+  await expect(page.locator("#modalOverlay")).toBeVisible();
+  await expect(deleteClientButton).toBeEnabled();
+  await expect.poll(() => browserErrors.length).toBe(1);
+  expect(browserErrors).toEqual([
+    "console: Failed to load resource: the server responded with a status of 422 (Unprocessable Entity)",
+  ]);
+  browserErrors.length = 0;
+
+  await deleteClientButton.click();
+  await page.locator("#adminDecisionConfirm").click();
+  await expect.poll(() => deleteAttempts).toBe(2);
+  await expect(page.locator("#modalOverlay")).toBeHidden();
+  await expect(page.locator("#bk-toast")).toHaveText("Client deleted");
 
   await page.locator('#clientRows [data-action="clients:toggle-active"]').click();
   await expect.poll(() => clientPatches.length).toBe(3);

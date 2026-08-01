@@ -86,7 +86,11 @@ Progress:
   ratchet reached 81 warnings; notes and delete were left for later slices.
 - Client modal Support Notes: migrated Add Note with empty-input protection,
   double-submit blocking, refreshed-list coverage and readable API errors. The
-  lint ratchet is now 80 warnings; delete remains for the final modal slice.
+  lint ratchet reached 80 warnings; delete was left for the final modal slice.
+- Client modal final cleanup: migrated all three API Setup copy controls and
+  the confirmed Danger Zone delete flow, including cancel, failure and success
+  coverage. The entire Client modal is now free of `data-admin-*` expressions,
+  and the lint ratchet is 78 warnings.
 
 When the last inline handler is gone:
 
