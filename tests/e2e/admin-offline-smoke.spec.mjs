@@ -165,6 +165,7 @@ test("owner can navigate the admin shell with the production API offline", async
   let courierQueueRequests = 0;
   let recoveryRequests = 0;
   let siteBindingRequests = 0;
+  let eventRequests = 0;
   const recoveryPatches = [];
   const clientPatches = [];
   const clientCreates = [];
@@ -198,6 +199,9 @@ test("owner can navigate the admin shell with the production API offline", async
     }
     if (requestUrl.pathname === "/api/v1/admin/api/site-bindings") {
       siteBindingRequests += 1;
+    }
+    if (requestUrl.pathname === "/api/v1/admin/api/events") {
+      eventRequests += 1;
     }
     if (
       requestUrl.pathname === "/api/v1/admin/api/incomplete-checkouts/91" &&
@@ -471,6 +475,17 @@ test("owner can navigate the admin shell with the production API offline", async
   const siteBindingRequestsBeforeRefresh = siteBindingRequests;
   await page.locator('#siteBindings [data-action="site-bindings:refresh"]').click();
   await expect.poll(() => siteBindingRequests).toBeGreaterThan(siteBindingRequestsBeforeRefresh);
+
+  await page.locator('.nav-item[data-tab="events"]').click();
+  await expect(
+    page.locator(
+      "#events [data-admin-click], #events [data-admin-change], #events [data-admin-input]"
+    )
+  ).toHaveCount(0);
+  const eventRequestsBeforeRefresh = eventRequests;
+  await page.locator('#events [data-action="events:refresh"]').click();
+  await expect.poll(() => eventRequests).toBeGreaterThan(eventRequestsBeforeRefresh);
+  await page.locator('#eventsSearch[data-action="events:search"]').fill("offline-event-query");
 
   await page.locator('.nav-item[data-tab="clients"]').click();
   await expect(

@@ -733,17 +733,17 @@
             <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:16px;">
               <div class="field">
                 <label for="eventsSearch">Search</label>
-                <input type="text" id="eventsSearch" placeholder="Search event, IP, error..." data-admin-input="handleEventsFilterChange()">
+                <input type="text" id="eventsSearch" placeholder="Search event, IP, error..." data-action="events:search">
               </div>
               <div class="field">
                 <label for="eventsClientFilter">Client</label>
-                <select id="eventsClientFilter" data-admin-change="handleEventsFilterChange()">
+                <select id="eventsClientFilter" data-action="events:filter">
                   <option value="">All Clients</option>
                 </select>
               </div>
               <div class="field">
                 <label for="eventsPlatformFilter">Platform</label>
-                <select id="eventsPlatformFilter" data-admin-change="handleEventsFilterChange()">
+                <select id="eventsPlatformFilter" data-action="events:filter">
                   <option value="">All Platforms</option>
                   <option value="Meta CAPI">Meta CAPI</option>
                   <option value="TikTok Events API">TikTok Events API</option>
@@ -753,7 +753,7 @@
               </div>
               <div class="field">
                 <label for="eventsStatusFilter">Status</label>
-                <select id="eventsStatusFilter" data-admin-change="handleEventsFilterChange()">
+                <select id="eventsStatusFilter" data-action="events:filter">
                   <option value="">All Statuses</option>
                   <option value="Success">Success</option>
                   <option value="Failed">Failed</option>
@@ -766,7 +766,7 @@
             <div class="card-header">
               <h2 class="card-title">Live Event Stream</h2>
               <div class="card-tools">
-                <button class="view-all" data-admin-click="loadEvents()">Refresh</button>
+                <button class="view-all" data-action="events:refresh">Refresh</button>
               </div>
             </div>
             <div class="table-wrap event-stream-wrap">
@@ -790,9 +790,9 @@
             <div style="padding:14px 20px;border-top:1px solid var(--card-border);display:flex;justify-content:space-between;align-items:center;">
               <div style="font-size:12px;color:var(--text-muted);" id="eventsTableMeta">Showing 0 events</div>
               <div style="display:flex;gap:4px;">
-                <button class="action-btn" title="Previous" data-admin-click="changeEventsPage(-1)">&#8249;</button>
+                <button class="action-btn" title="Previous" data-action="events:change-page" data-page-delta="-1">&#8249;</button>
                 <button class="action-btn" style="background:var(--primary);color:white;border-color:rgba(var(--primary-rgb),0.3)" id="eventsCurrentPage">1</button>
-                <button class="action-btn" title="Next" data-admin-click="changeEventsPage(1)">&#8250;</button>
+                <button class="action-btn" title="Next" data-action="events:change-page" data-page-delta="1">&#8250;</button>
               </div>
             </div>
           </div>
