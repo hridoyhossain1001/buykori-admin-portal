@@ -18,32 +18,13 @@ export default [
   js.configs.recommended,
 
   {
-    // Only the deployed browser scripts are classic scripts. This config file
-    // is an ES module and must keep ESLint's default `sourceType: "module"`.
+    // The main app is deployed as an ES module. theme-init.js gets a classic
+    // script override below because it must run synchronously before paint.
     files: ["**/*.js"],
     languageOptions: {
       ecmaVersion: 2022,
 
-      // ---------------------------------------------------------------------
-      // DO NOT change this to "module" without reading this comment first.
-      //
-      // index.html loads the app with a classic script tag:
-      //     <script src="app.js"></script>
-      //
-      // There is no type="module". That is load-bearing: index.html and the
-      // HTML that app.js generates are full of inline handlers such as
-      //     onclick="loadAll({ refreshDashboard: true })"
-      //     onclick="setTab('courierQueue')"
-      //     onclick="decideSmsPayment(123, 'approve')"
-      // Those only resolve because app.js's top-level functions land on
-      // `window`. ES modules have their own scope, so flipping this flag (or
-      // bundling app.js through Vite) would make every inline handler throw
-      // "x is not defined" and silently disable most of the admin UI.
-      //
-      // Migrating inline handlers to addEventListener is STEP 3. See
-      // MIGRATION.md.
-      // ---------------------------------------------------------------------
-      sourceType: "script",
+      sourceType: "module",
 
       globals: {
         ...globals.browser,
@@ -77,6 +58,13 @@ export default [
       eqeqeq: ["warn", "smart"],
       "no-var": "warn",
       "prefer-const": "warn",
+    },
+  },
+
+  {
+    files: ["theme-init.js"],
+    languageOptions: {
+      sourceType: "script",
     },
   },
 

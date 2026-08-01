@@ -883,7 +883,7 @@
         <section id="team" class="section">
           <div class="page-header">
             <div><h1 class="page-title">Team &amp; Access</h1><p class="page-sub">Create administrators, assign ownership, and revoke access.</p></div>
-            <button class="btn btn-outline" data-admin-click="refreshAdminUsers()">Refresh</button>
+            <button class="btn btn-outline" data-action="team:refresh">Refresh</button>
           </div>
           <div class="grid-layout team-layout">
             <div class="card">
@@ -892,7 +892,7 @@
             </div>
             <div class="card">
               <div class="card-header"><h2 class="card-title">Add administrator</h2></div>
-              <form class="form-card" data-admin-submit="createAdminUser(event)">
+              <form class="form-card" data-action="team:create">
                 <div class="field"><label for="teamUsername">Username</label><input id="teamUsername" minlength="3" maxlength="120" autocomplete="off" required></div>
                 <div class="field"><label for="teamDisplayName">Display name</label><input id="teamDisplayName" maxlength="120" required></div>
                 <div class="field"><label for="teamPassword">Temporary password</label><input id="teamPassword" type="password" minlength="12" maxlength="128" autocomplete="new-password" required><small>12-128 characters. Share through a secure channel.</small></div>
@@ -1157,6 +1157,6 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js" integrity="sha384-3zSEDfvllQohrq0PHL1fOXJuC/jSOO34H46t6UQfobFOmxE5BpjjaIJY5F2/bMnU" crossorigin="anonymous"></script>
-  <script src="app.js"></script>
+  <script type="module" src="app.js"></script>
 </body>
 </html>

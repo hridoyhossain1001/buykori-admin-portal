@@ -41,19 +41,19 @@ honest answer to the AP-02 question that manual review could not settle — a
 Drive the baseline down and lock it in:
 
 The initial count was 94. The completed action-migration slices lowered the
-current lock to 85. Next:
+current lock to 46. Next:
 
 1. Fix warnings in small PRs, lowering `--max-warnings` each time.
 2. At zero for a given rule, promote it from `warn` to `error`.
 
 Priority order: `no-unsanitized/property` → `no-undef` → `no-unused-vars`.
 
-### Step 3 — Kill the inline handlers (in progress)
+### ✅ Step 3 — Kill the inline handlers
 
-Native event attributes are gone and the enforced CSP now uses
-`script-src-attr 'none'`. The temporary `data-admin-*` bridge still stores
-JavaScript-like expressions and resolves their functions through `window`, so
-classic-script loading is still required and modules remain blocked.
+Native event attributes are gone and the enforced CSP uses
+`script-src-attr 'none'`. All controls now use named `data-action` entries. The
+temporary expression parser, global-function allowlist and `data-admin-*`
+listeners are deleted, and `app.js` now loads as an ES module.
 
 Approach: event delegation. One listener at the container, `data-action` and
 `data-arg` attributes on the elements, a dispatch table in JS. Convert one tab
@@ -106,12 +106,10 @@ Progress:
   transfer submission. The lint ratchet is 51 warnings.
 - Event explorer: migrated search, filters, refresh, pagination and expandable
   event rows. The lint ratchet is 48 warnings.
-
-When the last inline handler is gone:
-
-- the temporary expression parser and global-function allowlist can be deleted
-- `sourceType` can become `"module"`
-- Vite becomes possible
+- Team and final cleanup: migrated refresh, create, role and access controls;
+  deleted the temporary expression bridge; and switched `app.js` plus ESLint to
+  module mode. The lint ratchet is 46 warnings. Step 3 is complete and Vite is
+  no longer blocked by global inline-handler resolution.
 
 ### Step 4 — TypeScript, file by file
 

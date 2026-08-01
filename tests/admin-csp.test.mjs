@@ -10,8 +10,9 @@ test("admin markup and runtime templates contain no inline event handlers", asyn
   assert.doesNotMatch(sources, /\son(?:click|change|input|submit)\s*=/i);
   assert.doesNotMatch(sources, /\.on(?:click|change|input|submit)\s*=/i);
   assert.doesNotMatch(sources, /getAttribute\(["']on(?:click|change|input|submit)["']\)/i);
-  assert.match(sources, /data-admin-click=/);
-  assert.match(sources, /const ADMIN_ACTION_NAMES = new Set/);
+  assert.doesNotMatch(sources, /data-admin-(?:click|change|input|submit)=/);
+  assert.doesNotMatch(sources, /ADMIN_ACTION_NAMES|runAdminAction|parseAdminActionValue/);
+  assert.match(sources, /const ADMIN_ACTIONS = Object\.freeze/);
   assert.doesNotMatch(sources, /\beval\s*\(|\bnew Function\s*\(/);
 });
 
@@ -302,4 +303,22 @@ test("event explorer controls and rows use named actions", async () => {
   assert.match(markup, /data-action="events:refresh"/);
   assert.doesNotMatch(appJs, /data-admin-click="toggleEventDetail\(/);
   assert.match(appJs, /data-action="events:toggle-detail"[^>]+data-event-id=/);
+});
+
+test("team controls use named actions and the app runs as a module", async () => {
+  const indexHtml = await read("index.html");
+  const appJs = await read("app.js");
+  const eslintConfig = await read("eslint.config.mjs");
+  const sectionStart = indexHtml.indexOf('<section id="team"');
+  const sectionEnd = indexHtml.indexOf('<div id="modalOverlay"', sectionStart);
+  const markup = indexHtml.slice(sectionStart, sectionEnd);
+
+  assert.ok(sectionStart >= 0 && sectionEnd > sectionStart, "team section must be present");
+  assert.doesNotMatch(markup, /data-admin-(?:click|change|input|submit)=/);
+  assert.match(markup, /data-action="team:refresh"/);
+  assert.match(markup, /<form[^>]+data-action="team:create"/);
+  assert.doesNotMatch(appJs, /data-admin-click="updateAdminUserAccess\(/);
+  assert.equal((appJs.match(/data-action="team:update-(?:role|active)"/g) || []).length, 2);
+  assert.match(indexHtml, /<script type="module" src="app\.js"><\/script>/);
+  assert.match(eslintConfig, /sourceType: "module"/);
 });

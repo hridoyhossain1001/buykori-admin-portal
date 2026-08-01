@@ -339,8 +339,8 @@ function renderAdminUsers() {
       <td><span class="status-badge ${user.isActive ? "status-active" : "status-inactive"}">${user.isActive ? "Active" : "Disabled"}</span></td>
       <td>${esc(user.lastLoginAt ? toDeviceDateTime(user.lastLoginAt) : "Never")}</td>
       <td><div class="team-actions">
-        <button class="btn btn-outline btn-sm" data-admin-click="updateAdminUserAccess('${user.id}', {role:'${nextRole}'}, 'Change ${esc(user.username)} to ${nextRole}?')">Make ${nextRole}</button>
-        <button class="btn btn-outline btn-sm" data-admin-click="updateAdminUserAccess('${user.id}', {is_active:${nextActive}}, '${nextActive ? "Enable" : "Disable"} ${esc(user.username)}?')">${nextActive ? "Enable" : "Disable"}</button>
+        <button class="btn btn-outline btn-sm" data-action="team:update-role" data-user-id="${esc(user.id)}" data-username="${esc(user.username)}" data-next-role="${nextRole}">Make ${nextRole}</button>
+        <button class="btn btn-outline btn-sm" data-action="team:update-active" data-user-id="${esc(user.id)}" data-username="${esc(user.username)}" data-next-active="${nextActive}">${nextActive ? "Enable" : "Disable"}</button>
       </div></td>
     </tr>`;
   }).join("") : `<tr><td colspan="5" class="empty">No admin users found.</td></tr>`;
@@ -2347,9 +2347,8 @@ function handleSearchInput() {
   }, 200);
 }
 
-// Step 3 migration: named actions keep JavaScript expressions out of markup.
-// Each tab moves here independently while unmigrated tabs continue to use the
-// temporary data-admin-* bridge below.
+// Named actions keep JavaScript expressions out of markup and allow app.js to
+// run as an ES module without exposing action functions on window.
 const ADMIN_ACTIONS = Object.freeze({
   "dashboard:set-window": {
     event: "change",
@@ -2644,6 +2643,33 @@ const ADMIN_ACTIONS = Object.freeze({
   "events:toggle-detail": {
     event: "click",
     run: ({ element }) => toggleEventDetail(element.dataset.eventId)
+  },
+  "team:refresh": {
+    event: "click",
+    run: () => refreshAdminUsers()
+  },
+  "team:create": {
+    event: "submit",
+    run: ({ event }) => createAdminUser(event)
+  },
+  "team:update-role": {
+    event: "click",
+    run: ({ element }) => updateAdminUserAccess(
+      element.dataset.userId,
+      { role: element.dataset.nextRole },
+      `Change ${element.dataset.username} to ${element.dataset.nextRole}?`
+    )
+  },
+  "team:update-active": {
+    event: "click",
+    run: ({ element }) => {
+      const nextActive = element.dataset.nextActive === "true";
+      return updateAdminUserAccess(
+        element.dataset.userId,
+        { is_active: nextActive },
+        `${nextActive ? "Enable" : "Disable"} ${element.dataset.username}?`
+      );
+    }
   }
 });
 
@@ -2663,89 +2689,6 @@ document.addEventListener("click", dispatchNamedAdminAction);
 document.addEventListener("change", dispatchNamedAdminAction);
 document.addEventListener("input", dispatchNamedAdminAction);
 document.addEventListener("submit", dispatchNamedAdminAction);
-
-// AP-03: CSP-safe replacement for legacy inline event attributes. Templates retain
-// declarative data-admin-* actions; this dispatcher accepts only literals and an
-// explicit function allowlist, without eval or new Function.
-const ADMIN_ACTION_NAMES = new Set([
-  "createAdminUser",
-  "refreshAdminUsers",
-  "updateAdminUserAccess"
-]);
-
-function splitAdminActionValues(source, delimiter = ",") {
-  const values = [];
-  let current = "";
-  let quote = "";
-  let escaped = false;
-  let depth = 0;
-  for (const char of source) {
-    if (escaped) { current += char; escaped = false; continue; }
-    if (char === "\\" && quote) { current += char; escaped = true; continue; }
-    if (quote) { current += char; if (char === quote) quote = ""; continue; }
-    if (char === "'" || char === '"') { quote = char; current += char; continue; }
-    if (char === "{" || char === "[" || char === "(") depth++;
-    if (char === "}" || char === "]" || char === ")") depth--;
-    if (char === delimiter && depth === 0) { values.push(current.trim()); current = ""; }
-    else current += char;
-  }
-  if (current.trim()) values.push(current.trim());
-  return values;
-}
-
-function parseAdminActionValue(raw, event, element) {
-  const value = raw.trim();
-  if (value === "event") return event;
-  if (value === "this.value") return element.value;
-  if (value === "true") return true;
-  if (value === "false") return false;
-  if (value === "null") return null;
-  if (/^-?\d+(?:\.\d+)?$/.test(value)) return Number(value);
-  if ((value.startsWith("'") && value.endsWith("'")) || (value.startsWith('"') && value.endsWith('"'))) {
-    return value.slice(1, -1).replace(/\\(['"\\])/g, "$1");
-  }
-  if (value.startsWith("{") && value.endsWith("}")) {
-    const result = {};
-    for (const entry of splitAdminActionValues(value.slice(1, -1))) {
-      const separator = entry.indexOf(":");
-      if (separator < 1) throw new Error("Invalid admin action object.");
-      const key = entry.slice(0, separator).trim().replace(/^['"]|['"]$/g, "");
-      result[key] = parseAdminActionValue(entry.slice(separator + 1), event, element);
-    }
-    return result;
-  }
-  throw new Error(`Unsupported admin action value: ${value}`);
-}
-
-function runAdminAction(expression, event, element) {
-  const guarded = expression.match(/^if\s*\(event\.target===this\)\s*(.+)$/);
-  if (guarded) {
-    if (event.target !== element) return;
-    expression = guarded[1];
-  }
-  for (const statement of splitAdminActionValues(expression, ";")) {
-    const call = statement.match(/^([A-Za-z_$][\w$]*)\s*\((.*)\)$/s);
-    if (!call || !ADMIN_ACTION_NAMES.has(call[1])) throw new Error(`Blocked unknown admin action: ${statement}`);
-    const action = window[call[1]];
-    if (typeof action !== "function") throw new Error(`Admin action is unavailable: ${call[1]}`);
-    const args = call[2].trim()
-      ? splitAdminActionValues(call[2]).map(value => parseAdminActionValue(value, event, element))
-      : [];
-    action(...args);
-  }
-}
-
-for (const [eventName, attribute] of Object.entries({
-  click: "data-admin-click", change: "data-admin-change",
-  input: "data-admin-input", submit: "data-admin-submit"
-})) {
-  document.addEventListener(eventName, event => {
-    const element = event.target?.closest?.(`[${attribute}]`);
-    if (!element) return;
-    try { runAdminAction(element.getAttribute(attribute) || "", event, element); }
-    catch (error) { console.error("Admin action failed", error); }
-  });
-}
 
 document.querySelectorAll(".nav-item[data-tab]").forEach(button => button.addEventListener("click", () => setTab(button.dataset.tab)));
 $("adminLoginForm")?.addEventListener("submit", event => {
