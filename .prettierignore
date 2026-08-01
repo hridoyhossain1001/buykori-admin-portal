@@ -1,0 +1,19 @@
+node_modules
+dist
+.vercel
+public
+brand-logo.png
+package-lock.json
+
+# Deliberately left unformatted in step 1.
+#
+# app.js is ~150 KB, index.html ~75 KB and styles.css ~58 KB. Running Prettier
+# over them would produce a diff of tens of thousands of lines and bury every
+# real change in review forever after (git blame included).
+#
+# Remove these entries ONE AT A TIME, each in its own dedicated
+# "formatting only, no logic change" commit, so the noise stays isolated.
+app.js
+index.html
+styles.css
+vercel.json
