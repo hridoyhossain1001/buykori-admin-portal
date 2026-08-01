@@ -2462,6 +2462,26 @@ const ADMIN_ACTIONS = Object.freeze({
   "admin-decision:confirm": {
     event: "click",
     run: () => confirmAdminDecision()
+  },
+  "shell:toggle-sidebar": {
+    event: "click",
+    run: () => toggleSidebar()
+  },
+  "shell:refresh": {
+    event: "click",
+    run: () => loadAll({ refreshDashboard: true })
+  },
+  "shell:logout": {
+    event: "click",
+    run: () => logout()
+  },
+  "shell:search": {
+    event: "input",
+    run: () => handleSearchInput()
+  },
+  "shell:toggle-theme": {
+    event: "click",
+    run: () => toggleTheme()
   }
 });
 
@@ -2479,6 +2499,7 @@ function dispatchNamedAdminAction(event) {
 
 document.addEventListener("click", dispatchNamedAdminAction);
 document.addEventListener("change", dispatchNamedAdminAction);
+document.addEventListener("input", dispatchNamedAdminAction);
 document.addEventListener("submit", dispatchNamedAdminAction);
 
 // AP-03: CSP-safe replacement for legacy inline event attributes. Templates retain
@@ -2492,7 +2513,7 @@ const ADMIN_ACTION_NAMES = new Set([
   "connectWhatsAppInstance", "copyPairingCode", "createAdminUser",
   "createWhatsAppInstance", "decideSmsPayment",
   "deleteWhatsAppInstance", "editWhatsAppInstance",
-  "handleEventsFilterChange", "handleSearchInput", "loadAll", "loadEvents", "logout",
+  "handleEventsFilterChange", "loadAll", "loadEvents",
   "logoutWhatsAppInstance", "openClientModal",
   "openNotificationJobDrawer", "prepareSiteBindingTransfer", "refreshAdminUsers",
   "refreshNotificationOps", "refreshRecoveryOps",
@@ -2501,7 +2522,7 @@ const ADMIN_ACTION_NAMES = new Set([
   "saveWhatsAppInstanceCapacity",
   "setNotificationOpsTab", "setPaymentHistoryFilter", "setTab",
   "toggleEventDetail",
-  "toggleSidebar", "toggleTheme", "transferSiteBinding", "triggerAdminTestPayment",
+  "transferSiteBinding", "triggerAdminTestPayment",
   "updateAdminUserAccess", "updateRecoveryStatus", "updateSupportTicket",
   "updateWhatsAppInstanceStatus"
 ]);

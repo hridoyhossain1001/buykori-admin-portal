@@ -197,3 +197,17 @@ test("admin decision modal uses named actions", async () => {
   assert.equal((markup.match(/data-action="admin-decision:confirm"/g) || []).length, 1);
   assert.match(markup, /id="adminDecisionOverlay"[^>]+data-self-only="true"/);
 });
+
+test("shared admin shell uses named actions", async () => {
+  const indexHtml = await read("index.html");
+  const shellStart = indexHtml.indexOf('<button class="hamburger"');
+  const shellEnd = indexHtml.indexOf("<main", shellStart);
+  const markup = indexHtml.slice(shellStart, shellEnd);
+
+  assert.ok(shellStart >= 0 && shellEnd > shellStart, "admin shell must be present");
+  assert.doesNotMatch(markup, /data-admin-(?:click|change|input|submit)=/);
+  assert.equal((markup.match(/data-action="shell:toggle-sidebar"/g) || []).length, 2);
+  for (const action of ["refresh", "logout", "search", "toggle-theme"]) {
+    assert.match(markup, new RegExp(`data-action="shell:${action}"`));
+  }
+});

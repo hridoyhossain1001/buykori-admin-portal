@@ -94,6 +94,8 @@ Progress:
 - Admin Decision modal: migrated backdrop-only close, close button, Cancel and
   Confirm while preserving its shared promise and required-input behavior. The
   lint ratchet is now 77 warnings.
+- Shared shell: migrated sidebar open/close, forced refresh, logout dispatch,
+  debounced global search and theme toggle. The lint ratchet is 74 warnings.
 
 When the last inline handler is gone:
 
