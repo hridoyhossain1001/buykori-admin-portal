@@ -20,7 +20,7 @@ const NAV_TABS = [
 
 const OFFLINE_CLIENT = {
   id: 7,
-  name: "Offline Fixture Client",
+  name: '<img src=x onerror="alert(2)">Offline Fixture Client',
   domain: "offline-fixture.example",
   display_domain: "offline-fixture.example",
   pixel_id: "<script data-xss>window.__xss=true</script>",
@@ -557,13 +557,19 @@ test("owner can navigate the admin shell with the production API offline", async
   await expect(page.locator("#clientRows")).toContainText("No clients match this search");
   await page.locator('#searchInput[data-action="shell:search"]').fill("");
   await expect(page.locator("#clientRows")).toContainText("Offline Fixture Client");
+  await expect(page.locator("#clientRows .client-name")).toHaveText(
+    '<img src=x onerror="alert(2)">Offline Fixture Client'
+  );
+  await expect(page.locator("#clientRows img[src='x'], #clientRows script")).toHaveCount(0);
   await page.locator('[data-action="clients:open-create"]').click();
   await expect(page.locator("#create")).toHaveClass(/active/);
 
   await page.locator('.nav-item[data-tab="clients"]').click();
   await page.locator('#clientRows [data-action="clients:open-client"]').click();
   await expect(page.locator("#modalOverlay")).toBeVisible();
-  await expect(page.locator("#editName")).toHaveValue("Offline Fixture Client");
+  await expect(page.locator("#editName")).toHaveValue(
+    '<img src=x onerror="alert(2)">Offline Fixture Client'
+  );
   await expect(
     page.locator(
       '#modalOverlay [data-admin-click*="switchModalTab"], #modalOverlay [data-admin-click*="closeClientModal"], #modalOverlay [data-admin-click*="saveClientEdit"]'
@@ -709,7 +715,9 @@ test("owner can navigate the admin shell with the production API offline", async
 
   await page.locator('#clientRows [data-action="clients:open-client"]').click();
   await expect(page.locator("#modalOverlay")).toBeVisible();
-  await expect(page.locator("#editName")).toHaveValue("Offline Fixture Client");
+  await expect(page.locator("#editName")).toHaveValue(
+    '<img src=x onerror="alert(2)">Offline Fixture Client'
+  );
   await expect(page.locator("#modalOverlay [data-admin-click]")).toHaveCount(0);
   await page
     .locator('#modalOverlay [data-action="client-modal:switch-tab"][data-modal-tab="danger"]')
@@ -719,7 +727,7 @@ test("owner can navigate the admin shell with the production API offline", async
   await expect(page.locator("#adminDecisionOverlay")).toBeVisible();
   await expect(page.locator("#adminDecisionTitle")).toHaveText("Delete Client");
   await expect(page.locator("#adminDecisionMessage")).toContainText(
-    'Delete "Offline Fixture Client"?'
+    'Delete "<img src=x onerror="alert(2)">Offline Fixture Client"?'
   );
   await page.locator('#adminDecisionCancel[data-action="admin-decision:close"]').click();
   await expect(page.locator("#adminDecisionOverlay")).toBeHidden();

@@ -606,13 +606,6 @@ function renderCourierQueueRefreshMeta() {
   }
 }
 
-function domainLink(client) {
-  const domain = client.display_domain || client.domain || "No domain set";
-  if (!client.display_domain && !client.domain) return `<span class="domain-link">${esc(domain)}</span>`;
-  const href = String(domain).startsWith("http") ? domain : `https://${domain}`;
-  return `<a href="${safeHref(href)}" target="_blank" rel="noopener noreferrer" class="domain-link">${esc(domain)} <span style="font-size:11px;opacity:0.8">open</span></a>`;
-}
-
 const INTEGRATION_LOGOS = Object.freeze({
   meta: { src: "platforms/meta.svg", label: "Meta" },
   tiktok: { src: "platforms/tiktok.png", label: "TikTok" },
@@ -813,7 +806,15 @@ function renderIntegrationRows() {
   tableBody.replaceChildren(fragment);
 }
 function renderClientRows() {
-  $("clientRows").innerHTML = filteredClients().map(client => {
+  const tableBody = $("clientRows");
+  if (!tableBody) return;
+  const clients = filteredClients();
+  if (!clients.length) {
+    replaceTableWithMessage("clientRows", 6, "No clients match this search. Clear the search or add a new client.");
+    return;
+  }
+  const fragment = document.createDocumentFragment();
+  for (const client of clients) {
     const health = overviewHealthFor(client);
     const intel = intelligenceFor(client.id);
     const plan = String(client.plan_tier || "free").toLowerCase();
@@ -830,26 +831,103 @@ function renderClientRows() {
       ["tiktok", integrationState(client, "tiktok")],
       ["ga4", integrationState(client, "ga4")]
     ];
-    return `<tr>
-      <td><div class="client-name">${esc(client.name)}</div><div class="client-sub">ID ${esc(client.id)}${intel?.owner?.phone_number ? ` - ${esc(intel.owner.phone_number)}` : ""}</div></td>
-      <td><div class="client-store-cell">${domainLink(client)}<div class="client-sub">Registered ${esc(toDeviceDateTime(client.created_at))}</div></div></td>
-      <td>
-        <div class="client-plan-row"><span class="plan-chip${isTrial ? " is-trial" : ""}">${esc(planLabel)}</span>${isTrial && client.trial_days_remaining ? `<span class="trial-days">${esc(client.trial_days_remaining)}d left</span>` : ""}</div>
-        <div class="client-quota-row"><span>Events</span><strong>${compactNumber(used)} / ${planLimit ? compactNumber(planLimit) : "Unlimited"}</strong></div>
-        <div class="client-usage-track"><span style="width:${usage.toFixed(1)}%"></span></div>
-        <div class="client-quota-row"><span>Orders</span><strong>${compactNumber(ordersUsed)} / ${orderLimit ? compactNumber(orderLimit) : "Unlimited"}</strong></div>
-        <div class="client-usage-track order"><span style="width:${orderUsage.toFixed(1)}%"></span></div>
-      </td>
-      <td><div class="integration-pills">${integrations.map(([platform, value]) => `<span class="integration-pill ${value.state === "ready" ? "is-ready" : value.state === "attention" ? "is-attention" : "is-off"}" title="${esc(value.label)}">${integrationLogo(platform)}<i></i></span>`).join("")}</div></td>
-      <td><div class="status-badge ${statusClass(health.status)}" title="${esc(health.reasons.join(", "))}">${health.score !== undefined ? `${fmt(health.score)}%` : statusLabel(health.status, client.is_active)}</div></td>
-      <td>
-        <div class="client-directory-actions">
-          <button class="btn btn-outline btn-sm" data-action="clients:open-client" data-client-id="${Number(client.id)}">Manage</button>
-          <button class="btn btn-sm ${client.is_active ? 'btn-outline' : 'btn-primary'}" data-action="clients:toggle-active" data-client-id="${Number(client.id)}" data-is-active="${!client.is_active}">${client.is_active ? "Deactivate" : "Activate"}</button>
-        </div>
-      </td>
-    </tr>`;
-  }).join("") || `<tr><td colspan="6" class="empty">No clients match this search. Clear the search or add a new client.</td></tr>`;
+    const row = document.createElement("tr");
+
+    const identityCell = document.createElement("td");
+    const clientName = document.createElement("div");
+    clientName.className = "client-name";
+    clientName.textContent = String(client.name || "");
+    const clientDetails = document.createElement("div");
+    clientDetails.className = "client-sub";
+    clientDetails.textContent = `ID ${client.id}${intel?.owner?.phone_number ? ` - ${intel.owner.phone_number}` : ""}`;
+    identityCell.append(clientName, clientDetails);
+
+    const storeCell = document.createElement("td");
+    const store = document.createElement("div");
+    store.className = "client-store-cell";
+    store.append(createDomainLink(client));
+    const registered = document.createElement("div");
+    registered.className = "client-sub";
+    registered.textContent = `Registered ${toDeviceDateTime(client.created_at)}`;
+    store.append(registered);
+    storeCell.append(store);
+
+    const planCell = document.createElement("td");
+    const planRow = document.createElement("div");
+    planRow.className = "client-plan-row";
+    const planChip = document.createElement("span");
+    planChip.className = `plan-chip${isTrial ? " is-trial" : ""}`;
+    planChip.textContent = planLabel;
+    planRow.append(planChip);
+    if (isTrial && client.trial_days_remaining) {
+      const trialDays = document.createElement("span");
+      trialDays.className = "trial-days";
+      trialDays.textContent = `${client.trial_days_remaining}d left`;
+      planRow.append(trialDays);
+    }
+    const appendQuota = (label, value, percent, trackClass = "client-usage-track") => {
+      const quota = document.createElement("div");
+      quota.className = "client-quota-row";
+      const quotaLabel = document.createElement("span");
+      quotaLabel.textContent = label;
+      const quotaValue = document.createElement("strong");
+      quotaValue.textContent = value;
+      quota.append(quotaLabel, quotaValue);
+      const track = document.createElement("div");
+      track.className = trackClass;
+      const fill = document.createElement("span");
+      fill.style.width = `${percent.toFixed(1)}%`;
+      track.append(fill);
+      planCell.append(quota, track);
+    };
+    planCell.append(planRow);
+    appendQuota("Events", `${compactNumber(used)} / ${planLimit ? compactNumber(planLimit) : "Unlimited"}`, usage);
+    appendQuota("Orders", `${compactNumber(ordersUsed)} / ${orderLimit ? compactNumber(orderLimit) : "Unlimited"}`, orderUsage, "client-usage-track order");
+
+    const integrationCell = document.createElement("td");
+    const pills = document.createElement("div");
+    pills.className = "integration-pills";
+    for (const [platform, value] of integrations) {
+      const pill = document.createElement("span");
+      pill.className = `integration-pill ${value.state === "ready" ? "is-ready" : value.state === "attention" ? "is-attention" : "is-off"}`;
+      pill.title = String(value.label || "");
+      const logo = createIntegrationLogo(platform);
+      if (logo) pill.append(logo);
+      pill.append(document.createElement("i"));
+      pills.append(pill);
+    }
+    integrationCell.append(pills);
+
+    const healthCell = document.createElement("td");
+    const healthBadge = document.createElement("div");
+    healthBadge.className = `status-badge ${statusClass(health.status)}`;
+    healthBadge.title = health.reasons.join(", ");
+    healthBadge.textContent = health.score !== undefined
+      ? `${fmt(health.score)}%`
+      : statusLabel(health.status, client.is_active);
+    healthCell.append(healthBadge);
+
+    const actionsCell = document.createElement("td");
+    const actions = document.createElement("div");
+    actions.className = "client-directory-actions";
+    const manageButton = document.createElement("button");
+    manageButton.className = "btn btn-outline btn-sm";
+    manageButton.dataset.action = "clients:open-client";
+    manageButton.dataset.clientId = String(Number(client.id));
+    manageButton.textContent = "Manage";
+    const activeButton = document.createElement("button");
+    activeButton.className = `btn btn-sm ${client.is_active ? "btn-outline" : "btn-primary"}`;
+    activeButton.dataset.action = "clients:toggle-active";
+    activeButton.dataset.clientId = String(Number(client.id));
+    activeButton.dataset.isActive = String(!client.is_active);
+    activeButton.textContent = client.is_active ? "Deactivate" : "Activate";
+    actions.append(manageButton, activeButton);
+    actionsCell.append(actions);
+
+    row.append(identityCell, storeCell, planCell, integrationCell, healthCell, actionsCell);
+    fragment.append(row);
+  }
+  tableBody.replaceChildren(fragment);
 }
 
 function paymentIsPaid(item) {
