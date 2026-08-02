@@ -350,3 +350,16 @@ test("courier health banner renders with DOM text APIs", async () => {
   assert.match(source, /replaceChildren\(/);
   assert.match(source, /dataset\.action = "dashboard:open-tab"/);
 });
+
+test("integration table renders API data with DOM text APIs", async () => {
+  const appJs = await read("app.js");
+  const renderStart = appJs.indexOf("function renderIntegrationRows()");
+  const renderEnd = appJs.indexOf("\nfunction renderClientRows", renderStart);
+  const source = appJs.slice(renderStart, renderEnd);
+
+  assert.ok(renderStart >= 0 && renderEnd > renderStart, "renderIntegrationRows must be present");
+  assert.doesNotMatch(source, /\.innerHTML\s*=/);
+  assert.match(source, /\.textContent\s*=/);
+  assert.match(source, /replaceChildren\(/);
+  assert.match(source, /dataset\.action = "dashboard:open-client"/);
+});

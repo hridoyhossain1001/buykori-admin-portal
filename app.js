@@ -630,6 +630,53 @@ function integrationBadge(integration, platform) {
   return `<div class="integration-status">${integrationLogo(platform)}<div class="dot ${dot}"></div>${esc(integration?.label || "Off")}</div>`;
 }
 
+function createDomainLink(client) {
+  const domain = String(client.display_domain || client.domain || "No domain set");
+  if (!client.display_domain && !client.domain) {
+    const label = document.createElement("span");
+    label.className = "domain-link";
+    label.textContent = domain;
+    return label;
+  }
+  const link = document.createElement("a");
+  link.className = "domain-link";
+  link.href = safeHref(domain.startsWith("http") ? domain : `https://${domain}`);
+  link.target = "_blank";
+  link.rel = "noopener noreferrer";
+  link.append(document.createTextNode(`${domain} `));
+  const openLabel = document.createElement("span");
+  openLabel.style.fontSize = "11px";
+  openLabel.style.opacity = "0.8";
+  openLabel.textContent = "open";
+  link.append(openLabel);
+  return link;
+}
+
+function createIntegrationLogo(platform) {
+  const logo = INTEGRATION_LOGOS[platform];
+  if (!logo) return null;
+  const image = document.createElement("img");
+  image.className = "platform-logo";
+  image.src = logo.src;
+  image.alt = `${logo.label} logo`;
+  image.loading = "lazy";
+  image.decoding = "async";
+  return image;
+}
+
+function createIntegrationBadge(integration, platform) {
+  const stateName = integration?.state || "off";
+  const dotClass = stateName === "ready" ? "dot-active" : stateName === "attention" ? "dot-warning" : "dot-inactive";
+  const badge = document.createElement("div");
+  badge.className = "integration-status";
+  const logo = createIntegrationLogo(platform);
+  if (logo) badge.append(logo);
+  const dot = document.createElement("div");
+  dot.className = `dot ${dotClass}`;
+  badge.append(dot, document.createTextNode(String(integration?.label || "Off")));
+  return badge;
+}
+
 function filteredClients() {
   const query = ($("searchInput")?.value || "").toLowerCase().trim();
   if (!query) return state.clients;
@@ -702,19 +749,68 @@ function compactNumber(value) {
 function renderIntegrationRows() {
   const clients = filteredClients();
   $("tableMeta").textContent = `Showing ${clients.length} of ${state.clients.length} clients`;
-  $("integrationRows").innerHTML = clients.map(client => {
+  const tableBody = $("integrationRows");
+  if (!tableBody) return;
+  if (!clients.length) {
+    replaceTableWithMessage("integrationRows", 8, "No clients yet. Use Add Client to get started.");
+    return;
+  }
+  const fragment = document.createDocumentFragment();
+  for (const client of clients) {
     const health = overviewHealthFor(client);
-    return `<tr>
-      <td><div class="client-name">${esc(client.name)}</div><div class="client-sub">${esc(client.pixel_id || `ID ${client.id}`)}</div></td>
-      <td>${domainLink(client)}</td>
-      <td>${integrationBadge(integrationState(client, "meta"), "meta")}</td>
-      <td>${integrationBadge(integrationState(client, "tiktok"), "tiktok")}</td>
-      <td>${integrationBadge(integrationState(client, "ga4"), "ga4")}</td>
-      <td><span class="text-success" style="font-weight:700">${fmt(health.periodEvents)}</span> <span style="font-size:10px;color:var(--text-subtle)">${esc(dashboardWindowShortLabel())}</span></td>
-      <td><div class="status-badge ${statusClass(health.status)}" title="${esc(health.reasons.join(", "))}">${health.score !== undefined ? `${fmt(health.score)}%` : statusLabel(health.status, client.is_active)}</div></td>
-      <td><button class="action-btn" data-action="dashboard:open-client" data-client-id="${Number(client.id)}" title="Manage client">...</button></td>
-    </tr>`;
-  }).join("") || `<tr><td colspan="8" class="empty">No clients yet. Use Add Client to get started.</td></tr>`;
+    const row = document.createElement("tr");
+
+    const identityCell = document.createElement("td");
+    const clientName = document.createElement("div");
+    clientName.className = "client-name";
+    clientName.textContent = String(client.name || "");
+    const clientId = document.createElement("div");
+    clientId.className = "client-sub";
+    clientId.textContent = String(client.pixel_id || `ID ${client.id}`);
+    identityCell.append(clientName, clientId);
+
+    const domainCell = document.createElement("td");
+    domainCell.append(createDomainLink(client));
+
+    const integrationCells = ["meta", "tiktok", "ga4"].map(platform => {
+      const cell = document.createElement("td");
+      cell.append(createIntegrationBadge(integrationState(client, platform), platform));
+      return cell;
+    });
+
+    const eventsCell = document.createElement("td");
+    const eventCount = document.createElement("span");
+    eventCount.className = "text-success";
+    eventCount.style.fontWeight = "700";
+    eventCount.textContent = fmt(health.periodEvents);
+    const windowLabel = document.createElement("span");
+    windowLabel.style.fontSize = "10px";
+    windowLabel.style.color = "var(--text-subtle)";
+    windowLabel.textContent = dashboardWindowShortLabel();
+    eventsCell.append(eventCount, document.createTextNode(" "), windowLabel);
+
+    const healthCell = document.createElement("td");
+    const healthBadge = document.createElement("div");
+    healthBadge.className = `status-badge ${statusClass(health.status)}`;
+    healthBadge.title = health.reasons.join(", ");
+    healthBadge.textContent = health.score !== undefined
+      ? `${fmt(health.score)}%`
+      : statusLabel(health.status, client.is_active);
+    healthCell.append(healthBadge);
+
+    const actionCell = document.createElement("td");
+    const manageButton = document.createElement("button");
+    manageButton.className = "action-btn";
+    manageButton.dataset.action = "dashboard:open-client";
+    manageButton.dataset.clientId = String(Number(client.id));
+    manageButton.title = "Manage client";
+    manageButton.textContent = "...";
+    actionCell.append(manageButton);
+
+    row.append(identityCell, domainCell, ...integrationCells, eventsCell, healthCell, actionCell);
+    fragment.append(row);
+  }
+  tableBody.replaceChildren(fragment);
 }
 function renderClientRows() {
   $("clientRows").innerHTML = filteredClients().map(client => {

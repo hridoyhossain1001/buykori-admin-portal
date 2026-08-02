@@ -23,7 +23,7 @@ const OFFLINE_CLIENT = {
   name: "Offline Fixture Client",
   domain: "offline-fixture.example",
   display_domain: "offline-fixture.example",
-  pixel_id: "fixture-pixel-7",
+  pixel_id: "<script data-xss>window.__xss=true</script>",
   is_active: true,
   plan_tier: "free",
   billing_status: "free",
@@ -422,6 +422,13 @@ test("owner can navigate the admin shell with the production API offline", async
   await expect(page.locator("#app")).toHaveClass(/ready/);
   await expect(page.locator("#login")).toBeHidden();
   await expect(page.locator("#teamNavGroup")).toBeVisible();
+  await expect(page.locator("#integrationRows .client-sub")).toHaveText(
+    "<script data-xss>window.__xss=true</script>"
+  );
+  await expect(page.locator("#integrationRows script")).toHaveCount(0);
+  await expect(page.locator('#integrationRows [data-action="dashboard:open-client"]')).toHaveCount(
+    1
+  );
 
   await expect(
     page.locator(
