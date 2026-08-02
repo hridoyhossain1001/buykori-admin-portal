@@ -40,13 +40,18 @@ honest answer to the AP-02 question that manual review could not settle — a
 
 Drive the baseline down and lock it in:
 
-The initial count was 94. The completed action-migration slices lowered the
-current lock to 46. Next:
+The initial count was 94. The completed action migration and first DOM-safety
+slice lowered the current lock to 44. Next:
 
 1. Fix warnings in small PRs, lowering `--max-warnings` each time.
 2. At zero for a given rule, promote it from `warn` to `error`.
 
 Priority order: `no-unsanitized/property` → `no-undef` → `no-unused-vars`.
+
+- Team DOM rendering: replaced the admin-user table and API-error `innerHTML`
+  sinks with explicit elements, `textContent` and `replaceChildren`. API values
+  are now rendered as text even when they contain markup. The lint ratchet is
+  44 warnings.
 
 ### ✅ Step 3 — Kill the inline handlers
 

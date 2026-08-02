@@ -22,7 +22,7 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      # Preserve the measured 46-warning legacy baseline. Any new warning
+      # Preserve the measured 44-warning legacy baseline. Any new warning
       # fails CI; later migration steps ratchet this number down.
       - name: Lint
         run: npm run lint

@@ -161,7 +161,7 @@ const fixtures = new Map([
         {
           id: "owner-1",
           username: "offline-owner",
-          displayName: "Offline Owner",
+          displayName: '<img src=x onerror="alert(1)">Offline Owner',
           role: "owner",
           isActive: true,
           lastLoginAt: "2026-08-01T08:00:00Z",
@@ -787,6 +787,10 @@ test("owner can navigate the admin shell with the production API offline", async
   const adminUserRequestsBeforeRefresh = adminUserRequests;
   await page.locator('#team [data-action="team:refresh"]').click();
   await expect.poll(() => adminUserRequests).toBeGreaterThan(adminUserRequestsBeforeRefresh);
+  await expect(page.locator("#teamRows strong")).toHaveText(
+    '<img src=x onerror="alert(1)">Offline Owner'
+  );
+  await expect(page.locator("#teamRows img, #teamRows script")).toHaveCount(0);
 
   await page.locator("#teamUsername").fill("offline-admin");
   await page.locator("#teamDisplayName").fill("Offline Admin");
