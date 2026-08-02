@@ -41,7 +41,7 @@ honest answer to the AP-02 question that manual review could not settle — a
 Drive the baseline down and lock it in:
 
 The initial count was 94. The completed action migration and DOM-safety slices
-lowered the current lock to 41. Next:
+lowered the current lock to 39. Next:
 
 1. Fix warnings in small PRs, lowering `--max-warnings` each time.
 2. At zero for a given rule, promote it from `warn` to `error`.
@@ -60,6 +60,9 @@ Priority order: `no-unsanitized/property` → `no-undef` → `no-unused-vars`.
 - Client directory: replaced identity, domain, plan/quota, integration, health
   and action templates with DOM nodes; the obsolete HTML domain helper was also
   removed. The lint ratchet is 41 warnings.
+- Payment history: replaced payment, refund, result and pager HTML templates
+  with explicit DOM nodes and text-only API values. The lint ratchet is 39
+  warnings.
 
 ### ✅ Step 3 — Kill the inline handlers
 

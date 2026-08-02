@@ -366,3 +366,19 @@ test("integration table renders API data with DOM text APIs", async () => {
   assert.match(source, /replaceChildren\(/);
   assert.match(source, /dataset\.action = "dashboard:open-client"/);
 });
+
+test("payment history rows and pager render with DOM text APIs", async () => {
+  const appJs = await read("app.js");
+  const renderStart = appJs.indexOf("function renderPaymentHistory()");
+  const renderEnd = appJs.indexOf("\nfunction setPaymentHistoryFilter", renderStart);
+  const source = appJs.slice(renderStart, renderEnd);
+
+  assert.ok(renderStart >= 0 && renderEnd > renderStart, "renderPaymentHistory must be present");
+  assert.doesNotMatch(source, /\.innerHTML\s*=/);
+  assert.match(source, /\.textContent\s*=/);
+  assert.match(source, /replaceChildren\(/);
+  assert.equal(
+    (source.match(/dataset\.action = "notification:change-payment-page"/g) || []).length,
+    2
+  );
+});

@@ -947,6 +947,13 @@ function paymentResult(item) {
   return { label: "Needs attention", tone: "warning" };
 }
 
+function createPaymentText(content, className) {
+  const element = document.createElement("div");
+  element.className = className;
+  element.textContent = content;
+  return element;
+}
+
 function renderPaymentHistory() {
   const all = state.paymentReviews?.payments || [];
   const paid = all.filter(paymentIsPaid);
@@ -973,25 +980,111 @@ function renderPaymentHistory() {
   const start = (state.paymentHistoryPage - 1) * pageSize;
   const pageItems = filtered.slice(start, start + pageSize);
 
-  if ($("paymentHistoryRows")) {
-    $("paymentHistoryRows").innerHTML = pageItems.map(item => {
-      const result = paymentResult(item);
-      const refund = item.intent?.refundAmount ? `<div class="client-sub">Extra BDT ${esc(item.intent.refundAmount)}${item.intent.refundStatus ? ` - ${esc(item.intent.refundStatus)}` : ""}</div>` : "";
-      return `<tr>
-        <td><div class="client-name">${esc(item.provider).toUpperCase()} ${esc(item.paymentType === "agent_cash_in" ? "Cash In" : "Receive")}</div><div class="client-sub">${esc(toDeviceDateTime(item.receivedAt))}</div></td>
-        <td><div class="client-name">${esc(item.client?.name || "Not linked")}</div><div class="client-sub">${item.client?.id ? `Client #${esc(item.client.id)}` : "No client matched"}</div></td>
-        <td><div class="client-name">${esc(item.intent?.planTier || "-")}</div><div class="client-sub">${esc(item.intent?.reference || "No payment request")}</div></td>
-        <td><div class="client-name">BDT ${esc(item.amount)}</div><div class="client-sub">From ${esc(item.senderPhone)}</div>${refund}</td>
-        <td><div class="client-name payment-trx">${esc(item.trxId)}</div><div class="client-sub">Receipt #${esc(item.receiptId)}</div></td>
-        <td><span class="status-badge ${statusClass(result.tone)}">${esc(result.label)}</span><div class="client-sub payment-result-note">${esc(item.note || item.intent?.statusMessage || "-")}</div></td>
-      </tr>`;
-    }).join("") || `<tr><td colspan="6" class="empty">No payments match this filter.</td></tr>`;
+  const paymentHistoryRows = $("paymentHistoryRows");
+  if (paymentHistoryRows) {
+    if (!pageItems.length) {
+      replaceTableWithMessage("paymentHistoryRows", 6, "No payments match this filter.");
+    } else {
+      const fragment = document.createDocumentFragment();
+      pageItems.forEach(item => {
+        const result = paymentResult(item);
+        const row = document.createElement("tr");
+
+        const sourceCell = document.createElement("td");
+        sourceCell.append(
+          createPaymentText(
+            `${String(item.provider || "").toUpperCase()} ${item.paymentType === "agent_cash_in" ? "Cash In" : "Receive"}`,
+            "client-name"
+          ),
+          createPaymentText(toDeviceDateTime(item.receivedAt), "client-sub")
+        );
+
+        const clientCell = document.createElement("td");
+        clientCell.append(
+          createPaymentText(item.client?.name || "Not linked", "client-name"),
+          createPaymentText(
+            item.client?.id ? `Client #${item.client.id}` : "No client matched",
+            "client-sub"
+          )
+        );
+
+        const requestCell = document.createElement("td");
+        requestCell.append(
+          createPaymentText(item.intent?.planTier || "-", "client-name"),
+          createPaymentText(item.intent?.reference || "No payment request", "client-sub")
+        );
+
+        const amountCell = document.createElement("td");
+        amountCell.append(
+          createPaymentText(`BDT ${item.amount ?? ""}`, "client-name"),
+          createPaymentText(`From ${item.senderPhone ?? ""}`, "client-sub")
+        );
+        if (item.intent?.refundAmount) {
+          amountCell.append(
+            createPaymentText(
+              `Extra BDT ${item.intent.refundAmount}${item.intent.refundStatus ? ` - ${item.intent.refundStatus}` : ""}`,
+              "client-sub"
+            )
+          );
+        }
+
+        const transactionCell = document.createElement("td");
+        transactionCell.append(
+          createPaymentText(item.trxId ?? "", "client-name payment-trx"),
+          createPaymentText(`Receipt #${item.receiptId ?? ""}`, "client-sub")
+        );
+
+        const resultCell = document.createElement("td");
+        const resultBadge = document.createElement("span");
+        resultBadge.className = `status-badge ${statusClass(result.tone)}`;
+        resultBadge.textContent = result.label;
+        resultCell.append(
+          resultBadge,
+          createPaymentText(
+            item.note || item.intent?.statusMessage || "-",
+            "client-sub payment-result-note"
+          )
+        );
+
+        row.append(sourceCell, clientCell, requestCell, amountCell, transactionCell, resultCell);
+        fragment.append(row);
+      });
+      paymentHistoryRows.replaceChildren(fragment);
+    }
   }
 
   const pager = $("paymentHistoryPager");
   if (pager) {
     pager.hidden = filtered.length <= pageSize;
-    pager.innerHTML = filtered.length <= pageSize ? "" : `<button class="table-pager-button" data-action="notification:change-payment-page" data-page-delta="-1" ${state.paymentHistoryPage <= 1 ? "disabled" : ""} aria-label="Previous page">&#8592;</button><span>Page <strong>${state.paymentHistoryPage}</strong> of ${pageCount}</span><button class="table-pager-button" data-action="notification:change-payment-page" data-page-delta="1" ${state.paymentHistoryPage >= pageCount ? "disabled" : ""} aria-label="Next page">&#8594;</button>`;
+    if (pager.hidden) {
+      pager.replaceChildren();
+    } else {
+      const previousButton = document.createElement("button");
+      previousButton.type = "button";
+      previousButton.className = "table-pager-button";
+      previousButton.dataset.action = "notification:change-payment-page";
+      previousButton.dataset.pageDelta = "-1";
+      previousButton.disabled = state.paymentHistoryPage <= 1;
+      previousButton.setAttribute("aria-label", "Previous page");
+      previousButton.textContent = "←";
+
+      const pageLabel = document.createElement("span");
+      pageLabel.append("Page ");
+      const currentPage = document.createElement("strong");
+      currentPage.textContent = String(state.paymentHistoryPage);
+      pageLabel.append(currentPage, ` of ${pageCount}`);
+
+      const nextButton = document.createElement("button");
+      nextButton.type = "button";
+      nextButton.className = "table-pager-button";
+      nextButton.dataset.action = "notification:change-payment-page";
+      nextButton.dataset.pageDelta = "1";
+      nextButton.disabled = state.paymentHistoryPage >= pageCount;
+      nextButton.setAttribute("aria-label", "Next page");
+      nextButton.textContent = "→";
+
+      pager.replaceChildren(previousButton, pageLabel, nextButton);
+    }
   }
 }
 

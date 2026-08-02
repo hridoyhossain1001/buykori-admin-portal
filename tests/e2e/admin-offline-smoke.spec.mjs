@@ -152,7 +152,47 @@ const fixtures = new Map([
   ],
   ["/api/v1/admin/whatsapp-instances", []],
   ["/api/v1/admin/api/support-tickets", { tickets: [], openCount: 0 }],
-  ["/api/v1/admin/api/payment-reviews", { payments: [] }],
+  [
+    "/api/v1/admin/api/payment-reviews",
+    {
+      payments: [
+        {
+          provider: '<img src=x onerror="window.__paymentXss=true">bkash',
+          paymentType: "receive",
+          receivedAt: "2026-08-01T08:30:00Z",
+          client: {
+            id: 7,
+            name: "<script data-payment-xss>window.__paymentXss=true</script>",
+          },
+          intent: {
+            planTier: "growth",
+            reference: '<svg onload="window.__paymentXss=true">',
+            status: "approved_overpaid",
+            statusMessage: "Approved",
+            refundAmount: "50.00",
+            refundStatus: "requested",
+          },
+          amount: "550.00",
+          senderPhone: '<img src=x onerror="window.__paymentXss=true">',
+          trxId: "<script data-payment-trx>window.__paymentXss=true</script>",
+          receiptId: 88,
+          status: "approved",
+          note: "<script data-payment-note>window.__paymentXss=true</script>",
+        },
+        ...Array.from({ length: 10 }, (_, index) => ({
+          provider: "bkash",
+          paymentType: "receive",
+          receivedAt: "2026-08-01T08:30:00Z",
+          amount: "100.00",
+          senderPhone: "01700000000",
+          trxId: `OFFLINE-${index + 1}`,
+          receiptId: 100 + index,
+          status: "rejected",
+          note: "Offline pager fixture",
+        })),
+      ],
+    },
+  ],
   ["/api/v1/admin/api/events", { events: [], totalCount: 0 }],
   [
     "/api/v1/admin/api/admin-users",
@@ -456,6 +496,24 @@ test("owner can navigate the admin shell with the production API offline", async
     await expect(navButton).toHaveClass(/active/);
     await expect(page.locator(`#${tab}`)).toHaveClass(/active/);
   }
+
+  await page.locator('.nav-item[data-tab="payments"]').click();
+  await expect(page.locator("#paymentHistoryRows .payment-result-note").first()).toHaveText(
+    "<script data-payment-note>window.__paymentXss=true</script>"
+  );
+  await expect(
+    page.locator("#paymentHistoryRows script, #paymentHistoryRows img, #paymentHistoryRows svg")
+  ).toHaveCount(0);
+  await expect(page.locator("#paymentHistoryPager")).toBeVisible();
+  await expect(page.locator("#paymentHistoryPager span")).toHaveText("Page 1 of 2");
+  await page
+    .locator(
+      '#paymentHistoryPager [data-action="notification:change-payment-page"][data-page-delta="1"]'
+    )
+    .click();
+  await expect(page.locator("#paymentHistoryPager span")).toHaveText("Page 2 of 2");
+  await expect(page.locator("#paymentHistoryRows tr")).toHaveCount(1);
+  expect(await page.evaluate(() => globalThis.__paymentXss)).toBeUndefined();
 
   await page.locator('.nav-item[data-tab="courierQueue"]').click();
   await expect(
