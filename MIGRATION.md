@@ -41,7 +41,7 @@ honest answer to the AP-02 question that manual review could not settle — a
 Drive the baseline down and lock it in:
 
 The initial count was 94. The completed action migration and DOM-safety slices
-lowered the current lock to 43. Next:
+lowered the current lock to 42. Next:
 
 1. Fix warnings in small PRs, lowering `--max-warnings` each time.
 2. At zero for a given rule, promote it from `warn` to `error`.
@@ -54,6 +54,9 @@ Priority order: `no-unsanitized/property` → `no-undef` → `no-unused-vars`.
   44 warnings.
 - Courier health banner: replaced its status/detail HTML template with explicit
   text nodes and a named-action button. The lint ratchet is 43 warnings.
+- Integration table: replaced client, domain, platform, event, health and action
+  HTML templates with DOM nodes and text-only API values. The lint ratchet is
+  42 warnings.
 
 ### ✅ Step 3 — Kill the inline handlers
 
