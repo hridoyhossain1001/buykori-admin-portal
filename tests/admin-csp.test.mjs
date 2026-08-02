@@ -318,7 +318,19 @@ test("team controls use named actions and the app runs as a module", async () =>
   assert.match(markup, /data-action="team:refresh"/);
   assert.match(markup, /<form[^>]+data-action="team:create"/);
   assert.doesNotMatch(appJs, /data-admin-click="updateAdminUserAccess\(/);
-  assert.equal((appJs.match(/data-action="team:update-(?:role|active)"/g) || []).length, 2);
+  assert.equal((appJs.match(/dataset\.action = "team:update-(?:role|active)"/g) || []).length, 2);
   assert.match(indexHtml, /<script type="module" src="app\.js"><\/script>/);
   assert.match(eslintConfig, /sourceType: "module"/);
+});
+
+test("team rows render API data with DOM text APIs", async () => {
+  const appJs = await read("app.js");
+  const renderStart = appJs.indexOf("function renderAdminUsers()");
+  const renderEnd = appJs.indexOf("\nasync function createAdminUser", renderStart);
+  const source = appJs.slice(renderStart, renderEnd);
+
+  assert.ok(renderStart >= 0 && renderEnd > renderStart, "renderAdminUsers must be present");
+  assert.doesNotMatch(source, /\.innerHTML\s*=/);
+  assert.match(source, /\.textContent\s*=/);
+  assert.match(source, /replaceChildren\(/);
 });

@@ -323,27 +323,85 @@ async function refreshAdminUsers() {
     state.adminUsers = Array.isArray(data.users) ? data.users : [];
     renderAdminUsers();
   } catch (error) {
-    $("teamRows").innerHTML = `<tr><td colspan="5" class="empty">${esc(readableApiError(error, "Could not load admin users."))}</td></tr>`;
+    replaceTableWithMessage("teamRows", 5, readableApiError(error, "Could not load admin users."));
   }
+}
+
+function replaceTableWithMessage(tableBodyId, columnCount, message) {
+  const tableBody = $(tableBodyId);
+  if (!tableBody) return;
+  const row = document.createElement("tr");
+  const cell = document.createElement("td");
+  cell.colSpan = columnCount;
+  cell.className = "empty";
+  cell.textContent = String(message || "");
+  row.append(cell);
+  tableBody.replaceChildren(row);
 }
 
 function renderAdminUsers() {
   const users = state.adminUsers || [];
   if ($("teamCount")) $("teamCount").textContent = `${users.length} user${users.length === 1 ? "" : "s"}`;
-  $("teamRows").innerHTML = users.length ? users.map(user => {
+  const tableBody = $("teamRows");
+  if (!tableBody) return;
+  if (!users.length) {
+    replaceTableWithMessage("teamRows", 5, "No admin users found.");
+    return;
+  }
+
+  const fragment = document.createDocumentFragment();
+  for (const user of users) {
     const nextRole = user.role === "owner" ? "admin" : "owner";
     const nextActive = !user.isActive;
-    return `<tr>
-      <td><strong>${esc(user.displayName)}</strong><div class="client-sub">@${esc(user.username)}</div></td>
-      <td><span class="team-role">${esc(user.role)}</span></td>
-      <td><span class="status-badge ${user.isActive ? "status-active" : "status-inactive"}">${user.isActive ? "Active" : "Disabled"}</span></td>
-      <td>${esc(user.lastLoginAt ? toDeviceDateTime(user.lastLoginAt) : "Never")}</td>
-      <td><div class="team-actions">
-        <button class="btn btn-outline btn-sm" data-action="team:update-role" data-user-id="${esc(user.id)}" data-username="${esc(user.username)}" data-next-role="${nextRole}">Make ${nextRole}</button>
-        <button class="btn btn-outline btn-sm" data-action="team:update-active" data-user-id="${esc(user.id)}" data-username="${esc(user.username)}" data-next-active="${nextActive}">${nextActive ? "Enable" : "Disable"}</button>
-      </div></td>
-    </tr>`;
-  }).join("") : `<tr><td colspan="5" class="empty">No admin users found.</td></tr>`;
+    const row = document.createElement("tr");
+
+    const identityCell = document.createElement("td");
+    const displayName = document.createElement("strong");
+    displayName.textContent = String(user.displayName || "");
+    const username = document.createElement("div");
+    username.className = "client-sub";
+    username.textContent = `@${user.username || ""}`;
+    identityCell.append(displayName, username);
+
+    const roleCell = document.createElement("td");
+    const role = document.createElement("span");
+    role.className = "team-role";
+    role.textContent = String(user.role || "");
+    roleCell.append(role);
+
+    const statusCell = document.createElement("td");
+    const status = document.createElement("span");
+    status.className = `status-badge ${user.isActive ? "status-active" : "status-inactive"}`;
+    status.textContent = user.isActive ? "Active" : "Disabled";
+    statusCell.append(status);
+
+    const lastLoginCell = document.createElement("td");
+    lastLoginCell.textContent = user.lastLoginAt ? toDeviceDateTime(user.lastLoginAt) : "Never";
+
+    const actionsCell = document.createElement("td");
+    const actions = document.createElement("div");
+    actions.className = "team-actions";
+    const roleButton = document.createElement("button");
+    roleButton.className = "btn btn-outline btn-sm";
+    roleButton.dataset.action = "team:update-role";
+    roleButton.dataset.userId = String(user.id || "");
+    roleButton.dataset.username = String(user.username || "");
+    roleButton.dataset.nextRole = nextRole;
+    roleButton.textContent = `Make ${nextRole}`;
+    const activeButton = document.createElement("button");
+    activeButton.className = "btn btn-outline btn-sm";
+    activeButton.dataset.action = "team:update-active";
+    activeButton.dataset.userId = String(user.id || "");
+    activeButton.dataset.username = String(user.username || "");
+    activeButton.dataset.nextActive = String(nextActive);
+    activeButton.textContent = nextActive ? "Enable" : "Disable";
+    actions.append(roleButton, activeButton);
+    actionsCell.append(actions);
+
+    row.append(identityCell, roleCell, statusCell, lastLoginCell, actionsCell);
+    fragment.append(row);
+  }
+  tableBody.replaceChildren(fragment);
 }
 
 async function createAdminUser(event) {
