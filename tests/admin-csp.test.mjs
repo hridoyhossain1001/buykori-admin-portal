@@ -101,9 +101,12 @@ test("clients directory uses named actions", async () => {
   assert.ok(renderStart >= 0 && renderEnd > renderStart, "renderClientRows must be present");
   assert.doesNotMatch(markup, /data-admin-(?:click|change|input|submit)=/);
   assert.doesNotMatch(renderSource, /data-admin-(?:click|change|input|submit)=/);
+  assert.doesNotMatch(renderSource, /\.innerHTML\s*=/);
   assert.match(markup, /data-action="clients:open-create"/);
-  assert.match(renderSource, /data-action="clients:open-client"/);
-  assert.match(renderSource, /data-action="clients:toggle-active"/);
+  assert.match(renderSource, /dataset\.action = "clients:open-client"/);
+  assert.match(renderSource, /dataset\.action = "clients:toggle-active"/);
+  assert.match(renderSource, /\.textContent\s*=/);
+  assert.match(renderSource, /replaceChildren\(/);
 });
 
 test("client creation uses a named submit action", async () => {
