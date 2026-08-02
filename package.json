@@ -4,7 +4,7 @@
   "private": true,
   "description": "Static admin frontend for admin.buykori.app",
   "scripts": {
-    "lint": "eslint . --max-warnings=44",
+    "lint": "eslint . --max-warnings=43",
     "lint:fix": "eslint . --fix",
     "typecheck": "tsc --noEmit",
     "format": "prettier --write .",

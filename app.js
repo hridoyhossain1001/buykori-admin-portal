@@ -573,18 +573,23 @@ function renderCourierQueueBanner(queue) {
   const deadJobs = Number(queue.dead || 0);
   if (status === "healthy" && activeJobs === 0 && deadJobs === 0) {
     banner.style.display = "none";
-    banner.innerHTML = "";
+    banner.replaceChildren();
     return;
   }
   banner.style.display = "flex";
   banner.className = `queue-health-banner queue-health-${status === "critical" ? "critical" : status === "warning" ? "warning" : "healthy"}`;
-  banner.innerHTML = `
-    <div>
-      <strong>Courier queue ${esc(status)}</strong>
-      <span>${esc(queueStatusText(queue))}</span>
-    </div>
-    <button class="btn btn-outline btn-sm" data-action="dashboard:open-tab" data-tab-target="courierQueue">Open Queue</button>
-  `;
+  const summary = document.createElement("div");
+  const title = document.createElement("strong");
+  title.textContent = `Courier queue ${status}`;
+  const detail = document.createElement("span");
+  detail.textContent = queueStatusText(queue);
+  summary.append(title, detail);
+  const openQueue = document.createElement("button");
+  openQueue.className = "btn btn-outline btn-sm";
+  openQueue.dataset.action = "dashboard:open-tab";
+  openQueue.dataset.tabTarget = "courierQueue";
+  openQueue.textContent = "Open Queue";
+  banner.replaceChildren(summary, openQueue);
 }
 
 function renderCourierQueueRefreshMeta() {

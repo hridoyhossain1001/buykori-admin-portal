@@ -55,7 +55,7 @@ test("dashboard uses named actions instead of expression attributes", async () =
     const source = appJs.slice(start, end);
     assert.ok(start >= 0 && end > start, `${functionName} must be present`);
     assert.doesNotMatch(source, /data-admin-(?:click|change|input|submit)=/);
-    assert.match(source, /data-action="dashboard:/);
+    assert.match(source, /(?:data-action="dashboard:|dataset\.action = "dashboard:)/);
   }
 });
 
@@ -333,4 +333,20 @@ test("team rows render API data with DOM text APIs", async () => {
   assert.doesNotMatch(source, /\.innerHTML\s*=/);
   assert.match(source, /\.textContent\s*=/);
   assert.match(source, /replaceChildren\(/);
+});
+
+test("courier health banner renders with DOM text APIs", async () => {
+  const appJs = await read("app.js");
+  const renderStart = appJs.indexOf("function renderCourierQueueBanner(");
+  const renderEnd = appJs.indexOf("\nfunction renderCourierQueueRefreshMeta", renderStart);
+  const source = appJs.slice(renderStart, renderEnd);
+
+  assert.ok(
+    renderStart >= 0 && renderEnd > renderStart,
+    "renderCourierQueueBanner must be present"
+  );
+  assert.doesNotMatch(source, /\.innerHTML\s*=/);
+  assert.match(source, /\.textContent\s*=/);
+  assert.match(source, /replaceChildren\(/);
+  assert.match(source, /dataset\.action = "dashboard:open-tab"/);
 });
