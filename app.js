@@ -5,10 +5,11 @@ const ADMIN_CSRF_COOKIE = "buykori_admin_csrf";
 const ADMIN_CSRF_HEADER = "X-Admin-CSRF-Token";
 const CSRF_MUTATION_METHODS = new Set(["POST", "PATCH", "DELETE"]);
 const PLAN_DEFAULTS = Object.freeze({
-  free: Object.freeze({ events: 5000, orders: 100 }),
+  free: Object.freeze({ events: 10000, orders: 50 }),
   trial: Object.freeze({ events: 25000, orders: 300 }),
+  starter: Object.freeze({ events: 200000, orders: 500 }),
   growth: Object.freeze({ events: 500000, orders: 2000 }),
-  scale: Object.freeze({ events: 1000000, orders: 10000 }),
+  pro: Object.freeze({ events: 1000000, orders: 5000 }),
   agency: Object.freeze({ events: 0, orders: 0 })
 });
 let adminCsrfToken = "";
