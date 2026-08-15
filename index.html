@@ -158,7 +158,7 @@
       <header class="topbar">
         <div class="search-box">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
-          <input id="searchInput" placeholder="Search clients, events, IPs..." data-action="shell:search">
+          <input id="searchInput" placeholder="Filter clients and connected sites..." data-action="shell:search" aria-label="Filter clients and connected sites">
           <span class="kbd">CTRL K</span>
         </div>
         <div class="topbar-right">
@@ -167,17 +167,24 @@
             <span class="theme-icon-light">☀️ <span class="theme-btn-text">LIGHT</span></span>
             <span class="theme-icon-dark">🌙 <span class="theme-btn-text">DARK</span></span>
           </button>
-          <button class="icon-btn" title="Notifications">
+          <button type="button" class="icon-btn" title="Notifications" aria-label="Open notification operations" data-action="shell:open-notifications">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M18 8a6 6 0 00-12 0c0 7-3 7-3 7h18s-3 0-3-7M13.73 21a2 2 0 01-3.46 0"/></svg>
             <span class="badge-dot" id="alertCount">0</span>
           </button>
-          <button class="icon-btn" title="Help">
+          <button type="button" class="icon-btn" title="Help and support" aria-label="Open support requests" data-action="shell:open-help">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 115.82 1c0 2-3 2-3 4M12 17h.01"/></svg>
           </button>
         </div>
       </header>
 
       <main class="content">
+        <div id="dataHealthBanner" class="data-health-banner" role="status" aria-live="polite" hidden>
+          <div>
+            <strong>Some admin data is temporarily unavailable.</strong>
+            <span id="dataHealthDetail"></span>
+          </div>
+          <button type="button" class="btn btn-outline btn-sm" data-action="shell:retry-degraded">Retry data</button>
+        </div>
         <section id="dashboard" class="section active">
           <div class="page-header">
             <div>
@@ -930,36 +937,36 @@
   </div>
 
   <!-- Client Management Modal -->
-  <div id="modalOverlay" class="modal-overlay" data-action="client-modal:close" data-self-only="true">
-    <div class="modal">
+  <div id="modalOverlay" class="modal-overlay" data-action="client-modal:close" data-self-only="true" aria-hidden="true">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
       <div class="modal-header">
         <div class="modal-title" id="modalTitle">Manage Client</div>
-        <button class="modal-close" data-action="client-modal:close">&times;</button>
+        <button type="button" class="modal-close" data-action="client-modal:close" aria-label="Close client management">&times;</button>
       </div>
       <div class="modal-body">
         <div id="client360QuickSummary" class="client360-quick"></div>
-        <div class="tabs">
-          <button class="tab-btn active" data-action="client-modal:switch-tab" data-modal-tab="edit">Client</button>
-          <button class="tab-btn" data-action="client-modal:switch-tab" data-modal-tab="keys">Keys</button>
-          <button class="tab-btn" data-action="client-modal:switch-tab" data-modal-tab="instructions">API Setup</button>
-          <button class="tab-btn" data-action="client-modal:switch-tab" data-modal-tab="intel">360 & Notes</button>
-          <button class="tab-btn" data-action="client-modal:switch-tab" data-modal-tab="danger">Danger Zone</button>
+        <div class="tabs" role="tablist" aria-label="Client management views">
+          <button id="clientTabEdit" class="tab-btn active" role="tab" aria-selected="true" aria-controls="tab-edit" data-action="client-modal:switch-tab" data-modal-tab="edit">Client</button>
+          <button id="clientTabKeys" class="tab-btn" role="tab" aria-selected="false" aria-controls="tab-keys" tabindex="-1" data-action="client-modal:switch-tab" data-modal-tab="keys">Keys</button>
+          <button id="clientTabInstructions" class="tab-btn" role="tab" aria-selected="false" aria-controls="tab-instructions" tabindex="-1" data-action="client-modal:switch-tab" data-modal-tab="instructions">API Setup</button>
+          <button id="clientTabIntel" class="tab-btn" role="tab" aria-selected="false" aria-controls="tab-intel" tabindex="-1" data-action="client-modal:switch-tab" data-modal-tab="intel">360 & Notes</button>
+          <button id="clientTabDanger" class="tab-btn" role="tab" aria-selected="false" aria-controls="tab-danger" tabindex="-1" data-action="client-modal:switch-tab" data-modal-tab="danger">Danger Zone</button>
         </div>
         
-        <div id="tab-edit" class="tab-content active form-card" style="padding:0">
+        <div id="tab-edit" class="tab-content active form-card" style="padding:0" role="tabpanel" aria-labelledby="clientTabEdit">
           <div class="form-grid">
-            <div class="field"><label>Name</label><input id="editName"></div>
-            <div class="field"><label>Domain</label><input id="editDomain"></div>
+            <div class="field"><label for="editName">Name</label><input id="editName"></div>
+            <div class="field"><label for="editDomain">Domain</label><input id="editDomain"></div>
             <div class="field" style="display:flex;align-items:center;gap:12px;padding-top:20px;">
               <input type="checkbox" id="editActive" style="width:16px;height:16px;cursor:pointer">
-              <label style="margin:0;cursor:pointer">Active Client</label>
+              <label for="editActive" style="margin:0;cursor:pointer">Active Client</label>
             </div>
           </div>
 
           <h3 style="margin:24px 0 12px;font-size:12px;color:var(--text-main);text-transform:uppercase;font-weight:800;letter-spacing:0.05em">Plan & Quotas</h3>
           <div class="form-grid">
             <div class="field">
-              <label>Plan Tier</label>
+              <label for="editPlanTier">Plan Tier</label>
               <select id="editPlanTier">
                 <option value="free">Free</option>
                 <option value="starter">Starter</option>
@@ -969,7 +976,7 @@
               </select>
             </div>
             <div class="field">
-              <label>Billing Status</label>
+              <label for="editBillingStatus">Billing Status</label>
               <select id="editBillingStatus">
                 <option value="free">Free</option>
                 <option value="trial">Trial</option>
@@ -979,36 +986,36 @@
                 <option value="manual_invoice">Manual Invoice</option>
               </select>
             </div>
-            <div class="field"><label>Monthly Event Limit</label><input type="number" id="editLimit" min="0" step="1000" placeholder="e.g. 500000"></div>
-            <div class="field"><label>Monthly Order Limit (Plan-derived)</label><input type="number" id="editOrderLimit" readonly aria-readonly="true" title="Automatically determined by the selected plan; change the plan to update this limit"></div>
-            <div class="field"><label>Daily Event Quota</label><input type="number" id="editDailyQuota" placeholder="e.g. 100000"></div>
-            <div class="field"><label>Rate Limit (Req/Min)</label><input type="number" id="editRateLimit" placeholder="e.g. 5000"></div>
+            <div class="field"><label for="editLimit">Monthly Event Limit</label><input type="number" id="editLimit" min="0" step="1000" placeholder="e.g. 500000"></div>
+            <div class="field"><label for="editOrderLimit">Monthly Order Limit (Plan-derived)</label><input type="number" id="editOrderLimit" readonly aria-readonly="true" title="Automatically determined by the selected plan; change the plan to update this limit"></div>
+            <div class="field"><label for="editDailyQuota">Daily Event Quota</label><input type="number" id="editDailyQuota" placeholder="e.g. 100000"></div>
+            <div class="field"><label for="editRateLimit">Rate Limit (Req/Min)</label><input type="number" id="editRateLimit" placeholder="e.g. 5000"></div>
           </div>
 
           <h3 style="margin:24px 0 12px;font-size:12px;color:var(--text-main);text-transform:uppercase;font-weight:800;letter-spacing:0.05em">Tracking Setup</h3>
           <div class="form-grid">
-            <div class="field"><label>Facebook Test Event Code</label><input id="editFbTestCode" placeholder="Optional (e.g. TEST12345)"></div>
-            <div class="field"><label>TikTok Test Event Code</label><input id="editTiktokTestCode" placeholder="Optional (e.g. TEST12345)"></div>
-            <div class="field" style="grid-column: span 2;"><label>Outbound Webhook URL</label><input id="editWebhookUrl" placeholder="Optional (e.g. https://example.com/webhook)"></div>
+            <div class="field"><label for="editFbTestCode">Facebook Test Event Code</label><input id="editFbTestCode" placeholder="Optional (e.g. TEST12345)"></div>
+            <div class="field"><label for="editTiktokTestCode">TikTok Test Event Code</label><input id="editTiktokTestCode" placeholder="Optional (e.g. TEST12345)"></div>
+            <div class="field" style="grid-column: span 2;"><label for="editWebhookUrl">Outbound Webhook URL</label><input id="editWebhookUrl" placeholder="Optional (e.g. https://example.com/webhook)"></div>
           </div>
 
           <h3 style="margin:24px 0 12px;font-size:12px;color:var(--text-main);text-transform:uppercase;font-weight:800;letter-spacing:0.05em">Integrations</h3>
           <div class="form-grid">
             <div class="field" style="display:flex;align-items:center;gap:12px;">
               <input type="checkbox" id="editFb" style="width:16px;height:16px;cursor:pointer">
-              <label style="margin:0;cursor:pointer">Meta CAPI</label>
+              <label for="editFb" style="margin:0;cursor:pointer">Meta CAPI</label>
             </div>
             <div class="field" style="display:flex;align-items:center;gap:12px;">
               <input type="checkbox" id="editTiktok" style="width:16px;height:16px;cursor:pointer">
-              <label style="margin:0;cursor:pointer">TikTok Events</label>
+              <label for="editTiktok" style="margin:0;cursor:pointer">TikTok Events</label>
             </div>
             <div class="field" style="display:flex;align-items:center;gap:12px;">
               <input type="checkbox" id="editGa4" style="width:16px;height:16px;cursor:pointer">
-              <label style="margin:0;cursor:pointer">GA4 Measurement</label>
+              <label for="editGa4" style="margin:0;cursor:pointer">GA4 Measurement</label>
             </div>
             <div class="field" style="display:flex;align-items:center;gap:12px;">
               <input type="checkbox" id="editDeferred" style="width:16px;height:16px;cursor:pointer">
-              <label style="margin:0;cursor:pointer">Deferred Purchase</label>
+              <label for="editDeferred" style="margin:0;cursor:pointer">Deferred Purchase</label>
             </div>
           </div>
 
@@ -1017,22 +1024,22 @@
           <div class="form-grid">
             <div class="field" style="display:flex;align-items:center;gap:12px;">
               <input type="checkbox" id="editOwnerNotifyWhatsApp" style="width:16px;height:16px;cursor:pointer">
-              <label style="margin:0;cursor:pointer">Send owner order alerts</label>
+              <label for="editOwnerNotifyWhatsApp" style="margin:0;cursor:pointer">Send owner order alerts</label>
             </div>
-            <div class="field"><label>Owner WhatsApp Number</label><input id="editOwnerWhatsAppNumber" placeholder="e.g. 88018..."></div>
+            <div class="field"><label for="editOwnerWhatsAppNumber">Owner WhatsApp Number</label><input id="editOwnerWhatsAppNumber" placeholder="e.g. 88018..."></div>
             <div class="field" style="grid-column: span 2;">
-              <label>Sender Instance</label>
+              <label for="editWhatsAppInstance">Sender Instance</label>
               <select id="editWhatsAppInstance"></select>
             </div>
           </div>
           </div>
           <div style="margin-top:24px;display:flex;gap:12px;align-items:center">
-            <button type="button" class="btn btn-primary" data-action="client-modal:save">Save Changes</button>
+            <button type="button" id="clientModalSave" class="btn btn-primary" data-action="client-modal:save" disabled>Save Changes</button>
             <span id="editMsg" class="notice" style="margin:0"></span>
           </div>
         </div>
         
-        <div id="tab-keys" class="tab-content">
+        <div id="tab-keys" class="tab-content" role="tabpanel" aria-labelledby="clientTabKeys" hidden>
           <p style="color:var(--text-muted);margin-bottom:16px">Manage login and tracking keys for this client. Rotating a key will break old connections immediately.</p>
           
           <label style="color:var(--text-main);font-weight:800;font-size:10px;text-transform:uppercase;display:block;margin-bottom:8px;letter-spacing:0.05em">API Key (Data Ingestion)</label>
@@ -1059,7 +1066,7 @@
           </div>
         </div>
         
-        <div id="tab-instructions" class="tab-content">
+        <div id="tab-instructions" class="tab-content" role="tabpanel" aria-labelledby="clientTabInstructions" hidden>
           <p style="color:var(--text-muted);margin-bottom:16px">Share these setup details with the client or developer.</p>
           
           <label style="color:var(--text-main);font-weight:800;font-size:10px;text-transform:uppercase;display:block;margin-bottom:8px;letter-spacing:0.05em">API Endpoint</label>
@@ -1082,11 +1089,11 @@
           </div>
         </div>
 
-        <div id="tab-intel" class="tab-content">
+        <div id="tab-intel" class="tab-content" role="tabpanel" aria-labelledby="clientTabIntel" hidden>
           <div id="client360Summary"></div>
           <h3 style="margin:24px 0 12px;font-size:12px;color:var(--text-main);text-transform:uppercase;font-weight:800;letter-spacing:0.05em">Support Notes</h3>
           <div class="field">
-            <label>Add Internal Note</label>
+            <label for="supportNoteInput">Add Internal Note</label>
             <textarea id="supportNoteInput" rows="3" placeholder="Call summary, feedback, upgrade interest, setup blocker..."></textarea>
           </div>
           <div style="margin-top:12px;display:flex;gap:12px;align-items:center">
@@ -1095,7 +1102,7 @@
           <div id="supportNotesList" class="support-notes-list"></div>
         </div>
         
-        <div id="tab-danger" class="tab-content">
+        <div id="tab-danger" class="tab-content" role="tabpanel" aria-labelledby="clientTabDanger" hidden>
           <div style="padding:20px;border:1px solid rgba(239,68,68,0.25);border-radius:12px;background:rgba(239,68,68,0.05)">
             <h3 style="color:var(--danger);margin-bottom:8px;font-size:15px;font-weight:800">Delete Client</h3>
             <p style="color:var(--text-muted);margin-bottom:16px;font-size:13px">Once you delete a client, there is no going back. All events, logs, and authentication keys will be permanently destroyed.</p>
@@ -1107,7 +1114,7 @@
     </div>
   </div>
 
-  <div id="adminDecisionOverlay" class="modal-overlay decision-overlay" data-action="admin-decision:close" data-self-only="true">
+  <div id="adminDecisionOverlay" class="modal-overlay decision-overlay" data-action="admin-decision:close" data-self-only="true" aria-hidden="true">
     <div class="modal decision-modal" role="dialog" aria-modal="true" aria-labelledby="adminDecisionTitle">
       <div class="modal-header">
         <div class="modal-title" id="adminDecisionTitle">Confirm Action</div>
@@ -1117,7 +1124,7 @@
         <p id="adminDecisionMessage" class="decision-message"></p>
         <p id="adminDecisionDetail" class="decision-detail"></p>
         <div id="adminDecisionInputWrap" class="field decision-input-wrap" style="display:none">
-          <label id="adminDecisionInputLabel">Reason</label>
+          <label id="adminDecisionInputLabel" for="adminDecisionInput">Reason</label>
           <textarea id="adminDecisionInput" rows="3"></textarea>
           <div id="adminDecisionError" class="decision-error"></div>
         </div>
@@ -1129,7 +1136,7 @@
     </div>
   </div>
 
-  <div id="queueDrawerOverlay" class="drawer-overlay" data-action="courier:close-drawer" data-self-only="true">
+  <div id="queueDrawerOverlay" class="drawer-overlay" data-action="courier:close-drawer" data-self-only="true" aria-hidden="true">
     <aside class="queue-drawer" role="dialog" aria-modal="true" aria-labelledby="queueDrawerTitle">
       <div class="drawer-header">
         <div>
@@ -1146,10 +1153,10 @@
     </aside>
   </div>
 
-  <div id="notificationDrawerOverlay" class="drawer-overlay" data-action="notification:close-drawer" data-self-only="true">
+  <div id="notificationDrawerOverlay" class="drawer-overlay" data-action="notification:close-drawer" data-self-only="true" aria-hidden="true">
     <aside class="queue-drawer" role="dialog" aria-modal="true" aria-labelledby="notificationDrawerTitle">
       <div class="drawer-header">
-        <div><div class="drawer-kicker">WhatsApp Delivery</div><h2 id="notificationDrawerTitle">Notification Job</h2></div>
+        <div><div class="drawer-kicker">Notification Delivery</div><h2 id="notificationDrawerTitle">Notification Job</h2></div>
         <button class="modal-close" data-action="notification:close-drawer" aria-label="Close">&times;</button>
       </div>
       <div id="notificationDrawerBody" class="drawer-body"></div>

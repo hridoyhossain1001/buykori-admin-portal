@@ -45,7 +45,11 @@ const state = {
     support: 1,
     payments: 1
   },
-  notificationOpsTab: "payments"
+  notificationOpsTab: "payments",
+  dataLoadStatus: {
+    failedSources: [],
+    checkedAt: null
+  }
 };
 const NOTIFICATION_PAGE_SIZE = 5;
 const modalSecrets = new Map();
@@ -145,7 +149,7 @@ function isAuthError(error) {
   return error?.status === 401 || error?.status === 403;
 }
 
-async function apiOrFallback(path, fallback, label) {
+async function apiOrFallback(path, fallback, label, failedSources) {
   try {
     return await api(path);
   } catch (error) {
@@ -156,6 +160,7 @@ async function apiOrFallback(path, fallback, label) {
     } catch (retryError) {
       if (isAuthError(retryError)) throw retryError;
       console.warn(`Admin data source failed after retry: ${label || path}`, retryError);
+      failedSources?.add(label || path);
       return fallback;
     }
   }
@@ -261,19 +266,20 @@ function logout() {
 async function loadAll(options = {}) {
   const refreshDashboard = Boolean(options.refreshDashboard);
   const summaryUrl = `/admin/api/summary?window=${encodeURIComponent(state.dashboardWindow)}${refreshDashboard ? "&refresh=1" : ""}`;
+  const failedSources = new Set();
   const [summary, clients, health, courierQueue, intelligence, serverHealth, siteBindings, incompleteOps, notificationJobs, whatsappInstances, supportTickets, paymentReviews] = await Promise.all([
-    apiOrFallback(summaryUrl, state.summary || {}, "summary"),
-    apiOrFallback("/admin/api/clients", { clients: state.clients || [] }, "clients"),
-    apiOrFallback("/admin/clients/health", { clients: state.health || [] }, "client health"),
-    apiOrFallback("/admin/api/courier-booking-queue?limit=20", state.courierQueue || {}, "courier queue"),
-    apiOrFallback("/admin/api/client-intelligence", state.intelligence || { clients: [] }, "client intelligence"),
-    apiOrFallback("/admin/api/server-health", state.serverHealth || {}, "server health"),
-    apiOrFallback("/admin/api/site-bindings?status=all", { bindings: [] }, "site bindings"),
-    apiOrFallback("/admin/api/incomplete-checkouts?limit=100", { counts: {}, items: [], top_clients: [], total: 0 }, "incomplete checkouts"),
-    apiOrFallback("/admin/notification-jobs?limit=100", { total: 0, items: [] }, "notification jobs"),
-    apiOrFallback("/admin/whatsapp-instances", [], "whatsapp instances"),
-    apiOrFallback("/admin/api/support-tickets", state.supportTickets || { tickets: [], openCount: 0 }, "support tickets"),
-    apiOrFallback("/admin/api/payment-reviews", state.paymentReviews || { payments: [] }, "payment reviews")
+    apiOrFallback(summaryUrl, state.summary || {}, "Summary", failedSources),
+    apiOrFallback("/admin/api/clients", { clients: state.clients || [] }, "Clients", failedSources),
+    apiOrFallback("/admin/clients/health", { clients: state.health || [] }, "Client health", failedSources),
+    apiOrFallback("/admin/api/courier-booking-queue?limit=20", state.courierQueue || {}, "Courier queue", failedSources),
+    apiOrFallback("/admin/api/client-intelligence", state.intelligence || { clients: [] }, "Client intelligence", failedSources),
+    apiOrFallback("/admin/api/server-health", state.serverHealth || {}, "Server health", failedSources),
+    apiOrFallback("/admin/api/site-bindings?status=all", { bindings: state.siteBindings || [] }, "Connected sites", failedSources),
+    apiOrFallback("/admin/api/incomplete-checkouts?limit=100", state.incompleteOps || { counts: {}, items: [], top_clients: [], total: 0 }, "Recovery operations", failedSources),
+    apiOrFallback("/admin/notification-jobs?limit=100", state.notificationJobs || { total: 0, items: [] }, "Notification jobs", failedSources),
+    apiOrFallback("/admin/whatsapp-instances", state.whatsappInstances || [], "Legacy WhatsApp records", failedSources),
+    apiOrFallback("/admin/api/support-tickets", state.supportTickets || { tickets: [], openCount: 0 }, "Support tickets", failedSources),
+    apiOrFallback("/admin/api/payment-reviews", state.paymentReviews || { payments: [] }, "Payment reviews", failedSources)
   ]);
   state.summary = summary;
   state.clients = clients.clients || [];
@@ -288,6 +294,10 @@ async function loadAll(options = {}) {
   state.paymentReviews = paymentReviews || { payments: [] };
   state.siteBindings = siteBindings.bindings || [];
   state.courierQueueLastRefresh = new Date();
+  state.dataLoadStatus = {
+    failedSources: [...failedSources],
+    checkedAt: new Date()
+  };
   renderAll();
   startCourierQueueAutoRefresh();
   
@@ -1565,7 +1575,6 @@ function renderNotificationOps() {
   const items = jobs.items || [];
   const failed = items.filter(item => item.status === "failed").length;
   const pending = items.filter(item => item.status === "pending").length;
-  const sent = items.filter(item => item.status === "sent").length;
   if ($("notificationTotal")) $("notificationTotal").textContent = fmt(jobs.total || items.length);
   if ($("notificationPending")) $("notificationPending").textContent = fmt(pending);
   if ($("notificationFailed")) $("notificationFailed").textContent = fmt(failed);
@@ -1580,18 +1589,14 @@ function renderNotificationOps() {
   const jobsAtRisk = Number(jobs.actionable_count || 0);
   if ($("whatsappHealthAlert")) {
     const alert = $("whatsappHealthAlert");
-    const legacyWhatsAppSuspended = true;
-    if (legacyWhatsAppSuspended) {
-      alert.style.display = "none";
-      alert.textContent = "";
-    } else if (!activeSenders.length || assignedInactiveSenders.length || recentFailovers.length) {
+    if (activeSenders.length || assignedInactiveSenders.length || recentFailovers.length) {
       alert.style.display = "block";
-      alert.className = `queue-health-banner ${!activeSenders.length || assignedInactiveSenders.length ? "queue-alert-critical" : "queue-alert-warning"}`;
-      alert.textContent = !activeSenders.length
-        ? `No active WhatsApp sender is available. ${jobsAtRisk ? `${jobsAtRisk} notification job(s) are waiting or retryable. ` : ""}Pair or activate a sender before notifications can be delivered.`
-        : assignedInactiveSenders.length
-          ? `${assignedInactiveSenders.length} disconnected sender(s) still have assigned clients. Reassign those clients to an active sender.`
-          : `${recentFailovers.length} recent notification job(s) used automatic sender failover. Review their delivery history below.`;
+      alert.className = `queue-health-banner ${assignedInactiveSenders.length || jobsAtRisk ? "queue-alert-critical" : "queue-alert-warning"}`;
+      alert.textContent = assignedInactiveSenders.length
+        ? `${assignedInactiveSenders.length} preserved WhatsApp sender record(s) are disconnected but still assigned to clients. Clear those legacy assignments before migration.`
+        : activeSenders.length
+          ? `${activeSenders.length} preserved WhatsApp sender record(s) are still marked active while legacy delivery is suspended. Verify that no client workflow depends on them.`
+          : `${recentFailovers.length} recent legacy notification job(s) recorded sender failover. Review their delivery history below.`;
     } else {
       alert.style.display = "none";
       alert.textContent = "";
@@ -1789,12 +1794,12 @@ function openNotificationJobDrawer(jobId) {
       <div class="drawer-block"><span>Message / Error</span><pre>${esc(job.error_message || job.message_preview || "No message preview recorded.")}</pre></div>
     `;
   }
-  if (overlay) overlay.style.display = "flex";
+  if (overlay) openManagedSurface(overlay, overlay.querySelector(".modal-close"));
 }
 
 function closeNotificationJobDrawer() {
   const overlay = $("notificationDrawerOverlay");
-  if (overlay) overlay.style.display = "none";
+  if (overlay) closeManagedSurface(overlay);
 }
 
 function renderWhatsAppInstanceSelect(selectedId) {
@@ -2232,13 +2237,13 @@ function renderCourierJobDrawer(jobId) {
 function openCourierJobDrawer(jobId) {
   renderCourierJobDrawer(jobId);
   const overlay = $("queueDrawerOverlay");
-  if (overlay) overlay.style.display = "flex";
+  if (overlay) openManagedSurface(overlay, overlay.querySelector(".modal-close"));
 }
 
 function closeCourierJobDrawer() {
   state.activeCourierJobId = null;
   const overlay = $("queueDrawerOverlay");
-  if (overlay) overlay.style.display = "none";
+  if (overlay) closeManagedSurface(overlay);
 }
 
 async function retryCourierBookingJob(jobId) {
@@ -2291,6 +2296,7 @@ function trimTime(value) {
 }
 
 function renderAll() {
+  renderDataLoadStatus();
   renderSummary();
   renderIntegrationRows();
   renderClientRows();
@@ -2305,6 +2311,23 @@ function renderAll() {
   renderPaymentHistory();
   renderClientIntelligence();
   renderOpsMonitor();
+}
+
+function renderDataLoadStatus() {
+  const banner = $("dataHealthBanner");
+  const detail = $("dataHealthDetail");
+  if (!banner || !detail) return;
+  const failedSources = state.dataLoadStatus?.failedSources || [];
+  if (!failedSources.length) {
+    banner.hidden = true;
+    detail.textContent = "";
+    return;
+  }
+  const checkedAt = state.dataLoadStatus.checkedAt instanceof Date
+    ? state.dataLoadStatus.checkedAt.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })
+    : "just now";
+  detail.textContent = `Unavailable: ${failedSources.join(", ")}. Showing the most recent available values. Last retry: ${checkedAt}.`;
+  banner.hidden = false;
 }
 
 async function refreshRecoveryOps(options = {}) {
@@ -2595,6 +2618,11 @@ function setTab(tab) {
   if (tab === "team") refreshAdminUsers();
 }
 
+function openNotificationCenter(tab = "jobs") {
+  setTab("notificationOps");
+  setNotificationOpsTab(tab);
+}
+
 function applyInitialRoute() {
   const params = new URLSearchParams(window.location.search);
   if (params.get("tab") !== "notificationOps") return;
@@ -2607,6 +2635,12 @@ function applyInitialRoute() {
     row.classList.add("support-ticket-target");
     row.scrollIntoView({ behavior: "smooth", block: "center" });
   });
+}
+
+function csvCell(value) {
+  let text = String(value ?? "");
+  if (/^[=+\-@\t\r\n]/.test(text)) text = `'${text}`;
+  return `"${text.replaceAll('"', '""')}"`;
 }
 
 function downloadReport() {
@@ -2630,7 +2664,7 @@ function downloadReport() {
     ["Client", `Events ${dashboardWindowShortLabel()}`],
     ...state.clients.map(client => [client.name, Number(summary.client_events?.[String(client.id)] || 0)])
   ];
-  const csv = rows.map(row => row.map(cell => `"${String(cell ?? "").replaceAll('"', '""')}"`).join(",")).join("\n");
+  const csv = rows.map(row => row.map(csvCell).join(",")).join("\n");
   const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
@@ -2808,6 +2842,18 @@ const ADMIN_ACTIONS = Object.freeze({
   "shell:search": {
     event: "input",
     run: () => handleSearchInput()
+  },
+  "shell:open-notifications": {
+    event: "click",
+    run: () => openNotificationCenter("jobs")
+  },
+  "shell:open-help": {
+    event: "click",
+    run: () => openNotificationCenter("support")
+  },
+  "shell:retry-degraded": {
+    event: "click",
+    run: () => loadAll({ refreshDashboard: true })
   },
   "shell:toggle-theme": {
     event: "click",
@@ -3021,6 +3067,72 @@ document.addEventListener("change", dispatchNamedAdminAction);
 document.addEventListener("input", dispatchNamedAdminAction);
 document.addEventListener("submit", dispatchNamedAdminAction);
 
+const managedSurfaceIds = ["adminDecisionOverlay", "notificationDrawerOverlay", "queueDrawerOverlay", "modalOverlay"];
+const managedSurfaceFocusOrigins = new Map();
+
+function visibleManagedSurface() {
+  return managedSurfaceIds
+    .map(id => $(id))
+    .find(overlay => overlay && getComputedStyle(overlay).display !== "none") || null;
+}
+
+function focusableSurfaceElements(overlay) {
+  return [...overlay.querySelectorAll(
+    'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+  )].filter(element => element.getClientRects().length > 0 && element.getAttribute("aria-hidden") !== "true");
+}
+
+function openManagedSurface(overlay, initialFocus) {
+  if (getComputedStyle(overlay).display === "none") {
+    const origin = document.activeElement;
+    if (origin instanceof HTMLElement) managedSurfaceFocusOrigins.set(overlay.id, origin);
+  }
+  overlay.style.display = "flex";
+  overlay.setAttribute("aria-hidden", "false");
+  window.requestAnimationFrame(() => {
+    const target = initialFocus || focusableSurfaceElements(overlay)[0];
+    target?.focus();
+  });
+}
+
+function closeManagedSurface(overlay) {
+  const origin = managedSurfaceFocusOrigins.get(overlay.id);
+  managedSurfaceFocusOrigins.delete(overlay.id);
+  if (origin?.isConnected) origin.focus({ preventScroll: true });
+  else if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
+  overlay.style.display = "none";
+  overlay.setAttribute("aria-hidden", "true");
+}
+
+function handleManagedSurfaceKeydown(event) {
+  const overlay = visibleManagedSurface();
+  if (!overlay) return false;
+  if (event.key === "Escape") {
+    event.preventDefault();
+    if (overlay.id === "adminDecisionOverlay") closeAdminDecision(false);
+    else if (overlay.id === "notificationDrawerOverlay") closeNotificationJobDrawer();
+    else if (overlay.id === "queueDrawerOverlay") closeCourierJobDrawer();
+    else closeClientModal();
+    return true;
+  }
+  if (event.key !== "Tab") return false;
+  const focusable = focusableSurfaceElements(overlay);
+  if (!focusable.length) {
+    event.preventDefault();
+    return true;
+  }
+  const first = focusable[0];
+  const last = focusable[focusable.length - 1];
+  if (event.shiftKey && document.activeElement === first) {
+    event.preventDefault();
+    last.focus();
+  } else if (!event.shiftKey && document.activeElement === last) {
+    event.preventDefault();
+    first.focus();
+  }
+  return true;
+}
+
 document.querySelectorAll(".nav-item[data-tab]").forEach(button => button.addEventListener("click", () => setTab(button.dataset.tab)));
 $("adminLoginForm")?.addEventListener("submit", event => {
   event.preventDefault();
@@ -3030,6 +3142,7 @@ $("adminPassEye")?.addEventListener("click", toggleAdminPassword);
 $("editPlanTier")?.addEventListener("change", syncBillingForPlanSelection);
 $("editBillingStatus")?.addEventListener("change", syncPlanQuotaFields);
 document.addEventListener("keydown", event => {
+  if (handleManagedSurfaceKeydown(event)) return;
   if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "k") {
     event.preventDefault();
     $("searchInput")?.focus();
@@ -3101,6 +3214,8 @@ bootstrapAdminPortal().catch(error => {
 
 // Modal Functions
 let currentClientId = null;
+let clientModalRequestId = 0;
+let clientModalAbortController = null;
 
 function showToast(msg) {
   let t = document.getElementById('bk-toast');
@@ -3149,8 +3264,7 @@ function askAdminDecision(options = {}) {
   input.placeholder = inputPlaceholder;
   input.value = inputValue;
 
-  overlay.style.display = "flex";
-  setTimeout(() => (inputLabel ? input : $("adminDecisionConfirm"))?.focus(), 20);
+  openManagedSurface(overlay, inputLabel ? input : $("adminDecisionConfirm"));
 
   return new Promise(resolve => {
     adminDecisionResolve = resolve;
@@ -3159,7 +3273,7 @@ function askAdminDecision(options = {}) {
 
 function closeAdminDecision(result) {
   const overlay = $("adminDecisionOverlay");
-  if (overlay) overlay.style.display = "none";
+  if (overlay) closeManagedSurface(overlay);
   const resolve = adminDecisionResolve;
   adminDecisionResolve = null;
   if (resolve) resolve(result);
@@ -3205,8 +3319,17 @@ function revealSecret(id) {
 }
 
 function switchModalTab(tab) {
-  document.querySelectorAll('.modal-body .tab-btn').forEach(b => b.classList.toggle('active', b.dataset.modalTab === tab));
-  document.querySelectorAll('.modal-body .tab-content').forEach(c => c.classList.toggle('active', c.id === 'tab-' + tab));
+  document.querySelectorAll('#modalOverlay .tab-btn').forEach(button => {
+    const active = button.dataset.modalTab === tab;
+    button.classList.toggle('active', active);
+    button.setAttribute('aria-selected', active ? 'true' : 'false');
+    button.tabIndex = active ? 0 : -1;
+  });
+  document.querySelectorAll('#modalOverlay .tab-content').forEach(content => {
+    const active = content.id === 'tab-' + tab;
+    content.classList.toggle('active', active);
+    content.hidden = !active;
+  });
 }
 
 function renderClientModalIntel(clientId) {
@@ -3369,8 +3492,9 @@ function renderSupportNotes() {
   `).join("") || `<div class="empty">No support notes yet.</div>`;
 }
 
-async function loadSupportNotes(clientId) {
-  const res = await api(`/admin/api/clients/${clientId}/support-notes`);
+async function loadSupportNotes(clientId, options = {}) {
+  const res = await api(`/admin/api/clients/${clientId}/support-notes`, { signal: options.signal });
+  if (String(currentClientId) !== String(clientId)) return;
   state.supportNotes = res.notes || [];
   renderSupportNotes();
 }
@@ -3398,20 +3522,38 @@ async function addSupportNote(button) {
 }
 
 function closeClientModal() {
-  document.getElementById('modalOverlay').style.display = 'none';
+  clientModalAbortController?.abort();
+  clientModalAbortController = null;
+  clientModalRequestId += 1;
+  const overlay = $('modalOverlay');
+  if (overlay) closeManagedSurface(overlay);
   currentClientId = null;
   modalSecrets.clear();
   state.supportNotes = [];
+  setClientModalLoading(false, false);
 }
 
 async function openClientModal(id) {
+  if (!Number.isInteger(Number(id)) || Number(id) <= 0) return;
+  clientModalAbortController?.abort();
+  const controller = new AbortController();
+  clientModalAbortController = controller;
+  const requestId = ++clientModalRequestId;
   currentClientId = id;
-  document.getElementById('modalOverlay').style.display = 'flex';
+  modalSecrets.clear();
+  state.supportNotes = [];
+  renderSupportNotes();
+  const overlay = $('modalOverlay');
+  if (overlay) openManagedSurface(overlay, overlay.querySelector('.modal-close'));
   switchModalTab('edit');
   $("editMsg").textContent = "Loading...";
+  $("editMsg").style.color = "var(--text-muted)";
+  setClientModalLoading(true, false);
+  let clientLoaded = false;
   
   try {
-    const res = await api(`/admin/api/clients/${id}`);
+    const res = await api(`/admin/api/clients/${id}`, { signal: controller.signal });
+    if (requestId !== clientModalRequestId || String(currentClientId) !== String(id)) return;
     const c = res.client;
     
     // Populate Edit
@@ -3464,19 +3606,44 @@ async function openClientModal(id) {
       "currency": "BDT",
       "value": 1500.00
     }
-  }'`;
+    }'`;
     $("instrCurl").innerText = code;
     renderClientModalIntel(id);
-    await loadSupportNotes(id);
+    clientLoaded = true;
+    try {
+      await loadSupportNotes(id, { signal: controller.signal });
+    } catch (error) {
+      if (error?.name !== "AbortError") {
+        state.supportNotes = [];
+        renderSupportNotes();
+      }
+    }
     
   } catch (e) {
+    if (e?.name === "AbortError" || requestId !== clientModalRequestId) return;
     $("editMsg").textContent = "Failed to load client data.";
     $("editMsg").style.color = "var(--danger)";
+  } finally {
+    if (requestId === clientModalRequestId && String(currentClientId) === String(id)) {
+      setClientModalLoading(false, clientLoaded);
+      if (clientModalAbortController === controller) clientModalAbortController = null;
+    }
   }
+}
+
+function setClientModalLoading(loading, canSave) {
+  const overlay = $("modalOverlay");
+  const saveButton = $("clientModalSave");
+  if (overlay) {
+    if (loading) overlay.setAttribute("aria-busy", "true");
+    else overlay.removeAttribute("aria-busy");
+  }
+  if (saveButton) saveButton.disabled = loading || !canSave;
 }
 
 async function saveClientEdit() {
   if (!currentClientId) return;
+  const clientId = currentClientId;
   $("editMsg").textContent = "Saving...";
   $("editMsg").style.color = "var(--success)";
   
@@ -3502,13 +3669,15 @@ async function saveClientEdit() {
   };
   
   try {
-    await api(`/admin/api/clients/${currentClientId}`, {
+    await api(`/admin/api/clients/${clientId}`, {
       method: "PATCH",
       body: JSON.stringify(payload)
     });
+    if (String(currentClientId) !== String(clientId)) return;
     $("editMsg").textContent = "Saved successfully!";
     loadAll();
   } catch (e) {
+    if (String(currentClientId) !== String(clientId)) return;
     $("editMsg").textContent = readableApiError(e, "Failed to save.");
     $("editMsg").style.color = "var(--danger)";
   }
