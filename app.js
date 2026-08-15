@@ -247,7 +247,13 @@ async function loginAdmin() {
   }
 }
 
+function hideAuthBootstrap() {
+  const bootstrap = $("authBootstrap");
+  if (bootstrap) bootstrap.style.display = "none";
+}
+
 function showApp() {
+  hideAuthBootstrap();
   $("login").style.display = "none";
   $("app").style.display = "flex";
   $("app").classList.add("ready");
@@ -3149,6 +3155,7 @@ document.addEventListener("keydown", event => {
   }
 });
 function showLogin() {
+  hideAuthBootstrap();
   adminCsrfToken = "";
   $("login").style.display = "flex";
   $("app").style.display = "none";

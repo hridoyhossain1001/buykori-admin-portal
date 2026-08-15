@@ -92,6 +92,40 @@ button { cursor: pointer; }
 svg { flex-shrink: 0; }
 #bk-toast { max-width: calc(100vw - 32px); overflow-wrap: anywhere; }
 
+.admin-auth-boot {
+  position: fixed;
+  inset: 0;
+  z-index: 1001;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  min-height: 100vh;
+  color: #d8e4f0;
+  background:
+    radial-gradient(circle at 18% 15%, rgba(40,90,199,.17), transparent 30%),
+    radial-gradient(circle at 84% 85%, rgba(18,184,134,.11), transparent 28%),
+    #071421;
+}
+.admin-auth-boot img { width: 52px; height: 52px; object-fit: contain; }
+.admin-auth-boot-brand { color: #fff; font-size: 18px; font-weight: 800; }
+.admin-auth-boot-brand strong { color: #24c79b; }
+.admin-auth-boot p { color: #9fb0c3; font-size: 12px; font-weight: 650; }
+.admin-auth-boot-spinner {
+  width: 28px;
+  height: 28px;
+  margin-top: 6px;
+  border: 3px solid rgba(255,255,255,.16);
+  border-top-color: #24c79b;
+  border-radius: 50%;
+  animation: admin-auth-spin .8s linear infinite;
+}
+@keyframes admin-auth-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) {
+  .admin-auth-boot-spinner { animation: none; border-color: rgba(36,199,155,.7); }
+}
+
 /* Login Box Redesign */
 .login {
   position: fixed;
