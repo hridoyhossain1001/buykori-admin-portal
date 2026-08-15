@@ -3045,9 +3045,13 @@ async function restoreAdminSession() {
   const response = await fetch(API_BASE + "/admin/api/session", {
     method: "GET",
     credentials: "include",
+    cache: "no-store",
     headers: { "Accept": "application/json" }
   });
-  if (!response.ok) return false;
+  if (response.status === 401 || response.status === 403) return false;
+  if (!response.ok) {
+    throw new Error(`Admin session check failed (${response.status}).`);
+  }
 
   const data = await response.json();
   adminCsrfToken = data.csrf_token || csrfFromCookie();
@@ -3055,9 +3059,45 @@ async function restoreAdminSession() {
   return Boolean(adminCsrfToken);
 }
 
-restoreAdminSession()
-  .then(restored => restored ? loadAll().then(() => { showApp(); applyInitialRoute(); }) : showLogin())
-  .catch(showLogin);
+async function bootstrapAdminPortal() {
+  const restored = await restoreAdminSession();
+  if (!restored) {
+    showLogin();
+    return;
+  }
+
+  try {
+    await loadAll();
+  } catch (error) {
+    if (!isAuthError(error)) throw error;
+
+    const stillAuthenticated = await restoreAdminSession();
+    if (!stillAuthenticated) {
+      showLogin();
+      return;
+    }
+
+    try {
+      await loadAll();
+    } catch (retryError) {
+      console.error("Admin data load failed after session recovery", retryError);
+      showToast("Your session is active, but some admin data could not be loaded.");
+    }
+  }
+
+  showApp();
+  applyInitialRoute();
+}
+
+bootstrapAdminPortal().catch(error => {
+  console.error("Admin session bootstrap failed", error);
+  showLogin();
+  const loginError = $("loginError");
+  if (loginError) {
+    loginError.style.color = "var(--danger)";
+    loginError.textContent = "Could not verify the existing session. Refresh and try again.";
+  }
+});
 
 // Modal Functions
 let currentClientId = null;
