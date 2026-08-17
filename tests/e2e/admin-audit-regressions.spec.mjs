@@ -89,6 +89,7 @@ test("admin audit regressions remain fixed", async ({ page }) => {
   test.setTimeout(60_000);
   let failServerHealth = false;
   let slowClientRequests = 0;
+  let legacyWhatsappRequests = 0;
   const clientPatches = [];
 
   await page.route(`${API_ORIGIN}/**`, async route => {
@@ -106,6 +107,9 @@ test("admin audit regressions remain fixed", async ({ page }) => {
         body: JSON.stringify({ detail: "Offline server health fixture" }),
       });
       return;
+    }
+    if (requestUrl.pathname === "/api/v1/admin/whatsapp-instances") {
+      legacyWhatsappRequests += 1;
     }
     if (requestUrl.pathname === "/api/v1/admin/api/clients/1" && request.method() === "GET") {
       slowClientRequests += 1;
@@ -141,6 +145,8 @@ test("admin audit regressions remain fixed", async ({ page }) => {
 
   await page.goto("/");
   await expect(page.locator("#app")).toBeVisible();
+  await expect(page.locator("#dataHealthBanner")).toBeHidden();
+  expect(legacyWhatsappRequests).toBe(0);
   await expect(page.locator("#searchInput")).toHaveAttribute(
     "placeholder",
     "Filter clients and connected sites..."
@@ -149,9 +155,6 @@ test("admin audit regressions remain fixed", async ({ page }) => {
   await page.locator('[data-action="shell:open-notifications"]').click();
   await expect(page.locator("#notificationOps")).toHaveClass(/active/);
   await expect(page.locator('[data-notification-panel="jobs"]')).toBeVisible();
-  await expect(page.locator("#whatsappHealthAlert")).toContainText(
-    "preserved WhatsApp sender record"
-  );
   await page.locator('[data-action="shell:open-help"]').click();
   await expect(page.locator('[data-notification-panel="support"]')).toBeVisible();
 

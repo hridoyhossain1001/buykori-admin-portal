@@ -285,7 +285,7 @@ async function loadAll(options = {}) {
   const refreshDashboard = Boolean(options.refreshDashboard);
   const summaryUrl = `/admin/api/summary?window=${encodeURIComponent(state.dashboardWindow)}${refreshDashboard ? "&refresh=1" : ""}`;
   const failedSources = new Set();
-  const [summary, clients, health, courierQueue, intelligence, serverHealth, siteBindings, incompleteOps, notificationJobs, whatsappInstances, supportTickets, paymentReviews] = await Promise.all([
+  const [summary, clients, health, courierQueue, intelligence, serverHealth, siteBindings, incompleteOps, notificationJobs, supportTickets, paymentReviews] = await Promise.all([
     apiOrFallback(summaryUrl, state.summary || {}, "Summary", failedSources),
     apiOrFallback("/admin/api/clients", { clients: state.clients || [] }, "Clients", failedSources),
     apiOrFallback("/admin/clients/health", { clients: state.health || [] }, "Client health", failedSources),
@@ -295,7 +295,6 @@ async function loadAll(options = {}) {
     apiOrFallback("/admin/api/site-bindings?status=all", { bindings: state.siteBindings || [] }, "Connected sites", failedSources),
     apiOrFallback("/admin/api/incomplete-checkouts?limit=100", state.incompleteOps || { counts: {}, items: [], top_clients: [], total: 0 }, "Recovery operations", failedSources),
     apiOrFallback("/admin/notification-jobs?limit=100", state.notificationJobs || { total: 0, items: [] }, "Notification jobs", failedSources),
-    apiOrFallback("/admin/whatsapp-instances", state.whatsappInstances || [], "Legacy WhatsApp records", failedSources),
     apiOrFallback("/admin/api/support-tickets", state.supportTickets || { tickets: [], openCount: 0 }, "Support tickets", failedSources),
     apiOrFallback("/admin/api/payment-reviews", state.paymentReviews || { payments: [] }, "Payment reviews", failedSources)
   ]);
@@ -307,7 +306,6 @@ async function loadAll(options = {}) {
   state.courierQueue = courierQueue;
   state.incompleteOps = incompleteOps;
   state.notificationJobs = notificationJobs;
-  state.whatsappInstances = Array.isArray(whatsappInstances) ? whatsappInstances : [];
   state.supportTickets = supportTickets || { tickets: [], openCount: 0 };
   state.paymentReviews = paymentReviews || { payments: [] };
   state.siteBindings = siteBindings.bindings || [];
