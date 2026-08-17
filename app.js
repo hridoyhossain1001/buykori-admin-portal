@@ -61,6 +61,18 @@ const eventsState = {
   currentPage: 1,
   expandedEventId: null
 };
+const EVENT_PLATFORM_ORDER = Object.freeze([
+  "Meta CAPI",
+  "TikTok Events API",
+  "GA4",
+  "Webhook"
+]);
+const EVENT_PLATFORM_SHORT_NAMES = Object.freeze({
+  "Meta CAPI": "Meta",
+  "TikTok Events API": "TikTok",
+  GA4: "GA4",
+  Webhook: "Webhook"
+});
 const fmt = n => Number(n || 0).toLocaleString();
 const pct = n => `${Number(n || 0).toFixed(1).replace(".0", "")}%`;
 let adminDecisionResolve = null;
@@ -3889,7 +3901,7 @@ async function loadEvents() {
   
   const tbody = $("eventsTableBody");
   if (tbody) {
-    tbody.innerHTML = `<tr><td colspan="7" class="empty">Loading events...</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="6" class="empty">Loading events...</td></tr>`;
   }
 
   try {
@@ -3900,81 +3912,169 @@ async function loadEvents() {
   } catch (e) {
     console.error("Failed to load events", e);
     if (tbody) {
-      tbody.innerHTML = `<tr><td colspan="7" class="empty text-danger">Failed to load events. Please try again.</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="6" class="empty text-danger">Failed to load events. Please try again.</td></tr>`;
     }
   }
+}
+
+function eventStatusClass(status) {
+  if (status === "Success") return "status-healthy";
+  if (status === "Fired") return "status-warning";
+  if (status === "Filtered") return "status-inactive";
+  return "status-critical";
+}
+
+function groupAdminEvents(events) {
+  const groups = new Map();
+
+  events.forEach(event => {
+    const sharedId = event.deduplicationKey || event.id;
+    const key = JSON.stringify([
+      String(event.client_id ?? ""),
+      String(sharedId ?? ""),
+      String(event.name ?? "")
+    ]);
+    const current = groups.get(key) || [];
+    current.push(event);
+    groups.set(key, current);
+  });
+
+  return Array.from(groups.entries())
+    .map(([key, entries]) => {
+      const sortedEntries = [...entries].sort(
+        (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+      );
+      const latestByPlatform = new Map();
+      sortedEntries.forEach(event => {
+        if (!latestByPlatform.has(event.platform)) latestByPlatform.set(event.platform, event);
+      });
+      const deliveries = Array.from(latestByPlatform.values()).sort((a, b) => {
+        const aIndex = EVENT_PLATFORM_ORDER.indexOf(a.platform);
+        const bIndex = EVENT_PLATFORM_ORDER.indexOf(b.platform);
+        const aRank = aIndex === -1 ? EVENT_PLATFORM_ORDER.length : aIndex;
+        const bRank = bIndex === -1 ? EVENT_PLATFORM_ORDER.length : bIndex;
+        return aRank - bRank || String(a.platform).localeCompare(String(b.platform));
+      });
+      const newest = sortedEntries[0];
+
+      return {
+        key,
+        eventId: newest.deduplicationKey || newest.id,
+        name: newest.name,
+        timestamp: newest.timestamp,
+        client_id: newest.client_id,
+        client_name: newest.client_name,
+        contextLabel: newest.contextLabel,
+        pageUrl: newest.pageUrl,
+        events: sortedEntries,
+        deliveries,
+        hasFailure: deliveries.some(event => event.status === "Failed")
+      };
+    })
+    .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+}
+
+function renderEventDeliveryBadge(event) {
+  const shortName = EVENT_PLATFORM_SHORT_NAMES[event.platform] || event.platform || "Delivery";
+  return `
+    <span class="event-delivery-badge ${eventStatusClass(event.status)}" title="${esc(`${event.platform}: ${event.status}`)}">
+      <span>${esc(shortName)}</span>
+      <strong>${esc(event.status)}</strong>
+    </span>
+  `;
+}
+
+function renderEventAttemptDetail(event) {
+  const displayTime = toDeviceDateTime(event.timestamp);
+  const sampleLabel = event.isReconstructedSample ? " (reconstructed sample)" : "";
+
+  return `
+    <section class="event-attempt-detail">
+      <div class="event-attempt-heading">
+        ${renderEventDeliveryBadge(event)}
+        <span>${esc(displayTime)}</span>
+      </div>
+      <div class="event-detail-grid">
+        <div>
+          <div class="event-detail-label">Payload${sampleLabel}</div>
+          <pre class="instr-box event-detail-code">${esc(JSON.stringify(event.payload, null, 2))}</pre>
+        </div>
+        <div>
+          <div class="event-detail-label">HTTP Headers${sampleLabel}</div>
+          <pre class="instr-box event-detail-code">${esc(JSON.stringify(event.headers, null, 2))}</pre>
+        </div>
+        <div>
+          <div class="event-detail-label">Upstream Response${sampleLabel}</div>
+          <pre class="instr-box event-detail-code event-response-code">${esc(JSON.stringify(event.responseBody, null, 2))}</pre>
+          <div class="event-attempt-metrics">
+            <div><strong>Latency:</strong> <span>${event.latencyMs != null ? esc(`${event.latencyMs}ms`) : "N/A"}</span></div>
+            <div><strong>HTTP Code:</strong> <span class="${eventStatusClass(event.status)}">${esc(event.httpCode)}</span></div>
+          </div>
+        </div>
+      </div>
+    </section>
+  `;
 }
 
 function renderEvents() {
   const tbody = $("eventsTableBody");
   if (!tbody) return;
-  
-  const count = eventsState.events.length;
+
+  const groupedEvents = groupAdminEvents(eventsState.events);
+  const count = groupedEvents.length;
   const startIdx = eventsState.offset + 1;
   const endIdx = Math.min(eventsState.offset + eventsState.limit, eventsState.totalCount);
-  
+
   const metaEl = $("eventsTableMeta");
   if (metaEl) {
-    metaEl.textContent = eventsState.totalCount > 0 
-      ? `Showing ${startIdx}-${endIdx} of ${fmt(eventsState.totalCount)} events` 
-      : "Showing 0 events";
+    metaEl.textContent = eventsState.totalCount > 0
+      ? `Showing ${fmt(count)} grouped event${count === 1 ? "" : "s"} from delivery records ${startIdx}-${endIdx} of ${fmt(eventsState.totalCount)}`
+      : "Showing 0 grouped events";
   }
-  
+
   const pageEl = $("eventsCurrentPage");
   if (pageEl) {
     pageEl.textContent = eventsState.currentPage;
   }
-  
+
   if (count === 0) {
-    tbody.innerHTML = `<tr><td colspan="7" class="empty">No events found matching your criteria.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="6" class="empty">No events found matching your criteria.</td></tr>`;
     return;
   }
-  
-  tbody.innerHTML = eventsState.events.flatMap(event => {
-    const isExpanded = eventsState.expandedEventId === event.id;
-    const statusClass = event.status === "Success" ? "status-healthy" : event.status === "Fired" ? "status-warning" : event.status === "Filtered" ? "status-inactive" : "status-critical";
-    const displayTime = toDeviceDateTime(event.timestamp);
-    const sampleLabel = event.isReconstructedSample ? " (reconstructed sample)" : "";
-    const sampleNotice = event.sampleNotice || "These JSON blocks are reconstructed from stored EventLog fields.";
-    
+
+  tbody.innerHTML = groupedEvents.flatMap(group => {
+    const isExpanded = eventsState.expandedEventId === group.key;
+    const displayTime = toDeviceDateTime(group.timestamp);
+    const reconstructedEvent = group.events.find(event => event.isReconstructedSample);
+    const sampleNotice = reconstructedEvent?.sampleNotice || "These JSON blocks are reconstructed from stored EventLog fields.";
+    const deliveryBadges = group.deliveries.map(renderEventDeliveryBadge).join("");
+
     const mainRow = `
-      <tr data-action="events:toggle-detail" data-event-id="${esc(event.id)}" class="event-row ${event.status === "Failed" ? "event-row-failed" : ""}">
+      <tr data-action="events:toggle-detail" data-event-id="${esc(group.key)}" class="event-row ${group.hasFailure ? "event-row-failed" : ""}">
         <td class="code-text" style="white-space:nowrap;">${esc(displayTime)}</td>
-        <td><div class="client-name" style="font-size:12.5px;">${esc(event.client_name)}</div><div class="client-sub">ID ${event.client_id}</div></td>
-        <td><span style="color:#818cf8;font-weight:700">${esc(event.name)}</span></td>
-        <td style="font-weight:600; font-size:12px;">${esc(event.platform)}</td>
-        <td><div class="status-badge ${statusClass}">${esc(event.status)}</div></td>
-        <td><div class="client-name" style="max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(event.contextLabel || "Website event")}">${esc(event.contextLabel || "Website event")}</div><div class="client-sub" style="max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(event.pageUrl || "")}">${esc(event.pageUrl || "Open details for technical data")}</div></td>
-        <td><button type="button" class="event-detail-button ${event.status === "Failed" ? "event-detail-button-failed" : ""}" aria-expanded="${isExpanded ? "true" : "false"}">${event.status === "Failed" && !isExpanded ? "Inspect failure" : isExpanded ? "Hide details" : "View details"}</button></td>
+        <td><div class="client-name" style="font-size:12.5px;">${esc(group.client_name)}</div><div class="client-sub">ID ${esc(group.client_id)}</div></td>
+        <td><div class="event-name">${esc(group.name)}</div><div class="client-sub code-text" title="${esc(group.eventId)}">${esc(group.eventId)}</div></td>
+        <td><div class="event-delivery-list">${deliveryBadges}</div></td>
+        <td><div class="client-name event-context" title="${esc(group.contextLabel || "Website event")}">${esc(group.contextLabel || "Website event")}</div><div class="client-sub event-context" title="${esc(group.pageUrl || "")}">${esc(group.pageUrl || "Open details for technical data")}</div></td>
+        <td><button type="button" class="event-detail-button ${group.hasFailure ? "event-detail-button-failed" : ""}" aria-expanded="${isExpanded ? "true" : "false"}">${group.hasFailure && !isExpanded ? "Inspect failure" : isExpanded ? "Hide details" : "View details"}</button></td>
       </tr>
     `;
-    
+
     const detailRow = `
-      <tr id="detail-${event.id}" style="display: ${isExpanded ? "table-row" : "none"};">
-        <td colspan="7" style="padding:20px; background:rgba(0,0,0,0.06); border-bottom:1px solid var(--card-border);">
-          ${event.isReconstructedSample ? `<div style="margin-bottom:12px; color:var(--warning); font-size:12px; font-weight:700;">${esc(sampleNotice)}</div>` : ""}
-          <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:16px;">
-            <div>
-              <div style="font-weight:800; font-size:11px; text-transform:uppercase; color:var(--text-muted); margin-bottom:8px; letter-spacing:0.05em;">Payload${sampleLabel}</div>
-              <pre class="instr-box" style="margin:0; font-family:JetBrains Mono, monospace; font-size:11.5px; max-height:250px; overflow-y:auto; white-space:pre-wrap; word-break:break-all;">${esc(JSON.stringify(event.payload, null, 2))}</pre>
+      <tr class="event-detail-row" style="display: ${isExpanded ? "table-row" : "none"};">
+        <td colspan="6">
+          <div class="event-detail-shell">
+            <div class="event-detail-summary">
+              <div><strong>Event ID</strong><span class="code-text">${esc(group.eventId)}</span></div>
+              <div><strong>Delivery attempts</strong><span>${fmt(group.events.length)}</span></div>
             </div>
-            <div>
-              <div style="font-weight:800; font-size:11px; text-transform:uppercase; color:var(--text-muted); margin-bottom:8px; letter-spacing:0.05em;">HTTP Headers${sampleLabel}</div>
-              <pre class="instr-box" style="margin:0; font-family:JetBrains Mono, monospace; font-size:11.5px; max-height:250px; overflow-y:auto; white-space:pre-wrap; word-break:break-all;">${esc(JSON.stringify(event.headers, null, 2))}</pre>
-            </div>
-            <div>
-              <div style="font-weight:800; font-size:11px; text-transform:uppercase; color:var(--text-muted); margin-bottom:8px; letter-spacing:0.05em;">Upstream Response${sampleLabel}</div>
-              <pre class="instr-box" style="margin:0; font-family:JetBrains Mono, monospace; font-size:11.5px; max-height:180px; overflow-y:auto; white-space:pre-wrap; word-break:break-all;">${esc(JSON.stringify(event.responseBody, null, 2))}</pre>
-              <div style="margin-top:12px; display:flex; gap:16px; font-size:11px; color:var(--text-muted);">
-                <div><strong>Latency:</strong> <span style="color:var(--primary); font-weight:700;">${event.latencyMs != null ? event.latencyMs + 'ms' : 'N/A'}</span></div>
-                <div><strong>HTTP Code:</strong> <span style="color:${event.status === 'Success' ? 'var(--success)' : 'var(--danger)'}; font-weight:700;">${event.httpCode}</span></div>
-              </div>
-            </div>
+            ${reconstructedEvent ? `<div class="event-sample-notice">${esc(sampleNotice)}</div>` : ""}
+            ${group.events.map(renderEventAttemptDetail).join("")}
           </div>
         </td>
       </tr>
     `;
-    
+
     return [mainRow, detailRow];
   }).join("");
 }

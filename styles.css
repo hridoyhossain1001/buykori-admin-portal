@@ -1568,11 +1568,36 @@ tr:last-child td { border-bottom: none; }
 .notification-panel.active { animation: fadeIn .18s ease-out; }
 
 .event-stream-wrap { overflow-x: auto; overflow-y: visible; }
-.event-stream-wrap table { min-width: 1060px; }
+.event-stream-wrap table { min-width: 1040px; }
 .event-stream-head { position: sticky; top: 0; z-index: 10; background: var(--bg-color); }
 .event-row { cursor: pointer; }
+.event-row td { vertical-align: top; }
 .event-row-failed td { background: rgba(239, 68, 68, .035); }
 .event-row-failed td:first-child { box-shadow: inset 3px 0 0 var(--danger); }
+.event-name { color: #818cf8; font-weight: 700; }
+.event-context { max-width: 260px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.event-delivery-list { display: flex; flex-wrap: wrap; gap: 6px; min-width: 250px; }
+.event-delivery-badge {
+  display: inline-flex;
+  min-height: 28px;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 9px;
+  border-radius: 999px;
+  font-size: 10.5px;
+  font-weight: 700;
+  line-height: 1;
+  white-space: nowrap;
+}
+.event-delivery-badge::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  flex: 0 0 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+.event-delivery-badge strong { font-weight: 800; }
 .event-detail-button {
   padding: 6px 10px;
   border: 1px solid var(--card-border);
@@ -1585,6 +1610,30 @@ tr:last-child td { border-bottom: none; }
   cursor: pointer;
 }
 .event-detail-button-failed { border-color: rgba(239, 68, 68, .3); background: var(--danger-bg); color: var(--danger-text); }
+.event-detail-row > td { padding: 0; background: rgba(0,0,0,.04); border-bottom: 1px solid var(--card-border); }
+.event-detail-shell { padding: 18px 20px; }
+.event-detail-summary { display: flex; flex-wrap: wrap; gap: 14px 28px; margin-bottom: 12px; font-size: 11px; color: var(--text-muted); }
+.event-detail-summary div { display: flex; align-items: center; gap: 8px; }
+.event-detail-summary strong { color: var(--text-main); }
+.event-sample-notice { margin-bottom: 12px; color: var(--warning-text); font-size: 12px; font-weight: 700; }
+.event-attempt-detail { padding: 16px 0; border-top: 1px solid var(--card-border); }
+.event-attempt-detail:first-of-type { border-top: 0; }
+.event-attempt-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; color: var(--text-muted); font-size: 11px; }
+.event-detail-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
+.event-detail-label { margin-bottom: 8px; color: var(--text-muted); font-size: 11px; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; }
+.event-detail-code { max-height: 250px; margin: 0; overflow-y: auto; font-family: JetBrains Mono, monospace; font-size: 11.5px; white-space: pre-wrap; word-break: break-all; }
+.event-response-code { max-height: 180px; }
+.event-attempt-metrics { display: flex; flex-wrap: wrap; gap: 8px 16px; margin-top: 12px; color: var(--text-muted); font-size: 11px; }
+.event-attempt-metrics span { font-weight: 700; }
+.event-attempt-metrics span:not(.status-healthy):not(.status-warning):not(.status-inactive):not(.status-critical) { color: var(--primary); }
+.event-attempt-metrics .status-healthy,
+.event-attempt-metrics .status-warning,
+.event-attempt-metrics .status-inactive,
+.event-attempt-metrics .status-critical { display: inline; padding: 0; border: 0; background: transparent; }
+.event-attempt-metrics .status-healthy::before,
+.event-attempt-metrics .status-warning::before,
+.event-attempt-metrics .status-inactive::before,
+.event-attempt-metrics .status-critical::before { display: none; }
 .table-pager {
   display: flex;
   justify-content: flex-end;
@@ -1654,6 +1703,8 @@ tr:last-child td { border-bottom: none; }
 }
 
 @media (max-width: 640px) {
+  .event-detail-shell { padding: 16px; }
+  .event-detail-grid { grid-template-columns: minmax(0, 1fr); }
   .wa-pairing-layout { flex-direction: column; }
   .wa-qr-section { width: 100%; flex-basis: auto; }
   .wa-qr-canvas { margin-inline: auto; }

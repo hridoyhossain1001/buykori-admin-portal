@@ -37,6 +37,63 @@ const OFFLINE_CLIENT = {
   enable_ga4: false,
 };
 
+function eventFixture({ id, clientId, clientName, platform, timestamp, deduplicationKey }) {
+  return {
+    id,
+    client_id: clientId,
+    client_name: clientName,
+    timestamp,
+    name: "ViewContent",
+    platform,
+    status: "Success",
+    httpCode: 200,
+    deduplicationKey,
+    contextLabel: "Shared product page",
+    pageUrl: "https://offline-fixture.example/products/shared-product",
+    isReconstructedSample: true,
+    sampleNotice: "Offline reconstructed event fixture.",
+    payload: { event_name: "ViewContent", event_id: deduplicationKey },
+    headers: { "Content-Type": "application/json" },
+    responseBody: { status: "accepted", platform },
+    latencyMs: 12,
+  };
+}
+
+const OFFLINE_EVENTS = [
+  eventFixture({
+    id: "evt-meta",
+    clientId: 7,
+    clientName: "Offline Fixture Client",
+    platform: "Meta CAPI",
+    timestamp: "2026-08-17T16:55:49Z",
+    deduplicationKey: "shared-view-content",
+  }),
+  eventFixture({
+    id: "evt-tiktok",
+    clientId: 7,
+    clientName: "Offline Fixture Client",
+    platform: "TikTok Events API",
+    timestamp: "2026-08-17T16:55:49Z",
+    deduplicationKey: "shared-view-content",
+  }),
+  eventFixture({
+    id: "evt-ga4",
+    clientId: 7,
+    clientName: "Offline Fixture Client",
+    platform: "GA4",
+    timestamp: "2026-08-17T16:55:49Z",
+    deduplicationKey: "shared-view-content",
+  }),
+  eventFixture({
+    id: "evt-other-client",
+    clientId: 8,
+    clientName: "Other Fixture Client",
+    platform: "Meta CAPI",
+    timestamp: "2026-08-17T16:54:49Z",
+    deduplicationKey: "shared-view-content",
+  }),
+];
+
 const fixtures = new Map([
   [
     "/api/v1/admin/api/session",
@@ -193,7 +250,7 @@ const fixtures = new Map([
       ],
     },
   ],
-  ["/api/v1/admin/api/events", { events: [], totalCount: 0 }],
+  ["/api/v1/admin/api/events", { events: OFFLINE_EVENTS, totalCount: OFFLINE_EVENTS.length }],
   [
     "/api/v1/admin/api/admin-users",
     {
@@ -605,6 +662,39 @@ test("owner can navigate the admin shell with the production API offline", async
   const eventRequestsBeforeRefresh = eventRequests;
   await page.locator('#events [data-action="events:refresh"]').click();
   await expect.poll(() => eventRequests).toBeGreaterThan(eventRequestsBeforeRefresh);
+  const groupedEventRows = page.locator("#eventsTableBody > tr.event-row");
+  await expect(groupedEventRows).toHaveCount(2);
+  await expect(page.locator("#eventsTableMeta")).toHaveText(
+    "Showing 2 grouped events from delivery records 1-4 of 4"
+  );
+  const offlineClientEventRow = groupedEventRows.filter({ hasText: "Offline Fixture Client" });
+  await expect(offlineClientEventRow).toHaveCount(1);
+  await expect(offlineClientEventRow.locator(".event-delivery-badge")).toHaveCount(3);
+  await expect(offlineClientEventRow).toContainText("Meta Success");
+  await expect(offlineClientEventRow).toContainText("TikTok Success");
+  await expect(offlineClientEventRow).toContainText("GA4 Success");
+  await offlineClientEventRow.locator(".event-detail-button").click();
+  const expandedEventDetails = page.locator("#eventsTableBody > tr.event-detail-row:visible");
+  await expect(expandedEventDetails).toHaveCount(1);
+  await expect(expandedEventDetails.locator(".event-attempt-detail")).toHaveCount(3);
+  const deliveryAttemptSummary = expandedEventDetails.locator(".event-detail-summary div").nth(1);
+  await expect(deliveryAttemptSummary.locator("strong")).toHaveText("Delivery attempts");
+  await expect(deliveryAttemptSummary.locator("span")).toHaveText("3");
+  for (const viewport of [
+    { width: 1440, height: 900 },
+    { width: 390, height: 844 },
+  ]) {
+    await page.setViewportSize(viewport);
+    const eventLayout = await page.evaluate(() => ({
+      viewportWidth: globalThis.innerWidth,
+      documentWidth: globalThis.document.documentElement.scrollWidth,
+      tableViewportWidth: globalThis.document.querySelector(".event-stream-wrap").clientWidth,
+      tableContentWidth: globalThis.document.querySelector(".event-stream-wrap").scrollWidth,
+    }));
+    expect(eventLayout.documentWidth).toBeLessThanOrEqual(eventLayout.viewportWidth);
+    expect(eventLayout.tableContentWidth).toBeGreaterThanOrEqual(eventLayout.tableViewportWidth);
+  }
+  await page.setViewportSize({ width: 1280, height: 900 });
   await page.locator('#eventsSearch[data-action="events:search"]').fill("offline-event-query");
 
   await page.locator('.nav-item[data-tab="clients"]').click();
