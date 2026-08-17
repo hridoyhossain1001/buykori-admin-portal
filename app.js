@@ -180,7 +180,7 @@ function syncPlanQuotaFields() {
   if (!planTier || !billingStatus) return;
 
   if (billingStatus.value === "trial") {
-    planTier.value = "growth";
+    planTier.value = "starter";
   } else if (billingStatus.value === "free") {
     planTier.value = "free";
   } else if (planTier.value === "free") {
@@ -836,7 +836,7 @@ function renderClientRows() {
     const intel = intelligenceFor(client.id);
     const plan = String(client.plan_tier || "free").toLowerCase();
     const isTrial = Boolean(client.is_trial || String(client.billing_status || "").toLowerCase() === "trial");
-    const planLabel = isTrial ? "Growth Trial" : `${plan.charAt(0).toUpperCase()}${plan.slice(1)}`;
+    const planLabel = isTrial ? "Starter Trial" : `${plan.charAt(0).toUpperCase()}${plan.slice(1)}`;
     const planLimit = Number(client.monthly_event_limit ?? client.monthly_limit ?? (isTrial ? PLAN_DEFAULTS.trial.events : PLAN_DEFAULTS[plan]?.events) ?? 0);
     const used = Number(client.event_total || 0);
     const usage = planLimit > 0 ? Math.min(100, (used / planLimit) * 100) : 0;
