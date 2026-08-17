@@ -322,7 +322,7 @@ test("team controls use named actions and the app runs as a module", async () =>
   assert.match(markup, /<form[^>]+data-action="team:create"/);
   assert.doesNotMatch(appJs, /data-admin-click="updateAdminUserAccess\(/);
   assert.equal((appJs.match(/dataset\.action = "team:update-(?:role|active)"/g) || []).length, 2);
-  assert.match(indexHtml, /<script type="module" src="app\.js"><\/script>/);
+  assert.match(indexHtml, /<script type="module" src="app\.js\?v=20260817\.1"><\/script>/);
   assert.match(eslintConfig, /sourceType: "module"/);
 });
 

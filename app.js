@@ -567,11 +567,12 @@ function courierQueueJobById(jobId) {
 function queueStatusText(queue) {
   const status = String(queue.alert_status || "healthy").toLowerCase();
   const queued = Number(queue.queued || 0);
+  const dueQueued = Number(queue.due_queued || 0);
   const processing = Number(queue.processing || 0);
   const dead = Number(queue.dead || 0);
-  const oldest = Math.max(queue.oldest_queued_age_seconds || 0, queue.oldest_processing_age_seconds || 0);
-  if (status === "critical") return `${fmt(dead)} dead job${dead === 1 ? "" : "s"} need retry. Oldest active job: ${formatDuration(oldest)}.`;
-  if (status === "warning") return `${fmt(queued + processing)} active job${queued + processing === 1 ? "" : "s"} need attention. Oldest: ${formatDuration(oldest)}.`;
+  const oldestActionable = Math.max(queue.oldest_due_queued_age_seconds || 0, queue.oldest_processing_age_seconds || 0);
+  if (status === "critical") return `${fmt(dead)} dead job${dead === 1 ? "" : "s"} need retry. Oldest actionable job: ${formatDuration(oldestActionable)}.`;
+  if (status === "warning") return `${fmt(dueQueued + processing)} due job${dueQueued + processing === 1 ? "" : "s"} need attention. Overdue: ${formatDuration(oldestActionable)}.`;
   if (queued + processing > 0) return `${fmt(queued + processing)} active courier booking job${queued + processing === 1 ? "" : "s"} moving through the worker.`;
   return "Courier booking queue is healthy.";
 }
@@ -735,7 +736,7 @@ function renderSummary() {
     $("courierQueueDashboardStatus").textContent = String(queue.alert_status || "healthy").toUpperCase();
     $("courierQueueDashboardDepth").textContent = fmt((queue.queued || 0) + (queue.processing || 0));
     $("courierQueueDashboardDead").textContent = fmt(queue.dead || 0);
-    $("courierQueueDashboardOldest").textContent = formatDuration(Math.max(queue.oldest_queued_age_seconds || 0, queue.oldest_processing_age_seconds || 0));
+    $("courierQueueDashboardOldest").textContent = formatDuration(Math.max(queue.oldest_due_queued_age_seconds || 0, queue.oldest_processing_age_seconds || 0));
   }
   const lifetimeEvents = Number(summary.lifetime_total_events ?? totalEvents);
   $("planUsed").textContent = compactNumber(lifetimeEvents);
@@ -1406,10 +1407,21 @@ function derivedAlerts() {
     ? `${String(latestUnknownCourierStatus.provider || "courier").toUpperCase()} order ${latestUnknownCourierStatus.order_reference || "-"}: ${latestUnknownCourierStatus.raw_status || "unknown"}`
     : "Review provider status mapping in Server Status";
   const webhookTotals = state.serverHealth?.worker_monitor?.courier_webhook_monitor?.totals || {};
+  const webhookProviders = state.serverHealth?.worker_monitor?.courier_webhook_monitor?.providers || {};
   const webhookAuthFailures = Number(webhookTotals.auth_failed || 0);
   const webhookRateLimited = Number(webhookTotals.rate_limited || 0);
+  const webhookAuthProviderSummary = Object.entries(webhookProviders)
+    .filter(([, metrics]) => Number(metrics?.auth_failed || 0) > 0)
+    .map(([provider, metrics]) => `${provider.toUpperCase()} ${fmt(metrics.auth_failed)}`)
+    .join(", ");
   const smokeMonitor = state.serverHealth?.worker_monitor?.courier_smoke_monitor || {};
-  const smokeUnhealthy = ["failed", "stale", "never_run"].includes(String(smokeMonitor.status || "never_run"));
+  const smokeStatus = String(smokeMonitor.status || "never_run");
+  const failedSmokeChecks = (smokeMonitor.checks || []).filter(check => check?.ok === false);
+  const smokeFailureCoveredByWebhookAlert = smokeStatus === "failed"
+    && failedSmokeChecks.length > 0
+    && failedSmokeChecks.every(check => check?.name === "courier_webhook_monitor")
+    && Boolean(webhookAuthFailures || webhookRateLimited);
+  const smokeUnhealthy = ["failed", "stale", "never_run"].includes(smokeStatus) && !smokeFailureCoveredByWebhookAlert;
   const healthAlert = (items, rank, cls, title) => items.length ? {
     rank,
     cls,
@@ -1421,12 +1433,12 @@ function derivedAlerts() {
   } : null;
   return [
     smokeUnhealthy ? { rank: "High", cls: "alert-high", title: "Courier production smoke monitor unhealthy", desc: smokeMonitor.status === "failed" ? "The latest automated courier health check failed" : "The automated courier health check is stale or has not run", value: String(smokeMonitor.status || "never_run"), action: "server" } : null,
-    webhookAuthFailures ? { rank: "Medium", cls: "alert-medium", title: "Courier webhook authentication failures", desc: "Review provider webhook secrets and recent callback traffic", value: `${webhookAuthFailures}`, action: "server" } : null,
+    webhookAuthFailures ? { rank: "Medium", cls: "alert-medium", title: "Courier webhook authentication failures", desc: webhookAuthProviderSummary ? `${webhookAuthProviderSummary}. Review provider webhook secrets and recent callback traffic` : "Review provider webhook secrets and recent callback traffic", value: `${webhookAuthFailures}`, action: "server" } : null,
     webhookRateLimited ? { rank: "Medium", cls: "alert-medium", title: "Courier webhook rate limit triggered", desc: "Review provider burst traffic in Server Status", value: `${webhookRateLimited}`, action: "server" } : null,
     unknownCourierStatuses ? { rank: "Medium", cls: "alert-medium", title: "Unknown courier statuses", desc: unknownCourierDescription, value: `${unknownCourierStatuses}`, action: "acknowledge-courier-statuses" } : null,
     healthAlert(critical, "High", "alert-high", "Critical client health"),
     healthAlert(warning, "Medium", "alert-medium", "Warning status detected"),
-    setupIncomplete.length ? { rank: "Low", cls: "alert-low", title: "Client setup incomplete", desc: `${setupIncomplete[0].client.name} is waiting for a first successful event${setupIncomplete.length > 1 ? ` (+${setupIncomplete.length - 1} more)` : ""}`, value: `${setupIncomplete.length}`, action: "open-client", clientId: Number(setupIncomplete[0].client.id) } : null,
+    setupIncomplete.length ? { rank: "Low", cls: "alert-low", title: "Client setup incomplete", desc: `${setupIncomplete[0].client.name} is waiting for a first event${setupIncomplete.length > 1 ? ` (+${setupIncomplete.length - 1} more)` : ""}`, value: `${setupIncomplete.length}`, action: "open-client", clientId: Number(setupIncomplete[0].client.id) } : null,
     inactive.length ? { rank: "Medium", cls: "alert-medium", title: "Inactive clients", desc: `${inactive[0].name}${inactive.length > 1 ? ` and ${inactive.length - 1} more` : ""} require review`, value: `${inactive.length}`, action: "clients" } : null,
     noDomain.length ? { rank: "Low", cls: "alert-low", title: "Domain validation warning", desc: `${noDomain[0].name}${noDomain.length > 1 ? ` and ${noDomain.length - 1} more` : ""} have no domain set`, value: `${noDomain.length}`, action: "clients" } : null
   ].filter(Boolean);
@@ -1437,7 +1449,11 @@ function renderAlerts() {
     rank: alert.severity === "critical" ? "High" : "Medium",
     cls: alert.severity === "critical" ? "alert-high" : "alert-medium",
     title: alert.code === "dead_letter_jobs" ? "Courier booking dead letters" : alert.code === "processing_stalled" ? "Courier worker stalled" : "Courier booking queue delayed",
-    desc: alert.count ? `${fmt(alert.count)} job${alert.count > 1 ? "s" : ""} need operator retry` : `Age ${formatDuration(alert.age_seconds)}`,
+    desc: alert.code === "dead_letter_jobs"
+      ? `${fmt(alert.count)} job${alert.count > 1 ? "s" : ""} need operator retry`
+      : alert.code === "processing_stalled"
+        ? `A claimed job has been stalled for ${formatDuration(alert.age_seconds)}`
+        : `${fmt(queue.due_queued || 0)} due job${Number(queue.due_queued || 0) === 1 ? "" : "s"}; overdue ${formatDuration(alert.age_seconds)}`,
     value: alert.count || formatDuration(alert.age_seconds),
     action: "courier"
   }));
@@ -1485,7 +1501,7 @@ function renderCourierQueue() {
   if ($("courierQueueProcessing")) $("courierQueueProcessing").textContent = fmt(queue.processing || 0);
   if ($("courierQueueDead")) $("courierQueueDead").textContent = fmt(queue.dead || 0);
   if ($("courierQueueSent")) $("courierQueueSent").textContent = fmt(queue.sent || 0);
-  if ($("courierQueueOldestQueued")) $("courierQueueOldestQueued").textContent = formatDuration(queue.oldest_queued_age_seconds || 0);
+  if ($("courierQueueOldestQueued")) $("courierQueueOldestQueued").textContent = formatDuration(queue.oldest_due_queued_age_seconds || 0);
   if ($("courierQueueOldestProcessing")) $("courierQueueOldestProcessing").textContent = formatDuration(queue.oldest_processing_age_seconds || 0);
   if ($("courierQueueAlerts")) {
     $("courierQueueAlerts").innerHTML = (queue.alerts || []).map(alert => `
