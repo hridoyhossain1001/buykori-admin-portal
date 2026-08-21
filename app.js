@@ -3,7 +3,7 @@ const $ = id => document.getElementById(id);
 const COURIER_QUEUE_REFRESH_MS = 15000;
 const ADMIN_CSRF_COOKIE = "buykori_admin_csrf";
 const ADMIN_CSRF_HEADER = "X-Admin-CSRF-Token";
-const CSRF_MUTATION_METHODS = new Set(["POST", "PATCH", "DELETE"]);
+const CSRF_MUTATION_METHODS = new Set(["POST", "PUT", "PATCH", "DELETE"]);
 const PLAN_DEFAULTS = Object.freeze({
   free: Object.freeze({ events: 10000, orders: 50 }),
   trial: Object.freeze({ events: 25000, orders: 300 }),
@@ -16,6 +16,7 @@ let adminCsrfToken = "";
 const state = {
   currentAdmin: null,
   adminUsers: [],
+  aiChatSettings: null,
   summary: null,
   clients: [],
   health: [],
@@ -341,6 +342,85 @@ function applyAdminIdentity(user) {
   if (name) name.textContent = user?.displayName || user?.username || "Admin Panel";
   if (email) email.textContent = user ? `${user.username} · ${user.role}` : "Secure session";
   if (avatar) avatar.textContent = String(user?.displayName || user?.username || "A").trim().slice(0, 2).toUpperCase();
+}
+
+function renderAiChatSettings() {
+  const settings = state.aiChatSettings;
+  if (!settings) return;
+  $("aiChatProvider").value = settings.provider || "tabitoken";
+  $("aiChatBaseUrl").value = settings.base_url || "https://tabitoken.com/v1";
+  $("aiChatModel").value = settings.model || "claude-opus-4-8";
+  $("aiChatApiKey").value = "";
+  $("aiChatApiKey").required = !settings.configured;
+  $("aiChatConfiguredBadge").textContent = settings.configured ? "Configured" : "Credential required";
+  $("aiChatKeyStatus").textContent = settings.configured
+    ? `Configured: ${settings.api_key_masked || "masked"}. Leave blank to keep it.`
+    : "Write-only. Enter a newly rotated server-side credential.";
+  $("aiChatReplaceButton").disabled = !settings.configured;
+  $("aiChatTestButton").disabled = !settings.configured;
+}
+
+async function refreshAiChatSettings() {
+  if (state.currentAdmin?.role !== "owner") return;
+  const message = $("aiChatSettingsMessage");
+  try {
+    state.aiChatSettings = await api("/admin/api/ai-chat/provider-settings");
+    renderAiChatSettings();
+    if (message) message.textContent = "";
+  } catch (error) {
+    if (message) message.textContent = readableApiError(error, "Could not load AI Chat settings.");
+  }
+}
+
+async function saveAiChatSettings(event) {
+  event.preventDefault();
+  const form = $("aiChatSettingsForm");
+  if (!form?.reportValidity()) return;
+  const button = $("aiChatSaveButton");
+  const message = $("aiChatSettingsMessage");
+  button.disabled = true;
+  message.textContent = "Saving server-side settings...";
+  const apiKey = $("aiChatApiKey").value.trim();
+  try {
+    state.aiChatSettings = await api("/admin/api/ai-chat/provider-settings", {
+      method: "PUT",
+      body: JSON.stringify({
+        provider: $("aiChatProvider").value.trim(),
+        base_url: $("aiChatBaseUrl").value.trim(),
+        model: $("aiChatModel").value.trim(),
+        api_key: apiKey || null
+      })
+    });
+    renderAiChatSettings();
+    message.textContent = "AI Chat settings saved. The credential remains server-side and masked.";
+  } catch (error) {
+    message.textContent = readableApiError(error, "Could not save AI Chat settings.");
+  } finally {
+    button.disabled = false;
+  }
+}
+
+function replaceAiChatKey() {
+  const input = $("aiChatApiKey");
+  input.value = "";
+  input.required = true;
+  input.focus();
+  $("aiChatSettingsMessage").textContent = "Enter the newly rotated key, then select Save.";
+}
+
+async function testAiChatConnection() {
+  const button = $("aiChatTestButton");
+  const message = $("aiChatTestMessage");
+  button.disabled = true;
+  message.textContent = "Running one controlled connection test...";
+  try {
+    const result = await api("/admin/api/ai-chat/test-connection", { method: "POST", body: "{}" });
+    message.textContent = `${result.status || "Connected"} · ${result.model || "claude-opus-4-8"} · ${Number(result.latency_ms || 0)} ms`;
+  } catch (error) {
+    message.textContent = readableApiError(error, "Connection test failed safely.");
+  } finally {
+    button.disabled = false;
+  }
 }
 
 async function refreshAdminUsers() {
@@ -2639,6 +2719,7 @@ async function setDashboardWindow(window) {
   }
 }
 function setTab(tab) {
+  if ((tab === "team" || tab === "aiChatSettings") && state.currentAdmin?.role !== "owner") return;
   document.querySelectorAll(".nav-item[data-tab]").forEach(button => button.classList.toggle("active", button.dataset.tab === tab));
   document.querySelectorAll(".section").forEach(section => section.classList.toggle("active", section.id === tab));
   if (window.innerWidth <= 820 && $("sidebar").classList.contains("open")) toggleSidebar();
@@ -2648,6 +2729,7 @@ function setTab(tab) {
   if (tab === "notificationOps") refreshNotificationOps({ silent: true });
   if (tab === "payments") refreshNotificationOps({ silent: true });
   if (tab === "team") refreshAdminUsers();
+  if (tab === "aiChatSettings") refreshAiChatSettings();
 }
 
 function openNotificationCenter(tab = "jobs") {
@@ -3079,6 +3161,22 @@ const ADMIN_ACTIONS = Object.freeze({
         `${nextActive ? "Enable" : "Disable"} ${element.dataset.username}?`
       );
     }
+  },
+  "ai-chat:refresh": {
+    event: "click",
+    run: () => refreshAiChatSettings()
+  },
+  "ai-chat:save": {
+    event: "submit",
+    run: ({ event }) => saveAiChatSettings(event)
+  },
+  "ai-chat:replace": {
+    event: "click",
+    run: () => replaceAiChatKey()
+  },
+  "ai-chat:test": {
+    event: "click",
+    run: () => testAiChatConnection()
   }
 });
 

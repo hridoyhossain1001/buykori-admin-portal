@@ -137,6 +137,10 @@
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8M19 8v6M22 11h-6"/></svg>
             Team &amp; Access
           </button>
+          <button class="nav-item" data-tab="aiChatSettings">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3a7 7 0 00-7 7v3a4 4 0 004 4h1v-6H7v-1a5 5 0 0110 0v1h-3v6h1a4 4 0 004-4v-3a7 7 0 00-7-7zM9 20h6"/></svg>
+            AI Chat Settings
+          </button>
         </div>
       </div>
 
@@ -913,6 +917,37 @@
                 <button id="teamCreateButton" class="btn btn-primary" type="submit">Add administrator</button>
                 <p id="teamFormMessage" class="notice"></p>
               </form>
+            </div>
+          </div>
+        </section>
+
+        <section id="aiChatSettings" class="section">
+          <div class="page-header">
+            <div><h1 class="page-title">AI Chat Provider</h1><p class="page-sub">Server-side ChatNow configuration for the controlled Client 47 beta.</p></div>
+            <button class="btn btn-outline" data-action="ai-chat:refresh">Refresh</button>
+          </div>
+          <div class="grid-layout team-layout">
+            <div class="card">
+              <div class="card-header"><h2 class="card-title">Provider configuration</h2><span id="aiChatConfiguredBadge" class="client-sub">Not loaded</span></div>
+              <form id="aiChatSettingsForm" class="form-card" data-action="ai-chat:save">
+                <div class="field"><label for="aiChatProvider">Provider</label><input id="aiChatProvider" value="tabitoken" readonly></div>
+                <div class="field"><label for="aiChatBaseUrl">Base URL</label><input id="aiChatBaseUrl" type="url" value="https://tabitoken.com/v1" required></div>
+                <div class="field"><label for="aiChatModel">Model</label><input id="aiChatModel" value="claude-opus-4-8" readonly></div>
+                <div class="field"><label for="aiChatApiKey">API key</label><input id="aiChatApiKey" type="password" autocomplete="new-password" placeholder="Enter a newly rotated key"><small id="aiChatKeyStatus">Write-only. Existing keys are never returned.</small></div>
+                <div class="header-actions">
+                  <button id="aiChatSaveButton" class="btn btn-primary" type="submit">Save</button>
+                  <button id="aiChatReplaceButton" class="btn btn-outline" type="button" data-action="ai-chat:replace">Replace Key</button>
+                </div>
+                <p id="aiChatSettingsMessage" class="notice" role="status" aria-live="polite"></p>
+              </form>
+            </div>
+            <div class="card">
+              <div class="card-header"><h2 class="card-title">Connection test</h2></div>
+              <div class="form-card">
+                <p class="client-sub">Runs one fixed non-sensitive prompt. Provider content and credentials are not returned by the backend.</p>
+                <button id="aiChatTestButton" class="btn btn-outline" type="button" data-action="ai-chat:test">Test Connection</button>
+                <p id="aiChatTestMessage" class="notice" role="status" aria-live="polite"></p>
+              </div>
             </div>
           </div>
         </section>
